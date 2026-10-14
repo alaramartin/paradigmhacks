@@ -28,7 +28,14 @@ _Headless only (unit + integration tests, hub smoke test). Per the look-and-try 
 ### Blocked
 
 ### Needs human
-- **Model credentials:** put `ANTHROPIC_API_KEY` in `.env` (and `LLM_MODEL` if you want something other than the default `claude-opus-5-5`), or paste Jev docs into `docs/jev.md` + `JEV_API_KEY` if Jev is a sponsor requirement (the Jev client isn't written yet; it needs the docs). Then run `cd brain && npm run latency`.
+- (none right now) Jev key is in `.env`. Base URL is `https://api.typesafe.ai` (B defaults to it when `JEV_BASE_URL` is empty).
+
+### Jev findings (B, 01:5x)
+- **Jev = TypeSafe's model.** Docs: https://docs.typesafe.ai/introduction · cookbooks: https://docs.typesafe.ai/cookbooks · raw copies of the key pages in `docs/jev.md`.
+- One endpoint: `POST https://api.typesafe.ai/v1/systemone`, `Authorization: Bearer <key>`, body `{model:"jev-latest", state, questions}`. Questions are `choice` (≤255 options), `score`, or `noul` (yes-probability). Text only, 32k tokens for state + longest question.
+- **Jev does not generate text.** It picks/scores/answers yes-no about the state you send. So B generates candidate actions in code (clicks, select options, values found on other pages, URLs in Terminal) and asks Jev one Choice: which is next. Free text like the PR description has to come from code (a template from the commit titles on the page), not from Jev.
+- Measured live: 0.14–0.21 s per call, picked "Type 4471-209 into Rx" at confidence 0.81 on the pharmacy form. Well under the 1.5 s budget.
+- Known rough edges (docs): leans toward the first Choice option; accuracy drops with irrelevant state, so B sends only what the question needs.
 
 ### Notes for A and C (from B)
 - **C — `type` exec should replace the field's value**, not append. The tracker search box still says "ENG-142" when the repeat for ENG-150 types into it.
