@@ -2,6 +2,9 @@
 // Synchronous and model-free; must stay well under 10 ms.
 import type { Action, El, ScreenState } from "../../protocol/types.ts";
 import type { HistEntry } from "./history.ts";
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { dirname, join } from "node:path";
 import { CACHE_MS, CHROME, stateKey } from "./state.ts";
 
 const MIN_UNIT = 2;
@@ -72,22 +75,144 @@ function provCandidates(v: string, others: ScreenState[]): Prov[] {
     return out;
 }
 
-function listItem(s: ScreenState, p: Prov, index: number): El | undefined {
-    return s.elements.find((e) => e.list?.key === p.listKey && e.list.index === index && e.list.field === p.field);
-}
-
 function listLength(s: ScreenState, listKey: string): number {
     let max = -1;
     for (const e of s.elements) if (e.list?.key === listKey) max = Math.max(max, e.list.index);
     return max + 1;
 }
 
+/** One step of a saved workflow: a literal value, a value from a field of the source row, or a list-item click. */
+export interface TemplateStep {
+    op: Action["op"];
+    app: string;
+    url?: string;
+    targetId?: string;
+    targetPath?: string;
+    value?: string; // literal (e.g. "Done")
+    prov?: { field?: string; attr: "label" | "value" }; // typed value comes from this field of the source row
+    contains?: { listKey: string; field?: string; attr: "label" | "value" }; // click the item on this page whose label contains that row value
+}
+
+/** A learned repeat unit, saved to disk so it can be offered again after a restart. */
+export interface Workflow {
+    sig: string; // unit signature (same as the live rule's)
+    url: string; // page the steps run on (the tracker)
+    srcHost: string; // host of the source list page (github.com)
+    srcTitle?: string; // window title of the source page when learned
+    listKey: string; // source list path
+    fields: string[]; // prov fields used, e.g. td:nth-child(1), td:nth-child(3)
+    template: TemplateStep[];
+    learnedAt: number;
+    accepted: number;
+}
+
+function itemValue(s: ScreenState, listKey: string, field: string | undefined, attr: "label" | "value", index: number): string | undefined {
+    const el = s.elements.find((e) => e.list?.key === listKey && e.list.index === index && e.list.field === field);
+    const v = el && (attr === "label" ? el.label : el.value);
+    return v?.trim() || undefined;
+}
+
+/** Steps for row `index` of the source list. Shared by the live rule and recall. */
+export function unitFor(wf: Workflow, src: ScreenState, index: number, listKey = wf.listKey): { steps: Step[]; vals: string[] } | null {
+    const steps: Step[] = [];
+    const vals: string[] = [];
+    for (const t of wf.template) {
+        const step: Step = { op: t.op, app: t.app, url: t.url, targetId: t.targetId, targetPath: t.targetPath, value: t.value, label: "", confidence: 1, source: "pattern" };
+        if (t.prov) {
+            const v = itemValue(src, listKey, t.prov.field, t.prov.attr, index);
+            if (!v) return null;
+            step.value = v;
+            if (!vals.includes(v)) vals.push(v);
+        }
+        if (t.contains) {
+            const v = itemValue(src, listKey, t.contains.field, t.contains.attr, index);
+            if (!v) return null;
+            step.match = { listKey: t.contains.listKey, contains: v };
+            delete step.targetId;
+            delete step.targetPath;
+        }
+        steps.push(step);
+    }
+    return { steps, vals };
+}
+
+/** Saved workflows. `file` null = memory only (tests). Writes are atomic (temp file + rename). */
+export class WorkflowStore {
+    private map = new Map<string, Workflow>();
+    constructor(private file: string | null) {
+        if (!file || !existsSync(file)) return;
+        try {
+            for (const w of JSON.parse(readFileSync(file, "utf8")) as Workflow[]) this.map.set(w.sig, w);
+        } catch (e) {
+            console.error(`[pattern] ignoring unreadable ${file}: ${(e as Error).message}`);
+        }
+    }
+    all(): Workflow[] {
+        return [...this.map.values()];
+    }
+    get(sig: string): Workflow | undefined {
+        return this.map.get(sig);
+    }
+    upsert(w: Workflow): void {
+        const old = this.map.get(w.sig);
+        this.map.set(w.sig, old ? { ...w, learnedAt: old.learnedAt, accepted: Math.max(old.accepted, w.accepted) } : w);
+        this.flush();
+    }
+    clear(): void {
+        this.map.clear();
+        if (this.file && existsSync(this.file)) rmSync(this.file);
+    }
+    private flush(): void {
+        if (!this.file) return;
+        mkdirSync(dirname(this.file), { recursive: true });
+        const tmp = `${this.file}.${process.pid}.tmp`;
+        writeFileSync(tmp, JSON.stringify(this.all(), null, 2));
+        renameSync(tmp, this.file);
+    }
+}
+
+export const DEFAULT_WORKFLOWS_FILE = join(homedir(), ".tab", "workflows.json");
+
+const hostOf = (u?: string) => {
+    try {
+        return u ? new URL(u).host : "";
+    } catch {
+        return "";
+    }
+};
+
+/** "v1.4.0" from "Release v1.4.0 · alaramartin/tab-demo · GitHub", else the title's first part. */
+function shortName(s: ScreenState): string {
+    const v = `${s.window} ${s.url ?? ""}`.match(/\bv\d+(?:\.\d+)+\b/);
+    if (v) return v[0];
+    const head = (s.window || hostOf(s.url)).split(" · ")[0].trim();
+    return head.length > 24 ? head.slice(0, 23) + "…" : head;
+}
+
+function clock(ts: number): string {
+    const d = new Date(ts);
+    const h = d.getHours();
+    return `${h % 12 || 12}:${String(d.getMinutes()).padStart(2, "0")} ${h < 12 ? "am" : "pm"}`;
+}
+
 export class PatternEngine {
     private seen = new Map<string, Set<number>>(); // sig → trigger timestamps
     private accepted = new Map<string, number>();
+    readonly workflows: WorkflowStore;
+
+    constructor(opts: { file?: string | null } = {}) {
+        this.workflows = new WorkflowStore(opts.file ?? null);
+    }
 
     onAccepted(sig: string): void {
         this.accepted.set(sig, (this.accepted.get(sig) ?? 0) + 1);
+        const w = this.workflows.get(sig);
+        if (w) this.workflows.upsert({ ...w, accepted: w.accepted + 1 });
+    }
+
+    /** Forget saved workflows (full reset-demo). */
+    forgetWorkflows(): void {
+        this.workflows.clear();
     }
 
     predict(h: HistEntry[], states: ScreenState[], now: number): PatternAction | null {
@@ -111,56 +236,37 @@ export class PatternEngine {
         const src = states.find((s) => stateKey(s) === p0.stateKey)!;
 
         // Clicks on list items on this page whose label mentions a provenance value become label matches.
-        const provVals = unit.map((e, k) => (provs[k] ? e.value! : null));
-        const template = unit.map((e, k) => {
-            const contains =
-                e.op === "click" && e.target?.list
-                    ? provVals.find((v) => v && e.target!.label.toLowerCase().includes(v.trim().toLowerCase()))
-                    : undefined;
-            return { e, prov: provs[k], contains: contains ?? undefined };
+        const template: TemplateStep[] = unit.map((e, k) => {
+            const t: TemplateStep = { op: e.op, app: e.app, url: e.url, targetId: e.target?.id, targetPath: e.target?.path, value: e.value };
+            const p = provs[k];
+            if (p) {
+                t.prov = { field: p.field, attr: p.attr };
+                delete t.value;
+            } else if (e.op === "click" && e.target?.list) {
+                const label = e.target.label.toLowerCase();
+                const j = unit.findIndex((u, i) => provs[i] && label.includes(u.value!.trim().toLowerCase()));
+                if (j >= 0) t.contains = { listKey: e.target.list.key, field: provs[j]!.field, attr: provs[j]!.attr };
+            }
+            return t;
         });
 
         const sig =
             url +
             "|" +
             template
-                .map(({ e, prov, contains }) =>
-                    [e.op, contains ? `list:${e.target!.list!.key}` : e.target?.path ?? "", prov ? `prov:${prov.field}` : e.value ?? ""].join(","),
-                )
+                .map((t) => [t.op, t.contains ? `list:${t.contains.listKey}` : t.targetPath ?? "", t.prov ? `prov:${t.prov.field}` : t.value ?? ""].join(","))
                 .join(";");
 
-        const unitFor = (index: number): { steps: Step[]; vals: string[] } | null => {
-            const steps: Step[] = [];
-            const vals: string[] = [];
-            const newVal = new Map<string, string>(); // old prov value → new
-            for (const { e, prov } of template) {
-                if (!prov) continue;
-                const el = listItem(src, prov, index);
-                const v = el && (prov.attr === "label" ? el.label : el.value);
-                if (!v) return null;
-                newVal.set(e.value!.trim().toLowerCase(), v.trim());
-                if (!vals.includes(v.trim())) vals.push(v.trim());
-            }
-            for (const { e, prov, contains } of template) {
-                const step: Step = {
-                    op: e.op,
-                    app: e.app,
-                    url: e.url,
-                    targetId: e.target?.id,
-                    targetPath: e.target?.path,
-                    value: prov ? newVal.get(e.value!.trim().toLowerCase()) : e.value,
-                    label: "",
-                    confidence: 1,
-                    source: "pattern",
-                };
-                if (contains) {
-                    step.match = { listKey: e.target!.list!.key, contains: newVal.get(contains.trim().toLowerCase())! };
-                    delete step.targetId;
-                    delete step.targetPath;
-                }
-                steps.push(step);
-            }
-            return { steps, vals };
+        const wf: Workflow = {
+            sig,
+            url,
+            srcHost: hostOf(src.url),
+            srcTitle: src.window,
+            listKey: p0.listKey,
+            fields: [...new Set(template.flatMap((t) => [t.prov, t.contains].filter(Boolean).map((x) => x!.field ?? "")))],
+            template,
+            learnedAt: now,
+            accepted: this.accepted.get(sig) ?? 0,
         };
 
         const seenSet = this.seen.get(sig) ?? new Set();
@@ -169,15 +275,16 @@ export class PatternEngine {
         const confidence = seenSet.size >= 2 ? 0.97 : 0.85;
 
         const next = p0.index + 1;
-        const first = unitFor(next);
+        const first = unitFor(wf, src, next);
         if (!first) return null;
+        if (unitFor(wf, src, p0.index)) this.workflows.upsert(wf); // full provenance: worth remembering
 
         const base = { op: "sequence" as const, app: CHROME, url, confidence, source: "pattern" as const, sig };
         if ((this.accepted.get(sig) ?? 0) >= 2) {
             const steps: Step[] = [];
             let n = 0;
             for (let i = next; i < listLength(src, p0.listKey); i++) {
-                const u = unitFor(i);
+                const u = unitFor(wf, src, i);
                 if (!u) break;
                 steps.push(...u.steps);
                 n++;
@@ -185,5 +292,53 @@ export class PatternEngine {
             return { ...base, steps, label: `Do the remaining ${n}` };
         }
         return { ...base, steps: first.steps, label: `Repeat for ${first.vals.join(" · ")}` };
+    }
+
+    /**
+     * Offer a saved workflow for the whole list, before the user does anything (recognised by context: this page plus a
+     * source page with a list of the same shape). Rows already done are redone; the steps are idempotent.
+     */
+    recall(active: ScreenState, states: ScreenState[], now: number, h: HistEntry[]): PatternAction | null {
+        const wfs = this.workflows.all().filter((w) => w.url === stateKey(active));
+        if (!wfs.length || active.source !== "web") return null;
+        // Only on a fresh visit: nothing done on this page since the last navigation to it.
+        let k = h.length - 1;
+        for (; k >= 0; k--) if (h[k].op === "navigate" && h[k].value === active.url) break;
+        if (h.slice(k + 1).some((e) => e.url === active.url && e.op !== "navigate")) return null;
+
+        const others = states.filter((s) => now - s.ts <= CACHE_MS && stateKey(s) !== stateKey(active));
+        for (const wf of wfs.sort((a, b) => b.learnedAt - a.learnedAt)) {
+            for (const s of others) {
+                let key: string | undefined;
+                if (hostOf(s.url) === wf.srcHost && s.elements.some((e) => e.list?.key === wf.listKey)) key = wf.listKey;
+                else {
+                    // Fallback: any list whose items have all the fields the workflow reads.
+                    const byKey = new Map<string, Set<string>>();
+                    for (const e of s.elements) if (e.list) byKey.set(e.list.key, (byKey.get(e.list.key) ?? new Set()).add(e.list.field ?? ""));
+                    key = [...byKey].find(([, f]) => wf.fields.every((x) => f.has(x)))?.[0];
+                }
+                if (!key) continue;
+                const steps: Step[] = [];
+                let n = 0;
+                for (let i = 0; i < listLength(s, key); i++) {
+                    const u = unitFor(wf, s, i, key);
+                    if (!u) break;
+                    steps.push(...u.steps);
+                    n++;
+                }
+                if (!n) continue;
+                return {
+                    op: "sequence",
+                    app: CHROME,
+                    url: wf.url,
+                    steps,
+                    label: `Do all ${n} from ${shortName(s)} · learned ${clock(wf.learnedAt)}`,
+                    confidence: 0.9,
+                    source: "pattern",
+                    sig: wf.sig,
+                };
+            }
+        }
+        return null;
     }
 }

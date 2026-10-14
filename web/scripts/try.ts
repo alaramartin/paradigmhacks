@@ -1,11 +1,16 @@
 // Headless rehearsal of the web flows against the real hub, web process and demo sites.
 // Plays the user (real CDP mouse/keys in Chrome) and plays the shell toward the hub (frontmost, accept,
 // dismiss), then checks every ghost and every outcome. Screenshots go to design/shots/try-*.png.
-//   npm run try -- [flow1|flow3|flow4|all]
+//   npm run try -- [flow1|flow3|flow4|all|flow3-recall]
+//   flow3-recall: flow 3, then reset-demo --keep-workflows, RESTART THE HUB (kills whatever listens on :7800 and
+//   starts brain's hub detached, log in $TMPDIR/tab-hub-try.log), reload the tracker → "Do all 6 from v1.4.0".
 // Needs: npm run demo, the hub (brain: npm start), npm start (this package), Chrome on :9222.
 import CDP from "chrome-remote-interface";
 import WebSocket from "ws";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, openSync, writeFileSync } from "node:fs";
+import { spawn, spawnSync } from "node:child_process";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Ghost } from "../../protocol/types.ts";
 const env = { cdpPort: Number(process.env.CDP_PORT ?? 9222), hubUrl: `ws://127.0.0.1:${process.env.HUB_PORT ?? 7800}` };
@@ -25,14 +30,18 @@ const ok = (cond: boolean, what: string) => {
 
 // ---------- hub, as the shell ----------
 const ghosts: Ghost[] = [];
-const hub = new WebSocket(env.hubUrl);
-await new Promise<void>((res, rej) => (hub.once("open", () => res()), hub.once("error", rej)));
-hub.send(JSON.stringify({ type: "hello", role: "tool" }));
-hub.on("message", (d) => {
-    const m = JSON.parse(String(d));
-    if (m.to === "shell" && m.msg.type === "ghost") ghosts.push(m.msg.ghost);
-    if (m.to === "shell" && m.msg.type === "ghost_hide") ghosts.push({ id: "", kind: "done", label: "(hidden)" });
-});
+let hub!: WebSocket;
+async function connectHub(): Promise<void> {
+    hub = new WebSocket(env.hubUrl);
+    await new Promise<void>((res, rej) => (hub.once("open", () => res()), hub.once("error", rej)));
+    hub.send(JSON.stringify({ type: "hello", role: "tool" }));
+    hub.on("message", (d) => {
+        const m = JSON.parse(String(d));
+        if (m.to === "shell" && m.msg.type === "ghost") ghosts.push(m.msg.ghost);
+        if (m.to === "shell" && m.msg.type === "ghost_hide") ghosts.push({ id: "", kind: "done", label: "(hidden)" });
+    });
+}
+await connectHub();
 const asShell = (m: object) => hub.send(JSON.stringify({ as: "shell", ...m }));
 const frontmost = () => asShell({ type: "frontmost", app: "com.google.Chrome", window: "Chrome" });
 
@@ -150,6 +159,7 @@ async function flow3() {
     await rel.close();
     const c = await tabFor("http://tracker.localhost:4003/");
     frontmost();
+    if (!process.env.TRY_ALLOW_RECALL) ok(!(await waitGhost((g) => g.label.startsWith("Do all"), 2500)), "no recall ghost before ticket 1 is taught");
     await typeInto(c, "#search", "ENG-142");
     await click(c, "#list li:nth-child(1) button");
     await choose(c, "#p-status", "Done");
@@ -166,6 +176,45 @@ async function flow3() {
     await sleep(300);
     await shot(c, "flow3-tracker");
     await c.close();
+}
+
+async function restartHub(): Promise<void> {
+    const pids = spawnSync("lsof", ["-t", `-iTCP:${new URL(env.hubUrl).port}`, "-sTCP:LISTEN"], { encoding: "utf8" }).stdout.trim().split("\n").filter(Boolean);
+    hub.close();
+    for (const p of pids) process.kill(Number(p), "SIGTERM");
+    await sleep(800);
+    const log = openSync(join(tmpdir(), "tab-hub-try.log"), "a");
+    spawn("npx", ["tsx", "src/hub.ts"], { cwd: fileURLToPath(new URL("../../brain/", import.meta.url)), detached: true, stdio: ["ignore", log, log] }).unref();
+    for (let i = 0; i < 50; i++) {
+        await sleep(200);
+        try {
+            await connectHub();
+            return;
+        } catch {}
+    }
+    throw new Error("hub did not come back");
+}
+
+async function flow3Recall() {
+    console.log("Flow 3 recall: teach, reset keeping workflows, restart the hub, reload → Do all 6");
+    await flow3();
+    const r = spawnSync("npx", ["tsx", "scripts/reset-demo.ts", "--keep-workflows"], { cwd: fileURLToPath(new URL("../", import.meta.url)), encoding: "utf8" });
+    ok(/saved workflows kept/.test(r.stdout), `reset-demo --keep-workflows: ${r.stdout.split("\n")[0]}`);
+    const rel = await tabFor(process.env.RELEASE_URL ?? "https://github.com/alaramartin/tab-demo/releases/tag/v1.4.0"); // stays open: the source list
+    await restartHub();
+    ok(true, "hub restarted (workflow must come from disk)");
+    await sleep(2500); // web reconnects and re-sends every tab's state
+    const c = await tabFor("http://tracker.localhost:4003/");
+    frontmost();
+    ok(await until(c, `fetch("/api/tickets").then(r => r.json()).then(ts => ts.every(t => t.status === "In review"))`), "tracker reset to In review");
+    const g = await accept((g) => g.label.startsWith("Do all 6 from"), "Do all 6 from v1.4.0 · learned …", 8000);
+    if (g) {
+        ok(/^Do all 6 from v1\.4\.0 · learned \d{1,2}:\d{2} (am|pm) ⇥$/.test(g.label), `label: "${g.label}"`);
+        ok(await until(c, `fetch("/api/tickets").then(r => r.json()).then(ts => ts.every(t => t.status === "Done") && ts.map(t => t.pr).join() === "#12,#13,#14,#15,#16,#17")`, 40000), "all six Done with #12–#17");
+    }
+    await shot(c, "flow3-recall");
+    await c.close();
+    await rel.close();
 }
 
 async function flow4() {
@@ -199,6 +248,7 @@ try {
     if (which === "flow1" || which === "all") await flow1();
     if (which === "flow3" || which === "all") await flow3();
     if (which === "flow4" || which === "all") await flow4();
+    if (which === "flow3-recall") await flow3Recall();
 } finally {
     hub.close();
 }

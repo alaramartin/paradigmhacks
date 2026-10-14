@@ -4,6 +4,7 @@ import { WebSocketServer, type WebSocket } from "ws";
 import type { HubToShell, HubToWeb } from "../../protocol/types.ts";
 import { Brain } from "./brain.ts";
 import { makeDecider } from "./model.ts";
+import { DEFAULT_WORKFLOWS_FILE } from "./pattern.ts";
 
 config({ path: new URL("../../.env", import.meta.url).pathname });
 
@@ -25,6 +26,7 @@ const brain = new Brain({
     sendShell: (m) => out("shell", m),
     sendWeb: (m) => out("web", m),
     decider,
+    workflowsFile: process.env.TAB_WORKFLOWS_FILE || DEFAULT_WORKFLOWS_FILE,
     onPredict: ({ source, latencyMs, action }) =>
         console.log(`[predict] ${source} ${latencyMs.toFixed(1)} ms → ${action ? `${action.label} (${action.confidence})` : "none"}`),
 });
@@ -48,8 +50,8 @@ wss.on("connection", (ws) => {
         }
         if (role === "tool" && (m.to === "shell" || m.to === "web") && m.msg) return out(m.to, m.msg);
         if (role === "tool" && m.type === "reset") {
-            brain.reset(); // web/scripts/reset-demo.ts: history, units and HUD counters back to zero
-            return console.log("hub: reset");
+            brain.reset(!!m.keepWorkflows); // web/scripts/reset-demo.ts: history, units, counters; saved workflows unless kept
+            return console.log(`hub: reset${m.keepWorkflows ? " (kept workflows)" : ""}`);
         }
         // Tools can impersonate either side: {"as":"shell"|"web", ...msg}
         const from = role === "tool" ? m.as ?? "web" : role;

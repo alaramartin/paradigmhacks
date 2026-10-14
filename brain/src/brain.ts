@@ -23,13 +23,15 @@ export interface BrainOpts {
     decider: Decider | null;
     /** Replay/tests: predict right away instead of debouncing and waiting for idle. */
     immediate?: boolean;
+    /** Where learned workflows are saved (`~/.tab/workflows.json` in the hub); omit for memory only (tests). */
+    workflowsFile?: string | null;
     onPredict?(info: { source: "pattern" | "model"; latencyMs: number; action: Action | null }): void;
 }
 
 export class Brain {
     store = new StateStore();
     history = new History();
-    pattern = new PatternEngine();
+    pattern: PatternEngine;
     hud = newHud();
 
     private gen = 0;
@@ -46,13 +48,16 @@ export class Brain {
     private stateWaiters: { key: string; resolve: () => void }[] = [];
     private modelCache: { key: string; action: Action | null } | null = null;
 
-    constructor(private o: BrainOpts) {}
+    constructor(private o: BrainOpts) {
+        this.pattern = new PatternEngine({ file: o.workflowsFile ?? null });
+    }
 
     /** Fresh start for a rehearsal or the demo: no history, no learned units, counters at 0, nothing on screen. */
-    reset(): void {
+    reset(keepWorkflows = false): void {
         if (this.timer) clearTimeout(this.timer);
         this.history = new History();
-        this.pattern = new PatternEngine();
+        if (!keepWorkflows) this.pattern.forgetWorkflows();
+        this.pattern = new PatternEngine({ file: this.o.workflowsFile ?? null }); // reloads what was kept
         this.hud = newHud();
         this.payment = null;
         this.dismissedKey = null;
@@ -211,6 +216,16 @@ export class Brain {
         if (pa) {
             const shown = this.maybeShow(pa, gen, pMs);
             this.logPred(gen, "pattern", pMs, pa, shown);
+            if (shown) return;
+        }
+
+        // 1b. A saved workflow for this page, offered before the user starts (after a restart too).
+        const t2 = performance.now();
+        const rc = pa ? null : this.pattern.recall(active, this.store.recent(now), now, this.history.entries);
+        if (rc) {
+            const ms = performance.now() - t2;
+            const shown = this.maybeShow(rc, gen, ms);
+            this.logPred(gen, "pattern", ms, rc, shown);
             if (shown) return;
         }
 

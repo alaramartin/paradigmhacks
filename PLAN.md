@@ -52,6 +52,7 @@ Layout: Chrome window on the left showing the GitHub release `v1.4.0`, whose not
 2. Ghost: `Repeat for ENG-150 · #13 ⇥` → Tab. Ticket 2 is done in one go. HUD: `pattern · 0 model calls · <10 ms`.
 3. Ghost: `Repeat for ENG-151 · #14 ⇥` → Tab.
 4. Ghost: `Do the remaining 3 ⇥` → Tab. All six tickets show Done.
+5. *(Optional beat: remembered workflow.)* Run `cd web && npm run reset-demo -- --keep-workflows`, **restart the hub** (`cd brain && npm start`, proving it's on disk, not memory), reload the tracker. Before touching anything: `Do all 6 from v1.4.0 · learned <time> ⇥` → Tab → all six Done. Tab recognises the job by context (this page + an open list of the same shape), not by the user's first steps. Rehearse with `npm run try -- flow3-recall`. **Before the real demo run the full `npm run reset-demo`** (it forgets saved workflows), or flow 3 opens with the recall ghost instead of "teach once".
 
 ### 4. Accessibility: one button
 
