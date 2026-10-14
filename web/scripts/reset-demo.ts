@@ -3,11 +3,12 @@
 //   GitHub:  close the demo PR, delete the remote fix/checkout-rounding branch, and leave the local
 //            branch with its 2 unpushed commits (no upstream), so `git push -u ...` prints the PR link again.
 import { config } from "dotenv";
+import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 
-config({ path: new URL("../../.env", import.meta.url).pathname, quiet: true });
+config({ path: fileURLToPath(new URL("../../.env", import.meta.url)), quiet: true });
 const REPO = process.env.GITHUB_DEMO_REPO;
 const CLONE = (process.env.GITHUB_DEMO_CLONE || "~/Projects/tab-demo").replace(/^~/, homedir());
 const BRANCH = "fix/checkout-rounding";

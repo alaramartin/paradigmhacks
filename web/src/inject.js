@@ -18,6 +18,10 @@
         return el.dataset.tabId;
     }
 
+    // Repeatable tags always carry their position, so a path is the same whether one or six items show
+    // (the tracker's search shows one result while a unit is recorded, and six while it is replayed).
+    const REPEATABLE = new Set(["LI", "TR", "TD", "TH", "DT", "DD", "OPTION", "ARTICLE"]);
+
     function cssPath(el) {
         if (el.id && document.querySelectorAll("#" + CSS.escape(el.id)).length === 1) return "#" + CSS.escape(el.id);
         const parts = [];
@@ -33,7 +37,7 @@
                 break;
             }
             const same = [...p.children].filter((c) => c.tagName === e.tagName);
-            parts.unshift(same.length > 1 ? `${tag}:nth-child(${[...p.children].indexOf(e) + 1})` : tag);
+            parts.unshift(same.length > 1 || REPEATABLE.has(e.tagName) ? `${tag}:nth-child(${[...p.children].indexOf(e) + 1})` : tag);
         }
         return parts.join(" > ");
     }
@@ -46,7 +50,7 @@
             const p = e.parentElement;
             const tag = e.tagName.toLowerCase();
             const same = p ? [...p.children].filter((c) => c.tagName === e.tagName) : [];
-            parts.unshift(same.length > 1 ? `${tag}:nth-child(${[...p.children].indexOf(e) + 1})` : tag);
+            parts.unshift(same.length > 1 || REPEATABLE.has(e.tagName) ? `${tag}:nth-child(${[...p.children].indexOf(e) + 1})` : tag);
         }
         return parts.join(" > ");
     }

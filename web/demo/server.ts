@@ -2,13 +2,14 @@
 //   tickets :4001 · resale :4002 · tracker :4003 · inbox :4004 · pharmacy :4005
 // Every paid action is a fetch POST from page JS (no paid document loads), so Tab can hold the 402.
 import { config } from "dotenv";
+import { fileURLToPath } from "node:url";
 import express, { type Express } from "express";
 import { paymentMiddleware, x402ResourceServer } from "@x402/express";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { HTTPFacilitatorClient } from "@x402/core/server";
 import { inboxPage, pharmacyPage, trackerPage, ticketsCheckout, ticketsEvent } from "./pages.ts";
 
-config({ path: new URL("../../.env", import.meta.url).pathname, quiet: true });
+config({ path: fileURLToPath(new URL("../../.env", import.meta.url)), quiet: true });
 
 const NETWORK = (process.env.NETWORK ?? "eip155:84532") as `${string}:${string}`;
 const PAYEE = process.env.PAYEE_ADDRESS!;
@@ -31,7 +32,7 @@ const usd = (n: number) => `$${Number(n.toFixed(3))}`;
 function app(): Express {
     const a = express();
     a.use(express.json());
-    a.use("/static", express.static(new URL("./static/", import.meta.url).pathname));
+    a.use("/static", express.static(fileURLToPath(new URL("./static/", import.meta.url))));
     return a;
 }
 

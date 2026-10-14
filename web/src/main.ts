@@ -1,6 +1,7 @@
 // Agent C: makes Chrome visible and controllable for the hub, and handles x402 end to end.
 // One CDP connection per page tab. The injected script (inject.js) reports state and user events.
 import { config } from "dotenv";
+import { fileURLToPath } from "node:url";
 import CDP from "chrome-remote-interface";
 import { readFileSync } from "node:fs";
 import WebSocket from "ws";
@@ -12,7 +13,7 @@ import type { Action, El, PaymentRequired, Rect, ScreenState } from "../../proto
 import { fmtUsd, intentCheck } from "./intent.ts";
 import { record } from "./ledger.ts";
 
-config({ path: new URL("../../.env", import.meta.url).pathname, quiet: true });
+config({ path: fileURLToPath(new URL("../../.env", import.meta.url)), quiet: true });
 
 const CHROME = "com.google.Chrome";
 const CDP_PORT = Number(process.env.CDP_PORT ?? 9222);

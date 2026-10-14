@@ -1,12 +1,13 @@
 // npm run pay-test — buys 2 tickets through Node alone (no browser) and prints the tx hash.
 // Needs the demo server running (npm run demo) and a funded payer.
 import { config } from "dotenv";
+import { fileURLToPath } from "node:url";
 import { wrapFetchWithPaymentFromConfig, decodePaymentResponseHeader } from "@x402/fetch";
 import { decodePaymentRequiredHeader } from "@x402/core/http";
 import { ExactEvmScheme } from "@x402/evm";
 import { privateKeyToAccount } from "viem/accounts";
 
-config({ path: new URL("../../.env", import.meta.url).pathname, quiet: true });
+config({ path: fileURLToPath(new URL("../../.env", import.meta.url)), quiet: true });
 const account = privateKeyToAccount(process.env.PAYER_PRIVATE_KEY as `0x${string}`);
 const network = (process.env.NETWORK ?? "eip155:84532") as `${string}:${string}`;
 const fetchWithPayment = wrapFetchWithPaymentFromConfig(fetch, { schemes: [{ network, client: new ExactEvmScheme(account) }] });

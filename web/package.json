@@ -10,6 +10,8 @@
     "reset-demo": "tsx scripts/reset-demo.ts",
     "balance": "tsx scripts/balance.ts",
     "wallets": "tsx scripts/new-wallets.ts",
+    "try": "tsx scripts/try.ts",
+    "look": "tsx scripts/look.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
