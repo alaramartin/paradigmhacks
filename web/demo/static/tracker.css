@@ -52,7 +52,7 @@
   #panel { display: none; }
   #panel.open { display: flex; }
   .panel { position: fixed; top: 0; right: 0; bottom: 0; width: min(380px, 92vw); background: var(--surface); border-left: 1px solid var(--line); padding: 28px 28px 24px;
-    display: flex; flex-direction: column; gap: 20px; box-shadow: -12px 0 32px rgba(0,0,0,0.04); }
+    display: flex; flex-direction: column; gap: 20px; box-shadow: -1px 0 0 var(--line), -18px 0 44px rgba(38,33,24,0.10); }
   .panel .key { font-size: 13px; }
   .panel h2 { font: 500 24px/1.2 var(--serif); letter-spacing: -0.02em; color: var(--ink-strong); margin-top: 4px; }
   .meta { display: grid; grid-template-columns: 96px 1fr; gap: 10px 12px; font-size: 14px; }

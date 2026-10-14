@@ -2,7 +2,7 @@
 :root {
   --bg: #1423b8; --surface: #1220a6; --ink: #ffffff; --muted: #b4bcf0;
   --accent: #1fc27a; --accent-ink: #0a0a0a;
-  --black: #000000; --yellow: #f7dd47;
+  --black: #06071c; /* off-black tinted toward the ultramarine */ --yellow: #f7dd47;
   --step-small: clamp(0.8125rem, 0.79rem + 0.1vw, 0.875rem);
   --step-body: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
   --step-lead: clamp(1.25rem, 1.1rem + 0.7vw, 1.625rem);
