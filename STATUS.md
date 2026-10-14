@@ -53,6 +53,7 @@
     6. Calendar's default calendar must stay **Tab Demo**: when the popover doesn't open, the event goes to the default.
     7. The offer comes ~1.8 s after `Paid ✓`. The presenter must wait for it before moving on to resale.
     8. Normal Chrome must be quit (preflight ✗); Do Not Disturb on.
+- **14:20 PT: the Calendar offer now sits on Calendar's Dock icon** (human's request: a better transition between apps than switching focus). `Ghost.dockApp` (protocol, branch only): the hub sets it on a sequence that starts in another native app; the shell finds that app's Dock icon through the Dock's AX (by app URL, else by name), highlights it and puts the pill above it. If the icon isn't in the Dock, it falls back to the old spot near the last click. Verified live: rect on the icon, pill `Add Night Owls · Fri 9pm to Calendar tab` right above it, Tab ran the whole beat and returned to Chrome. Event deleted; main's setup restored.
 
 
 **Run sheet (before every rehearsal and the demo):** `cd web && npm run reset-demo` (full: tracker, GitHub branch, hub history/counters, saved workflows; use `-- --keep-workflows` only for the recall beat) · `shell/scripts/preflight.sh` · confirm `PAY_RAIL` in `.env` and `npm run balance` > 0 · **once on the demo network (hotspot): quit TabShell, `cd web && npm run warm` (~5 min: every flow through the real hub incl. a real PR on tab-demo, then a full reset; prints how many screens Jev's cache holds), relaunch TabShell.**
