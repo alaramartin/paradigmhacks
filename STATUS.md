@@ -1,6 +1,8 @@
 # STATUS
 
-## Read first: current state and next steps (B, 10:45 PT Wed). A and C: pull and start here
+## Read first: current state and next steps (B, 10:45 PT Wed; updated 11:31). A and C: pull and start here
+
+> **11:31 PT: MPP is live and is the demo rail (`PAY_RAIL=mpp` in alara's `.env`).** Integrated on alara's Mac (C's charging half + B's paying half): `pay-test` settles on Tempo in 2.3 s; `npm run try -- all` **all ✓**: flow 1 `Paid $0.30 ✓` (https://explore.testnet.tempo.xyz/tx/0xb7a2076c55832081c535613cf93322888e8c6a9c81e39ffdcaea27a4e50caea8), resale blocked, flow 3 ✓, flow 4 `Paid $0.05 ✓` (https://explore.testnet.tempo.xyz/tx/0x170270cca84f2a9148913de854b51b8c21e269bea8912704604699b4d792d881); the HUD ledger opens the Tempo explorer. The 12:00 checkpoint is met. x402 stays the fallback (also verified through `rail.ts`: flow 1 paid on Base Sepolia). Flow 2 works live end to end too (11:23). **All four flows now work end to end.** What's left: the 12:30 all-hands look-and-try, freeze at 13:00, rehearsals, and the backup video.
 
 **Payments changed:** the demo now pays on **Tempo testnet (MPP)**, with x402 behind `PAY_RAIL` as the fallback. See PLAN.md "Change (10:45 PT Wed)" for the spec and the **C / B / A split**. Timebox: flow 1 pays on Tempo from the ghost by **12:00**, else `PAY_RAIL=x402`. Freeze 13:00.
 
@@ -8,10 +10,10 @@
 
 | Flow | State |
 | --- | --- |
-| 1 Tickets + resale | Works live up to the pay ghost; resale blocked with the exact reason. **No payment has ever settled** (Base Sepolia payer 0 USDC; Tempo not built yet). |
+| 1 Tickets + resale | **Works end to end, paying on Tempo (MPP)**: `Paid $0.30 ✓`, two ticket cards; resale blocked with the exact reason. |
 | 2 `git push` → PR | **Works live end to end with real Tab keys (11:23):** Terminal ghost → Chrome opens the PR URL → `Write description` (Jev 0.85) → Tab → `Click Create pull request` (0.7) → Tab → PR opened with the generated description. ![](design/proof/flow2-description-ghost.png) ![](design/proof/flow2-create-pr-ghost.png) |
 | 3 Release day | **Done.** Teach once → Repeat → Repeat → Do the remaining 3. New optional beat: remembered workflow (`Do all 6 from v1.4.0 · learned …` after a hub restart), PLAN flow 3 step 5. |
-| 4 Pharmacy | Works up to the pay ghost; every step ≥ 0.76 when Jev is responsive. Payment: same as flow 1. |
+| 4 Pharmacy | **Works end to end, paying on Tempo**: every step ≥ 0.76 when Jev is responsive, `Paid $0.05 ✓`. |
 
 **Blockers:**
 1. ~~No working payment rail~~ **x402 fallback works (10:55 PT):** Base Sepolia payer funded (20 USDC); `npm run pay-test` settled 2 tickets ($0.30): https://sepolia.basescan.org/tx/0xe0c22af0be3d69770d48dd5371184b8de8dd436021c841792ee1c4681b64cac6. On the venue wifi it took 9.6 s, and the first try failed with `fetch failed` (the demo server couldn't reach the x402.org facilitator). MPP (the demo rail) is being built (C + B).
