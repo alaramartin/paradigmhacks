@@ -130,3 +130,17 @@ test("model ghost: text kind for empty field; dismissed action is not re-shown",
     await brain.predictNow();
     assert.equal(ghosts().length, n);
 });
+
+test("ignoring is sticky: input elsewhere hides the ghost and it isn't re-offered until the user acts on the page", async () => {
+    const { brain, ghosts } = harness(() => ({ op: "click", app: CHROME, url: TRACKER_URL, targetId: "save", targetPath: SAVE.path, label: "Click Save", confidence: 0.9, source: "model" }));
+    brain.fromShell({ type: "frontmost", app: CHROME, window: "Tracker" });
+    brain.fromWeb(trackerState(Date.now()));
+    await brain.predictNow();
+    assert.equal(ghosts().length, 1);
+    brain.fromShell({ type: "input", kind: "key" });
+    await brain.predictNow();
+    assert.equal(ghosts().length, 1, "not re-shown after unrelated input");
+    brain.fromWeb(ev("type", PR, "#12"));
+    await brain.predictNow();
+    assert.equal(ghosts().length, 2, "offered again after the user acts on the page");
+});
