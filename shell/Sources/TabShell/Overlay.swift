@@ -154,7 +154,7 @@ struct Style {
 
 /// What the pill says, parsed from the protocol label.
 struct PillContent {
-    enum Icon { case none, block, check }
+    enum Icon { case none, block, check, repeat_ }
     var head: String
     var tail: String? // drawn as " · tail"
     var key: String? // "tab" | "esc"
@@ -169,6 +169,8 @@ struct PillContent {
         if g.kind == .done, label.hasSuffix("✓") { label = String(label.dropLast()).trimmingCharacters(in: .whitespaces) }
         if g.kind == .done { icon = .check }
         if g.kind == .blocked { icon = .block }
+        // The pattern rule's ghosts (PLAN pill formats) get a loop: "teach once, then repeat" at a glance.
+        if g.kind == .action, label.hasPrefix("Repeat for ") || label.hasPrefix("Do the remaining ") { icon = .repeat_ }
         key = g.kind == .blocked ? "esc" : g.kind == .done ? nil : (hadTab ? "tab" : nil)
         if let r = label.range(of: " · ") {
             head = String(label[..<r.lowerBound])
@@ -361,6 +363,21 @@ final class PillView: NSView {
             path.line(to: p(4.9, 9))
             path.line(to: p(9.8, 3.2))
             path.lineWidth = 1.8 * s
+        case .repeat_:
+            // ↻: a clockwise arc (r 4.3 at 6,6; y down, so increasing angle is clockwise) from 1 o'clock round to
+            // 12 o'clock, with a chevron at 12 pointing right, into the gap. Sampled, so the flipped view can't reverse it.
+            let r = 4.3
+            let pts = (0...24).map { i -> CGPoint in
+                let a = (-50.0 + 310.0 * Double(i) / 24) * .pi / 180
+                return p(6 + r * cos(a), 6 + r * sin(a))
+            }
+            path.move(to: pts[0])
+            for q in pts.dropFirst() { path.line(to: q) }
+            let e = pts.last!
+            path.move(to: CGPoint(x: e.x - 2.1 * s, y: e.y - 1.8 * s))
+            path.line(to: CGPoint(x: e.x + 0.3 * s, y: e.y))
+            path.line(to: CGPoint(x: e.x - 2.1 * s, y: e.y + 1.8 * s))
+            path.lineWidth = 1.6 * s
         case .none: return
         }
         path.lineCapStyle = .round
