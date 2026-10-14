@@ -288,6 +288,9 @@ enum AppSwitcher {
     /// Activate by bundle id. A background (LSUIElement) app can't always activate others under cooperative activation,
     /// so try NSRunningApplication, then AX frontmost, then LaunchServices; confirm by pid.
     static func activate(_ bid: String, done: @escaping (Bool, String?) -> Void) {
+        // STRETCH: a native app's steps need its window. LaunchServices "reopens" a running app like a Dock click,
+        // which brings back a closed or minimized Calendar window (plain activate leaves it windowless).
+        if nativeApps.contains(bid) { return open(bid, done: done) }
         let instances = NSRunningApplication.runningApplications(withBundleIdentifier: bid)
         guard let app = pick(instances) else { return open(bid, done: done) }
         let pid = app.processIdentifier

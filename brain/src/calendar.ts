@@ -44,8 +44,10 @@ export function calendarOffer(ev: EventInfo, back = CHROME): PatternAction {
         step({ op: "click", app: CALENDAR, targetId: "desc:Add Event", targetPath: "desc:Add Event" }),
         step({ op: "type", app: CALENDAR, targetId: "id:QuickEventCell", targetPath: "id:QuickEventCell", value: text }),
         step({ op: "key", app: CALENDAR, value: "Return" }),
-        step({ op: "type", app: CALENDAR, targetId: "id:calendar-button", targetPath: "id:calendar-button", value: CALENDAR_NAME }),
-        step({ op: "switch_app", app: back, value: back }),
+        // Optional: right after Calendar launches (still syncing) Return saves the event without opening its popover.
+        // Tab Demo is Calendar's default for new events, so the event still lands there.
+        step({ op: "type", app: CALENDAR, targetId: "id:calendar-button", targetPath: "id:calendar-button", value: CALENDAR_NAME, optional: true }),
+        step({ op: "switch_app", app: back, value: back, always: true }),
     ];
     return { op: "sequence", app: CALENDAR, steps, label: `Add ${ev.title} · ${ev.when} to Calendar`, confidence: 0.9, source: "pattern", sig: `calendar|${text}` };
 }

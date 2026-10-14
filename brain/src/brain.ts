@@ -419,8 +419,10 @@ export class Brain {
         this.hud.mode = "running";
         this.sendHud();
         let ok = true;
+        let at = -1;
         try {
             for (let k = 0; k < steps.length && !run.stop; k++) {
+                at = k;
                 const step = steps[k];
                 if (step.app !== this.store.frontmost?.app && step.op !== "switch_app") {
                     const sw: Action = { op: "switch_app", app: step.app, value: step.app, label: "", confidence: 1, source: step.source };
@@ -431,13 +433,18 @@ export class Brain {
                 }
                 let target = step.op === "navigate" || step.op === "switch_app" ? undefined : this.resolve(step);
                 // A native app's screen arrives a beat after switching to it (STRETCH: Calendar): wait for it.
-                for (let i = 0; !target && step.app !== CHROME && step.op !== "key" && step.op !== "switch_app" && i < 6; i++) {
+                for (let i = 0; !target && step.app !== CHROME && step.op !== "key" && step.op !== "switch_app" && i < (step.optional ? 2 : 6); i++) {
                     await this.waitForState(step.app);
                     target = this.resolve(step);
                 }
-                if (!target && step.op !== "navigate" && step.op !== "switch_app" && step.op !== "key")
+                if (!target && step.op !== "navigate" && step.op !== "switch_app" && step.op !== "key") {
+                    if (step.optional) {
+                        console.log(`[seq] ${ghostId}: step ${k} skipped, target not found (${step.targetPath ?? step.targetId})`);
+                        continue;
+                    }
                     throw new Error(`step ${k}: target not found (${step.targetPath ?? step.match?.contains ?? step.targetId})`);
-                const { match: _m, ...wire } = step;
+                }
+                const { match: _m, optional: _o, always: _a, ...wire } = step;
                 const action: Action = { ...wire, targetId: target?.id ?? step.targetId, targetPath: target?.path ?? step.targetPath };
                 const waitState = this.waitForState(step.app === CHROME && step.url ? step.url : step.app);
                 const r = await this.exec(`${ghostId}:${k}`, action, step.op === "switch_app" ? "shell" : step.app === CHROME ? "web" : "shell");
@@ -462,6 +469,11 @@ export class Brain {
         } catch (err) {
             ok = false;
             console.error(`[seq] ${ghostId}:`, (err as Error).message);
+            // Never strand the user in another app: still switch back (STRETCH: Calendar → Chrome).
+            for (const s of steps.slice(at + 1).filter((s) => s.always && s.op === "switch_app")) {
+                const { match: _m, optional: _o, always: _a, ...wire } = s;
+                await this.exec(`${ghostId}:back`, wire, "shell");
+            }
         } finally {
             this.running = null;
             this.echoUntil = Date.now() + ECHO_MS;

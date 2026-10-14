@@ -107,3 +107,39 @@ test("sequence waits until QuickEventCell holds the typed text before Return", a
     assert.ok(valueAt > 0 && typedAt > 0, "typed, then value landed");
     assert.ok(ret.ts >= valueAt - 20, `Return at ${ret.ts - typedAt}ms after type, value at ${valueAt - typedAt}ms — must wait for the field`);
 });
+
+test("no event popover (Calendar still syncing): skip filing, still switch back to Chrome", async () => {
+    const TEXT = "Night Owls at Hall 9 Fri 9pm";
+    const cal = (seq: number, value: string): ScreenState => ({
+        type: "state", source: "native", app: CALENDAR, window: "Calendar", focused: true, seq, ts: Date.now(),
+        elements: [
+            { id: "desc:Add Event", role: "button", label: "Add Event", rect: r, enabled: true, path: "desc:Add Event" },
+            { id: "id:QuickEventCell", role: "textfield", label: "Add Event", value, rect: r, enabled: true, path: "id:QuickEventCell" },
+        ],
+    });
+    const ops: string[] = [];
+    let brain!: InstanceType<typeof Brain>;
+    brain = new Brain({
+        immediate: true,
+        decider: { name: "fake", decide: async () => null },
+        sendShell: (m) => {
+            if (m.type !== "exec") return;
+            const a = (m as any).action;
+            ops.push(`${a.op}:${a.app}`);
+            queueMicrotask(() => brain.fromShell({ type: "exec_result", ghostId: (m as any).ghostId, ok: true }));
+            if (a.op === "type") queueMicrotask(() => brain.fromShell(cal(3, TEXT)));
+        },
+        sendWeb: (_m: HubToWeb) => {},
+    });
+    brain.fromShell({ type: "frontmost", app: CALENDAR, window: "Calendar" });
+    brain.fromShell(cal(1, ""));
+    const shown: HubToShell[] = [];
+    const orig = (brain as any).o.sendShell.bind((brain as any).o);
+    (brain as any).o.sendShell = (m: HubToShell) => (shown.push(m), orig(m));
+    (brain as any).maybeShow(calendarOffer({ title: "Night Owls", venue: "Hall 9", when: "Fri 9pm" }), ++(brain as any).gen, 0);
+    const g = shown.find((m) => m.type === "ghost") as any;
+    brain.fromShell({ type: "accept", ghostId: g.ghost.id });
+    const t0 = Date.now();
+    while (!ops.includes("switch_app:com.google.Chrome") && Date.now() - t0 < 5000) await new Promise((res) => setTimeout(res, 20));
+    assert.deepEqual(ops, ["click:com.apple.iCal", "type:com.apple.iCal", "key:com.apple.iCal", "switch_app:com.google.Chrome"]);
+});
