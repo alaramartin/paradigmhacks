@@ -28,6 +28,10 @@
 
 **Stretch goal (PLAN.md "Stretch goal (12:00 PT Wed)"): Calendar beat on branch `stretch/calendar-native` only. Never merge it into `main` without explicit human permission. Start only after the 12:30 run passes.**
 
+### Stretch log: Calendar beat (B owns it end to end, incl. the shell part, since A isn't on the demo Mac). Branch `stretch/calendar-native` · DO NOT MERGE
+- **12:05 PT (B):** human said go. Branch created from `main` at `737cad2` and pushed. On alara's Mac it's checked out in a **separate worktree, `/Users/alara/Projects/paradigmhacks-calendar`**, so `main`'s working tree, which runs the demo services, never holds branch code. The live demo keeps running from `main`. Next: dump Calendar's Accessibility tree (macOS 26.5) and pick the simplest native path (likely Calendar's quick-event field: type "Night Owls at Hall 9 Fri 9pm", Enter).
+
+
 **Run sheet (before every rehearsal and the demo):** `cd web && npm run reset-demo` (full: tracker, GitHub branch, hub history/counters, saved workflows; use `-- --keep-workflows` only for the recall beat) · `shell/scripts/preflight.sh` · confirm `PAY_RAIL` in `.env` and `npm run balance` > 0 · **once on the demo network (hotspot): quit TabShell, `cd web && npm run warm` (~5 min: every flow through the real hub incl. a real PR on tab-demo, then a full reset; prints how many screens Jev's cache holds), relaunch TabShell.**
 
 ## A — Shell
