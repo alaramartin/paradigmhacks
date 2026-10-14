@@ -2,6 +2,7 @@
 //   TabShell                       run (connects to ws://127.0.0.1:7800)
 //   TabShell --selftest            draw every ghost kind at fixed rects, normal and high contrast
 //   TabShell --dump                print one Terminal snapshot as JSON and exit
+//   TabShell --render out.png      render the selftest ghosts offscreen to a PNG (no permissions needed); --bg img.png, --dark
 //   flags: --high-contrast, --hub ws://host:port
 import AppKit
 import ApplicationServices
@@ -153,7 +154,7 @@ final class Shell: NSObject, InputTapDelegate {
     func tapAccept(_ g: Ghost) {
         guard overlay.current?.id == g.id else { return }
         log("accept \(g.id)")
-        overlay.hide()
+        overlay.hide(accepted: true)
         hub.send(.accept(ghostId: g.id))
     }
 
@@ -170,7 +171,9 @@ final class Shell: NSObject, InputTapDelegate {
         hub.send(.input(kind: kind))
     }
 
-    func tapHoldProgress(_ g: Ghost?, started: Bool) {}
+    func tapHoldProgress(_ g: Ghost?, started: Bool) {
+        if started { overlay.startHold(ms: 600) } else { overlay.stopHold() }
+    }
 }
 
 enum AppSwitcher {
@@ -211,14 +214,15 @@ enum AppSwitcher {
 func selftestGhosts(screen: CGSize) -> [(Ghost, Bool)] {
     func set(_ x0: Double, _ hc: Bool, _ tag: String) -> [(Ghost, Bool)] {
         let w = 200.0, h = 36.0
-        var y = 90.0
-        func next(_ dy: Double = 78) -> Double { defer { y += dy }; return y }
+        var y = 70.0
+        let k = hc ? 1.3 : 1.0
+        func next(_ dy: Double = 84) -> Double { defer { y += dy * k }; return y }
         var out: [(Ghost, Bool)] = []
         var r = Rect(x: x0, y: next(), w: 120, h: h)
         out.append((Ghost(id: "\(tag)-action", kind: .action, label: "Click Checkout ⇥", rect: r, cursor: Point(x: r.x + r.w / 2, y: r.y + r.h / 2)), hc))
         r = Rect(x: x0, y: next(), w: w + 60, h: h)
         out.append((Ghost(id: "\(tag)-text", kind: .text, label: "⇥", rect: r, ghostText: "4471-209"), hc))
-        r = Rect(x: x0, y: next(130), w: w + 160, h: 90)
+        r = Rect(x: x0, y: next(140), w: w + 160, h: 90)
         out.append((Ghost(id: "\(tag)-textarea", kind: .text, label: "⇥", rect: r,
                           ghostText: "Fix checkout rounding. Totals were rounded per line item instead of once at the end, so 2 × $0.15 could show $0.31."), hc))
         r = Rect(x: x0, y: next(), w: 140, h: h)
@@ -231,17 +235,50 @@ func selftestGhosts(screen: CGSize) -> [(Ghost, Bool)] {
         out.append((Ghost(id: "\(tag)-repeat", kind: .action, label: "Repeat for ENG-150 · #13 ⇥", rect: r, cursor: Point(x: r.x + r.w / 2, y: r.y + r.h / 2)), hc))
         r = Rect(x: x0, y: next(), w: 90, h: 30)
         out.append((Ghost(id: "\(tag)-batch", kind: .action, label: "Do the remaining 3 ⇥", rect: r), hc))
-        out.append((Ghost(id: "\(tag)-term", kind: .action, label: "Open pull request ⇥", pillAt: Point(x: x0, y: next())), hc))
+        out.append((Ghost(id: "\(tag)-term", kind: .action, label: "Open pull request ⇥", pillAt: Point(x: x0, y: next() + 40)), hc))
         return out
     }
     let half = Double(screen.width) / 2
     return set(60, false, "n") + set(half + 60, true, "hc")
 }
 
+// MARK: - --render
+
+final class BackgroundView: FlippedView {
+    var image: NSImage?
+    var dark = false
+    override func draw(_ dirty: NSRect) {
+        if let image { image.draw(in: bounds); return }
+        (dark ? NSColor(srgbRed: 0.12, green: 0.12, blue: 0.13, alpha: 1) : NSColor.white).setFill()
+        bounds.fill()
+    }
+}
+
+func renderSelftest(to out: String) {
+    let size = flagValue("--size").map { s -> CGSize in
+        let p = s.split(separator: "x").compactMap { Double($0) }
+        return CGSize(width: p[0], height: p[1])
+    } ?? NSScreen.screens.first!.frame.size
+    let root = BackgroundView(frame: CGRect(origin: .zero, size: size))
+    root.dark = args.contains("--dark")
+    root.image = flagValue("--bg").flatMap { NSImage(contentsOfFile: $0) }
+    for (g, hc) in selftestGhosts(screen: size) {
+        root.addSubview(GhostView(ghost: g, style: Style(hc: hc), frame: root.bounds, usable: root.bounds))
+    }
+    guard let rep = root.bitmapImageRepForCachingDisplay(in: root.bounds) else { fatalError("no bitmap") }
+    root.cacheDisplay(in: root.bounds, to: rep)
+    try! rep.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: out))
+    print("wrote \(out) \(Int(size.width))×\(Int(size.height)) pt")
+}
+
 // MARK: - main
 
 let app = NSApplication.shared
 app.setActivationPolicy(.accessory)
+if let out = flagValue("--render") {
+    renderSelftest(to: out)
+    exit(0)
+}
 let highContrast = args.contains("--high-contrast")
 var shell: Shell?
 var selftestOverlay: Overlay?

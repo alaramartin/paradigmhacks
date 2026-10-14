@@ -25,6 +25,7 @@ struct Style {
     // Motion (ms)
     var appearMs: Double { 120 }
     var dismissMs: Double { 90 }
+    var acceptFlashMs: Double { 80 }
 
     static let gray = NSColor(srgbRed: 0x8E / 255, green: 0x8E / 255, blue: 0x93 / 255, alpha: 1)
     static let yellow = NSColor(srgbRed: 0xFF / 255, green: 0xD6 / 255, blue: 0x0A / 255, alpha: 1)
@@ -67,6 +68,10 @@ final class GhostView: NSView {
     let ghost: Ghost
     let style: Style
     private(set) var pillRect: CGRect = .zero
+    /// 0...1 while Tab is held (long press = dismiss); nil when not held.
+    var holdProgress: CGFloat? { didSet { setNeedsDisplay(pillRect.insetBy(dx: -4, dy: -4)) } }
+    /// Drawn once on accept, just before the fade.
+    var accepted = false { didSet { needsDisplay = true } }
     private let screenBounds: CGRect // top-left coords
     private let usable: CGRect // below the menu bar
 
@@ -183,8 +188,23 @@ final class GhostView: NSView {
             path.lineWidth = 2
             path.stroke()
         }
+        if accepted {
+            NSColor.white.withAlphaComponent(0.35).setFill()
+            path.fill()
+        }
         let ts = (ghost.label as NSString).size(withAttributes: pillAttrs)
         (ghost.label as NSString).draw(at: CGPoint(x: r.minX + style.pillPadH, y: r.minY + (r.height - ts.height) / 2), withAttributes: pillAttrs)
+        if let p = holdProgress {
+            // Hold-to-dismiss: a bar filling along the bottom of the pill, clipped to the capsule.
+            NSGraphicsContext.saveGraphicsState()
+            path.addClip()
+            let bh = max(3, r.height * 0.12)
+            NSColor.white.withAlphaComponent(0.25).setFill()
+            CGRect(x: r.minX, y: r.maxY - bh, width: r.width, height: bh).fill()
+            NSColor.white.withAlphaComponent(0.9).setFill()
+            CGRect(x: r.minX, y: r.maxY - bh, width: r.width * min(1, p), height: bh).fill()
+            NSGraphicsContext.restoreGraphicsState()
+        }
     }
 
     private func drawCursor(at p: CGPoint, color: NSColor) {
@@ -268,10 +288,40 @@ final class Overlay {
         for (g, hc) in gs { add(g, animated: false, hc: hc) }
     }
 
-    func hide() {
+    func hide(accepted: Bool = false) {
         guard let cur = current else { return }
         current = nil
-        remove(cur.id, animated: true)
+        stopHold()
+        if accepted, let v = views[cur.id] {
+            v.accepted = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + Style(hc: highContrast).acceptFlashMs / 1000) { [weak self] in
+                self?.remove(cur.id, animated: true)
+            }
+        } else {
+            remove(cur.id, animated: true)
+        }
+    }
+
+    private var holdTimer: Timer?
+
+    /// Fill the hold bar over `ms`; the tap decides what happens at the end.
+    func startHold(ms: Double) {
+        stopHold()
+        guard let cur = current, let v = views[cur.id] else { return }
+        let t0 = CACurrentMediaTime()
+        // Only show the bar after a short delay so a normal tap doesn't flash it.
+        let delay = 0.12
+        holdTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 60, repeats: true) { _ in
+            let el = CACurrentMediaTime() - t0
+            guard el >= delay else { return }
+            v.holdProgress = CGFloat((el * 1000) / ms)
+        }
+    }
+
+    func stopHold() {
+        holdTimer?.invalidate()
+        holdTimer = nil
+        for v in views.values where v.holdProgress != nil { v.holdProgress = nil }
     }
 
     func redraw() {
@@ -316,6 +366,6 @@ final class Overlay {
     }
 }
 
-final class FlippedView: NSView {
+class FlippedView: NSView {
     override var isFlipped: Bool { true }
 }
