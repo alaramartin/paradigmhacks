@@ -258,19 +258,19 @@ _**Overnight (from ~01:55 PT) Agent B covered C's tasks while the C human was as
 - My first, separate overnight build of C (same spec, on a Windows machine, before I saw B's) is on branch `c-windows-overnight`, for reference only. Its intent-check unit tests and fixture tests can be ported if wanted.
 
 ### In progress
-- **B: please re-run flows 1 and 4 live on the designed pages.** Ids are unchanged, but the pages now carry more text (running order, venue, thread list), and Jev's checkbox step was only 0.64 before. If a model step drops under 0.6, the old functional pages are `git show 8f571a4:web/demo/pages.ts`; tell C which page and C will trim its text.
+- ✅ *(resolved 11:31: B re-ran flows 1 and 4 on the designed pages; both pay on Tempo, every flow 4 step ≥ 0.76)* **B: please re-run flows 1 and 4 live on the designed pages.** Ids are unchanged, but the pages now carry more text (running order, venue, thread list), and Jev's checkbox step was only 0.64 before. If a model step drops under 0.6, the old functional pages are `git show 8f571a4:web/demo/pages.ts`; tell C which page and C will trim its text.
 ### Blocked
-- `pay-test` and every real payment: payer has 0 USDC.
-- `web_state_github_compare.json`: GitHub's "Open a pull request" form needs a logged-in GitHub session in the debug Chrome.
+- ✅ *(resolved: Base Sepolia payer funded; pay-test settles on both rails)* `pay-test` and every real payment: payer has 0 USDC.
+- ✅ *(resolved: GitHub logged in; B captured `web_state_github_compare.json` at 11:15)* `web_state_github_compare.json`: GitHub's "Open a pull request" form needs a logged-in GitHub session in the debug Chrome.
 
 ### Needs human
-- **Fund the payer** `0x4A864e4077fd5d5f95e9A8CC5d1bCe5298F616Df` with Base Sepolia USDC at https://faucet.circle.com, then `cd web && npm run balance`.
-- **Log into GitHub in the debug Chrome** (the `/tmp/tab-chrome` profile window).
-- **Grant Accessibility to VS Code** (System Settings → Privacy & Security → Accessibility) so agents running in its terminal can press real Tab/Esc keys with `osascript` for look-and-try (currently "osascript is not allowed to send keystrokes"). Screen Recording already works.
+- ✅ *(done)* **Fund the payer** `0x4A864e4077fd5d5f95e9A8CC5d1bCe5298F616Df` with Base Sepolia USDC at https://faucet.circle.com, then `cd web && npm run balance`.
+- ✅ *(done)* **Log into GitHub in the debug Chrome** (the `/tmp/tab-chrome` profile window).
+- ✅ *(done: osascript keystrokes work)* **Grant Accessibility to VS Code** (System Settings → Privacy & Security → Accessibility) so agents running in its terminal can press real Tab/Esc keys with `osascript` for look-and-try (currently "osascript is not allowed to send keystrokes"). Screen Recording already works.
 
 ### Left for C (morning)
 - ~~Design pass on all five sites~~ done (see Done). Still to do on the Mac: screenshot each designed page next to A's real overlay for `design/proof/`, and the M3 `redesign-existing-projects` audit.
-- `npm run pay-test` once funded, then pay tickets and the refill from the ghost in Chrome.
-- Capture `web_state_github_compare.json` once logged in (push the branch, open the compare page, `npm run capture -- compare web_state_github_compare`, then `npm run reset-demo`). Check B's commit-title heuristic (`brain/src/candidates.ts` `prDescription`) against it.
+- ✅ *(done: both pay from the ghost on Tempo)* `npm run pay-test` once funded, then pay tickets and the refill from the ghost in Chrome.
+- ✅ *(done by B)* Capture `web_state_github_compare.json` once logged in (push the branch, open the compare page, `npm run capture -- compare web_state_github_compare`, then `npm run reset-demo`). Check B's commit-title heuristic (`brain/src/candidates.ts` `prDescription`) against it.
 - Rect accuracy at the real demo window layout (two Chrome windows side by side) with A's overlay.
 
