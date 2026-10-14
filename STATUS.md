@@ -43,6 +43,16 @@
   - **Cleanup:** all test events deleted (Tab Demo has 0 events), including 3 untitled leftovers from earlier runs. Reliable AX delete: the event's `AXShowMenu` → menu item "Delete" (pressing the event and sending Delete is flaky and can hit the wrong app).
   - **Demo setup restored:** `main`'s hub (detached, log `$TMPDIR/tab-hub.log`) and `main`'s TabShell are running; `reset-demo` done. Preflight's only ✗ is the human's normal Chrome running next to the debug one.
   - Merging into `main` is the human's call.
+- **14:15 PT: hardening after a failed live run in front of the human** (branch @ latest, NOT merged). That run saved the event but no event popover opened (Calendar was syncing after a relaunch), so the "Tab Demo" step failed and Tab left the presenter in Calendar. Fixed on the branch: (1) filing in Tab Demo is **optional** (Tab Demo is already Calendar's default); (2) **switching back to Chrome always runs**, even after a failed step; (3) native click/type **wait up to 3 s** for their target (a cold-launched Calendar has no window yet); (4) `switch_app` **reopens** Calendar, so a closed or minimized window comes back. Live after the fixes: Calendar quit (cold) ✓, warm ✓ ✓; setups tested: Week, Month, window closed, minimized, quit, already in front. Brain 38/38. `shell/scripts/swap-tree.sh main|branch` (on the branch) switches the Mac's hub + TabShell between trees. Main's setup restored; Tab Demo has 0 events.
+  - **Demo risks (Calendar beat):**
+    1. **Not on `main`.** The demo setup runs main, so the beat isn't there unless the branch build is running (`swap-tree.sh branch`) or the branch gets merged. Flows 2–4 weren't re-run on the branch build (brain tests pass).
+    2. **Privacy on the projector:** for ~1 s the beat shows the whole Calendar window, with the human's personal calendars and events. Before demoing, uncheck every calendar except Tab Demo in Calendar's sidebar.
+    3. **Open Calendar well before the demo** (Week view). It works from cold, but right after a launch Calendar syncs and the event popover may not open (the event still saves).
+    4. **Rehearsal events pile up:** `reset-demo` doesn't clear Tab Demo, so delete them by hand before the demo, or the audience sees duplicates.
+    5. **Date:** "Fri 9pm" means the next Friday. Today it's Oct 16, in the current week. On a Friday evening or a weekend it lands next week, outside the visible Week view.
+    6. Calendar's default calendar must stay **Tab Demo**: when the popover doesn't open, the event goes to the default.
+    7. The offer comes ~1.8 s after `Paid ✓`. The presenter must wait for it before moving on to resale.
+    8. Normal Chrome must be quit (preflight ✗); Do Not Disturb on.
 
 
 **Run sheet (before every rehearsal and the demo):** `cd web && npm run reset-demo` (full: tracker, GitHub branch, hub history/counters, saved workflows; use `-- --keep-workflows` only for the recall beat) · `shell/scripts/preflight.sh` · confirm `PAY_RAIL` in `.env` and `npm run balance` > 0 · **once on the demo network (hotspot): quit TabShell, `cd web && npm run warm` (~5 min: every flow through the real hub incl. a real PR on tab-demo, then a full reset; prints how many screens Jev's cache holds), relaunch TabShell.**
