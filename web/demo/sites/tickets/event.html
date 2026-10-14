@@ -1,6 +1,98 @@
-<!doctype html><html><head><meta charset="utf-8"><title>Night Owls · Tickets</title></head><body><main>
-<h1>Night Owls</h1><p>live at Hall 9 · Fri 9pm</p>
-<label for="qty">Qty</label><select id="qty"><option>1</option><option>2</option><option>3</option><option>4</option></select>
-<p>General admission $0.15</p><button id="checkout">Checkout</button></main>
-<script>document.getElementById('checkout').onclick=()=>location.href='/checkout?qty='+document.getElementById('qty').value</script>
-</body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Night Owls · Hall 9 · Friday 9 pm</title>
+<link rel="preconnect" href="https://api.fontshare.com">
+<link rel="preconnect" href="https://cdn.fontshare.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/site.css">
+</head>
+<body>
+<main>
+  <section class="hero" aria-label="Night Owls at Hall 9">
+    <header class="top">
+      <a class="mark" href="/e/night-owls">Hall 9</a>
+      <a href="#tickets">Box office</a>
+    </header>
+    <h1 class="statement in"><span>Night</span><span>Owls</span></h1>
+    <p class="when in d1">Friday 9 pm, Hall 9</p>
+    <div class="spacer"></div>
+    <form class="boxoffice" id="tickets" action="/checkout" method="get">
+      <p class="price">General admission <b>$0.15</b></p>
+      <label class="field" for="qty">Qty
+        <select id="qty" name="qty">
+          <option>1</option><option>2</option><option>3</option><option>4</option>
+        </select>
+      </label>
+      <button class="btn" type="submit" id="checkout">Checkout</button>
+      <p class="note">Standing, four per order. Paid in USDC.</p>
+    </form>
+    <img class="cutout in d2" src="/assets/owl.jpg" width="1530" height="2250" alt="A porcelain owl from the Bow factory, about 1760">
+    <p class="aside in d3">Doors at eight. Night Owls play from quarter past nine until the curfew at eleven.</p>
+  </section>
+
+  <section class="panel p-black" aria-labelledby="friday">
+    <div class="list">
+      <h2 class="giant in" id="friday">friday</h2>
+      <div class="bars">
+        <details open>
+          <summary>Running order</summary>
+          <dl><div><dt>Doors</dt><dd>8:00 pm</dd></div><div><dt>The Lanterns</dt><dd>8:30 pm</dd></div><div><dt>Night Owls</dt><dd>9:15 pm</dd></div><div><dt>Curfew</dt><dd>11:00 pm</dd></div></dl>
+        </details>
+        <details>
+          <summary>Tickets</summary>
+          <dl><div><dt>General admission, standing</dt><dd>$0.15</dd></div><div><dt>Most per order</dt><dd>4</dd></div><div><dt>Booking fee</dt><dd>none</dd></div></dl>
+        </details>
+        <details>
+          <summary>At the door</summary>
+          <dl><div><dt>Show your ticket on your phone</dt><dd>door 2</dd></div><div><dt>Age</dt><dd>16 and over</dd></div><div><dt>Cloakroom</dt><dd>$1</dd></div></dl>
+        </details>
+        <details>
+          <summary>Access</summary>
+          <dl><div><dt>Step-free entry</dt><dd>door 1</dd></div><div><dt>Viewing platform</dt><dd>stage left</dd></div><div><dt>Companion ticket</dt><dd>free</dd></div></dl>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel p-yellow" aria-labelledby="hall">
+    <div class="strip" aria-hidden="true">
+      <div class="track">
+        <img src="/assets/the-concert-hall-monte-carlo-a-book.jpg" width="1920" height="1378" alt="" loading="lazy">
+        <img src="/assets/postcard-queen-elizabeth-theatre-c-1959.jpg" width="1024" height="637" alt="" loading="lazy">
+        <img src="/assets/ornament-with-owl-mocked-by-day-birds.jpg" width="1600" height="2275" alt="" loading="lazy">
+        <img src="/assets/owl.jpg" width="1530" height="2250" alt="" loading="lazy">
+        <img src="/assets/the-concert-hall-monte-carlo-a-book.jpg" width="1920" height="1378" alt="" loading="lazy">
+        <img src="/assets/postcard-queen-elizabeth-theatre-c-1959.jpg" width="1024" height="637" alt="" loading="lazy">
+        <img src="/assets/ornament-with-owl-mocked-by-day-birds.jpg" width="1600" height="2275" alt="" loading="lazy">
+        <img src="/assets/owl.jpg" width="1530" height="2250" alt="" loading="lazy">
+      </div>
+    </div>
+    <div class="venue">
+      <div>
+        <h2 class="in" id="hall">The ninth shed on Dock Road</h2>
+        <p class="in d1">Hall 9 was a grain shed until 1987. It holds 600 standing, the bar runs along the back wall, and the sound carries all the way to it.</p>
+        <div class="cells in d2">
+          <div><b>Dock Road 9</b>by the ferry pier</div>
+          <div><b>Last ferry 11:40</b>forty minutes after curfew</div>
+          <div><b>Night bus N9</b>every 15 minutes</div>
+        </div>
+      </div>
+      <img class="engraving in d3" src="/assets/ornament-with-owl-mocked-by-day-birds.jpg" width="1600" height="2275" alt="Engraving of an owl mobbed by day birds, Martin Schongauer, about 1474" loading="lazy">
+    </div>
+  </section>
+
+  <footer class="close">
+    <h2 class="in">See you on Friday</h2>
+    <a class="btn" href="#tickets">Get tickets</a>
+    <div class="legal">
+      <p class="credits">Pictures: “Owl”, Bow Porcelain Factory, c. 1760, and “Ornament with Owl Mocked by Day Birds”, Martin Schongauer, c. 1474, both public domain (CC0) via the Art Institute of Chicago; “The Concert Hall, Monte Carlo”, Jean Gilletta, public domain via Wikimedia Commons; “Postcard: Queen Elizabeth Theatre, c.1959”, blizzy63, public domain via Flickr.</p>
+      <p>Hall 9 box office</p>
+    </div>
+    <p class="name" aria-hidden="true">night owls</p>
+  </footer>
+</main>
+</body>
+</html>

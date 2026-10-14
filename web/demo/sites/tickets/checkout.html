@@ -1,9 +1,62 @@
-<!doctype html><html><head><meta charset="utf-8"><title>Checkout · Tickets</title></head><body><main>
-<h1>Checkout</h1><p id="total">Total $0.30</p><button id="buy">Buy tickets</button><div id="out"></div></main>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Checkout · Night Owls · Hall 9</title>
+<link rel="preconnect" href="https://api.fontshare.com">
+<link rel="preconnect" href="https://cdn.fontshare.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/site.css">
+</head>
+<body>
+<header class="bar"><a class="mark" href="/e/night-owls">Hall 9</a><span>Box office</span></header>
+<main class="co">
+  <div>
+    <h1>Night Owls</h1>
+    <p class="sub">Friday 9 pm, Hall 9, Dock Road</p>
+    <section class="tickets" id="tickets" aria-live="polite"></section>
+    <p class="paid" id="paid" hidden></p>
+    <figure class="co-pic"><img src="/assets/ornament-with-owl-mocked-by-day-birds.jpg" width="1600" height="2275" alt="Engraving of an owl mobbed by day birds, Martin Schongauer, about 1474"></figure>
+  </div>
+  <section class="summary" aria-label="Your order">
+    <p class="row"><span id="line">General admission × 1</span><span>$0.15 each</span></p>
+    <p class="row"><span>Booking fee</span><span>$0.00</span></p>
+    <p class="row total"><span>Total</span><span id="total">$0.15</span></p>
+    <button class="btn" id="buy" type="button">Buy tickets</button>
+    <p class="status" id="status" role="status"></p>
+  </section>
+</main>
 <script>
-const qty=Number(new URLSearchParams(location.search).get('qty')||1);
-document.getElementById('total').textContent='Total $'+(qty*0.15).toFixed(2);
-document.getElementById('buy').onclick=async()=>{document.getElementById('out').textContent='waiting';
-const r=await fetch('/api/buy',{method:'POST',headers:{'content-type':'application/json',accept:'application/json'},body:JSON.stringify({qty})});
-document.getElementById('out').textContent=r.status+' '+(await r.text()).slice(0,200);};
-</script></body></html>
+  const PRICE_MILLS = 150;
+  const q = Number(new URLSearchParams(location.search).get("qty"));
+  const qty = Number.isInteger(q) && q >= 1 && q <= 4 ? q : 1;
+  const usd = (mills) => "$" + (Math.round(mills / 10) / 100).toFixed(2);
+  document.getElementById("line").textContent = "General admission × " + qty;
+  document.getElementById("total").textContent = usd(qty * PRICE_MILLS);
+  const buy = document.getElementById("buy"), status = document.getElementById("status");
+  buy.addEventListener("click", async () => {
+    buy.disabled = true;
+    status.className = "status";
+    status.textContent = "Waiting for payment…";
+    try {
+      const r = await fetch("/api/buy", { method: "POST", headers: { "content-type": "application/json", accept: "application/json" }, body: JSON.stringify({ qty }) });
+      if (r.status === 402) throw new Error("Not paid. Nothing was charged.");
+      if (!r.ok) throw new Error("The box office said no (" + r.status + "). Nothing was charged.");
+      const order = await r.json();
+      status.textContent = "Order " + order.order;
+      document.getElementById("tickets").innerHTML = order.tickets.map((t, i) =>
+        `<article class="ticket"><div class="main"><b>Night Owls</b><span>Hall 9 · Fri 9:00 pm<br>General admission, admit one</span><span class="code">${t.code}</span></div><div class="stub">${i + 1} of ${order.tickets.length}</div></article>`).join("");
+      const paid = document.getElementById("paid");
+      paid.textContent = order.tickets.length + (order.tickets.length > 1 ? " tickets" : " ticket") + " for Friday. Show them at door 2.";
+      paid.hidden = false;
+      buy.hidden = true;
+    } catch (e) {
+      status.className = "status err";
+      status.textContent = e.message;
+      buy.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>
