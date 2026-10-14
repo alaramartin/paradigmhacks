@@ -3,6 +3,7 @@
 //   TabShell --selftest            draw every ghost kind at fixed rects, normal and high contrast
 //   TabShell --dump                print one Terminal snapshot as JSON and exit
 //   TabShell --tap-selftest        check the Tab/Esc/hold rules on synthetic events (no permissions needed)
+//   TabShell --render-reveal out.png   the end-of-demo reveal card, offscreen
 //   TabShell --render out.png      render the selftest ghosts offscreen to a PNG (no permissions needed); --bg img.png, --dark,
 //                                  --size WxH (points), --ghosts file.json ([{ghost, hc}] instead of the selftest layout)
 //   flags: --high-contrast, --hub ws://host:port
@@ -52,6 +53,8 @@ if args.contains("--dump") {
 final class Shell: NSObject, InputTapDelegate {
     let overlay: Overlay
     let hud: HUD
+    let reveal = Reveal()
+    private var hubConnected = false
     let tap = InputTap()
     let hub: HubClient
     let terminal = TerminalPoller()
@@ -70,11 +73,13 @@ final class Shell: NSObject, InputTapDelegate {
         tap.delegate = self
         hub.onMessage = { [weak self] m in self?.handle(m) }
         hub.onConnect = { [weak self] in
+            self?.hubConnected = true
             self?.hud.setConnected(true)
             self?.reportFrontmost(NSWorkspace.shared.frontmostApplication)
         }
         // Hub gone: say so, and drop the ghost, so Tab stops being swallowed for an accept nobody will receive.
         hub.onDisconnect = { [weak self] in
+            self?.hubConnected = false
             self?.hud.setConnected(false)
             self?.overlay.hide()
         }
@@ -118,6 +123,9 @@ final class Shell: NSObject, InputTapDelegate {
         let hc = NSMenuItem(title: "High Contrast", action: #selector(toggleContrast), keyEquivalent: "")
         hc.target = self
         menu.addItem(hc)
+        let rv = NSMenuItem(title: "Reveal Totals", action: #selector(revealTotals), keyEquivalent: "")
+        rv.target = self
+        menu.addItem(rv)
         menu.addItem(.separator())
         let quit = NSMenuItem(title: "Quit TabShell", action: #selector(quit), keyEquivalent: "q")
         quit.target = self
@@ -146,6 +154,8 @@ final class Shell: NSObject, InputTapDelegate {
     }
 
     @objc private func toggleContrast() { hudClicked("contrast") }
+
+    @objc private func revealTotals() { hudClicked("reveal") }
 
     @objc private func quit() { NSApp.terminate(nil) }
 
@@ -211,6 +221,10 @@ final class Shell: NSObject, InputTapDelegate {
     }
 
     private func hudClicked(_ item: String) {
+        if item == "reveal" { // local only: the hub has nothing to do with it
+            if reveal.isVisible { reveal.hide() } else { reveal.show(lastHud, connected: hubConnected) }
+            return
+        }
         if item == "contrast" {
             overlay.highContrast.toggle()
             hud.setHighContrast(overlay.highContrast)
@@ -223,7 +237,7 @@ final class Shell: NSObject, InputTapDelegate {
     // MARK: InputTapDelegate
 
     var visibleGhost: Ghost? { overlay.current }
-    var ownRects: [CGRect] { [hud.screenRect] }
+    var ownRects: [CGRect] { [hud.screenRect, reveal.screenRect] }
 
     func tapAccept(_ g: Ghost) {
         guard overlay.current?.id == g.id else { return }
@@ -241,6 +255,7 @@ final class Shell: NSObject, InputTapDelegate {
     func tapBlockedPress(_ g: Ghost) { overlay.shake() }
 
     func tapOtherInput(kind: String, report: Bool) {
+        reveal.hide() // any key or click outside it closes the reveal
         if let g = overlay.current, g.kind != .done { overlay.hide() }
         if report { hub.send(.input(kind: kind)) }
     }
@@ -472,6 +487,11 @@ if let bid = flagValue("--which") {
 
 let app = NSApplication.shared
 app.setActivationPolicy(.accessory)
+if let out = flagValue("--render-reveal") {
+    Reveal.render(Hud(mode: "idle", lastSource: "pattern", lastLatencyMs: 1.9, modelCalls: 9, shown: 16, accepted: 15,
+                      tabDid: TabDid(clicks: 31, keys: 168), youDid: 22), to: out)
+    exit(0)
+}
 if let out = flagValue("--render-hud") {
     renderHUD(to: out)
     exit(0)

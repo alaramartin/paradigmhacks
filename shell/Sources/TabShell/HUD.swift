@@ -152,6 +152,8 @@ final class HUDShadowView: NSView {
 final class HUDView: NSView {
     static let radius: CGFloat = 12
     static let size = CGSize(width: 264, height: L.height)
+    /// Height of the Tab did / You did block alone (the end-of-demo reveal card).
+    static let revealHeight: CGFloat = L.divY
 
     /// Layout in flipped points from the card's top. `…Base` values are text baselines.
     private enum L {
@@ -193,6 +195,14 @@ final class HUDView: NSView {
     var highContrast = false { didSet { needsDisplay = true } }
     var onClick: ((String) -> Void)?
     var onMoved: (() -> Void)?
+    /// The reveal card: only the Tab did / You did block, drawn `drawScale`× (vector, so it stays sharp), counting
+    /// up over `countSeconds`.
+    var revealOnly = false
+    var drawScale: CGFloat = 1
+    var countSeconds = 0.35
+    /// Layout space: the view's bounds before `drawScale`.
+    private var lb: CGRect { CGRect(x: 0, y: 0, width: bounds.width / drawScale, height: bounds.height / drawScale) }
+    private func dirty(_ r: CGRect) { if drawScale == 1 { setNeedsDisplay(r) } else { needsDisplay = true } }
 
     private var seenHud = false
     private var paidUntil: Date?
@@ -252,7 +262,7 @@ final class HUDView: NSView {
                 guard let self else { return }
                 let ph = (CACurrentMediaTime() - t0).truncatingRemainder(dividingBy: 0.9) / 0.9
                 self.dotAlpha = 0.35 + 0.65 * CGFloat((cos(ph * 2 * .pi) + 1) / 2)
-                self.setNeedsDisplay(CGRect(x: self.bounds.width / 2, y: L.footY - 4, width: self.bounds.width / 2, height: L.footH + 8))
+                self.dirty(CGRect(x: self.bounds.width / 2, y: L.footY - 4, width: self.bounds.width / 2, height: L.footH + 8))
             }
             RunLoop.main.add(t, forMode: .common) // keeps pulsing while the HUD is dragged
             pulse = t
@@ -291,12 +301,12 @@ final class HUDView: NSView {
 
     private func stepCountUp() {
         guard let c = countUp else { return stopCountUp() }
-        let p = min(1, (CACurrentMediaTime() - c.t0) / 0.35)
+        let p = min(1, (CACurrentMediaTime() - c.t0) / countSeconds)
         let e = 1 - pow(1 - p, 3)
         shownTab = c.fromTab + (c.toTab - c.fromTab) * e
         shownYou = c.fromYou + (c.toYou - c.fromYou) * e
         if p >= 1 { stopCountUp() }
-        setNeedsDisplay(CGRect(x: 0, y: 0, width: bounds.width, height: L.divY))
+        dirty(CGRect(x: 0, y: 0, width: bounds.width, height: L.divY))
     }
 
     private func stopCountUp() {
@@ -373,14 +383,16 @@ final class HUDView: NSView {
 
     // MARK: drawing
 
-    override func draw(_ dirty: NSRect) {
-        let card = NSBezierPath(roundedRect: bounds, xRadius: HUDView.radius, yRadius: HUDView.radius)
-        hex(0x1C1C1E, 0.94).setFill()
+    override func draw(_ dirtyRect: NSRect) {
+        if drawScale != 1 { NSGraphicsContext.current?.cgContext.scaleBy(x: drawScale, y: drawScale) }
+        let card = NSBezierPath(roundedRect: lb, xRadius: HUDView.radius, yRadius: HUDView.radius)
+        hex(0x1C1C1E, revealOnly ? 0.97 : 0.94).setFill()
         card.fill()
-        let edge = NSBezierPath(roundedRect: bounds.insetBy(dx: 0.5, dy: 0.5), xRadius: HUDView.radius - 0.5, yRadius: HUDView.radius - 0.5)
+        let edge = NSBezierPath(roundedRect: lb.insetBy(dx: 0.5, dy: 0.5), xRadius: HUDView.radius - 0.5, yRadius: HUDView.radius - 0.5)
         NSColor.white.withAlphaComponent(0.10).setStroke()
-        edge.lineWidth = 1
+        edge.lineWidth = 1 / drawScale
         edge.stroke()
+        if revealOnly { return drawReveal() }
 
         // Offline: the numbers are stale, so they step back; the footer (mode, switch) stays bright.
         let ctx = NSGraphicsContext.current?.cgContext
@@ -390,7 +402,7 @@ final class HUDView: NSView {
         }
         drawReveal()
         NSColor.white.withAlphaComponent(0.10).setFill()
-        CGRect(x: L.padH, y: L.divY, width: bounds.width - 2 * L.padH, height: 1).fill()
+        CGRect(x: L.padH, y: L.divY, width: lb.width - 2 * L.padH, height: 1).fill()
         drawPrediction()
         drawPaid()
         if !connected {
@@ -402,7 +414,7 @@ final class HUDView: NSView {
 
     /// The end-of-demo reveal: [tab] did vs You did, a two-segment bar, and the shares.
     private func drawReveal() {
-        let x0 = L.padH, x1 = bounds.width - L.padH, w = x1 - x0
+        let x0 = L.padH, x1 = lb.width - L.padH, w = x1 - x0
 
         // Labels. "Tab" is the keycap the ghost teaches, in the bar's blue: it doubles as the legend.
         let kf = NSFont.systemFont(ofSize: 11, weight: .semibold)
@@ -464,7 +476,7 @@ final class HUDView: NSView {
 
     /// Last prediction (where it came from, did it cost a model call, how fast), then session totals.
     private func drawPrediction() {
-        let x0 = L.padH, x1 = bounds.width - L.padH
+        let x0 = L.padH, x1 = lb.width - L.padH
         let f12 = NSFont.systemFont(ofSize: 12, weight: .semibold)
         let base = centred(L.chipY, L.chipH, f12)
         if let src = hud.lastSource {
@@ -495,7 +507,7 @@ final class HUDView: NSView {
 
     /// Last payment and the ledger button. Green with a check for 3 s after a payment we saw happen.
     private func drawPaid() {
-        let x0 = L.padH, x1 = bounds.width - L.padH
+        let x0 = L.padH, x1 = lb.width - L.padH
         let bf = NSFont.systemFont(ofSize: 11, weight: .semibold)
         let hasTx = hud.lastTx != nil
         let fresh = hasTx && (paidUntil ?? .distantPast) > Date()
@@ -522,7 +534,7 @@ final class HUDView: NSView {
 
     /// High-contrast switch on the left (the hit target), mode dot and word on the right.
     private func drawFooter() {
-        let x0 = L.padH, x1 = bounds.width - L.padH
+        let x0 = L.padH, x1 = lb.width - L.padH
         let mf = NSFont.systemFont(ofSize: 11, weight: .medium)
         let base = centred(L.footY, L.footH, mf)
 
@@ -538,7 +550,7 @@ final class HUDView: NSView {
         (highContrast ? hex(0x1C1C1E) : NSColor.white).setFill() // HC is black on yellow, the switch too
         NSBezierPath(ovalIn: CGRect(x: track.minX + (highContrast ? 11 : 1), y: track.minY + 1, width: 12, height: 12)).fill()
         draw(run("High contrast", mf, highContrast ? primary : secondary), x: track.maxX + 8, base: base)
-        contrastRect = CGRect(x: 0, y: L.footY - 6, width: dot.minX - 8, height: bounds.height - (L.footY - 6))
+        contrastRect = CGRect(x: 0, y: L.footY - 6, width: dot.minX - 8, height: lb.height - (L.footY - 6))
     }
 
     // MARK: mouse
@@ -564,8 +576,11 @@ final class HUDView: NSView {
             onMoved?()
             return
         }
-        let p = convert(e.locationInWindow, from: nil)
-        if ledgerRect.contains(p) {
+        let q = convert(e.locationInWindow, from: nil)
+        let p = CGPoint(x: q.x / drawScale, y: q.y / drawScale)
+        if revealOnly || p.y < L.divY {
+            onClick?("reveal") // the numbers: open (or, on the card, close) the end-of-demo reveal
+        } else if ledgerRect.contains(p) {
             if hud.lastTx != nil { onClick?("ledger") }
         } else if contrastRect.contains(p) {
             onClick?("contrast")
