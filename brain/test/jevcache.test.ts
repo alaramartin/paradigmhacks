@@ -57,3 +57,11 @@ test("fast Jev answers and is cached; slow or failing Jev → the cached answer 
         globalThis.fetch = realFetch;
     }
 });
+
+test("Terminal screens are keyed by the URLs they show, not by the changing push output", () => {
+    const term = (speed: string): ScreenState => ({
+        type: "state", source: "native", app: "com.apple.Terminal", window: "zsh", focused: true, seq: 1, ts: 0,
+        elements: [{ id: "term", role: "textarea", label: "Terminal", rect: r, enabled: true, value: `Writing objects: 100% (6/6), ${speed}\nremote:      https://github.com/a/b/pull/new/fix/x` }],
+    });
+    assert.equal(screenKey(term("812.00 KiB/s")), screenKey(term("1.20 MiB/s")));
+});
