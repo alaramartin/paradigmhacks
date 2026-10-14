@@ -8,6 +8,7 @@
     "send": "tsx tools/send.ts",
     "replay": "tsx tools/replay.ts",
     "latency": "tsx tools/latency.ts",
+    "scenarios": "tsx tools/scenarios.ts",
     "test": "tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit"
   },

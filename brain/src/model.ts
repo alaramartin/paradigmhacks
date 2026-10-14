@@ -1,8 +1,8 @@
-// One model client behind decide(). Jev if docs/jev.md and JEV_API_KEY exist, else Claude.
+// One model client behind decide(). Jev (default) or, if added later, Claude.
 import Anthropic from "@anthropic-ai/sdk";
-import { existsSync } from "node:fs";
 import type { Action, El, ScreenState } from "../../protocol/types.ts";
 import type { HistEntry } from "./history.ts";
+import { candidates, mentionedOptions, otherPagesText, type Candidate } from "./candidates.ts";
 import { EXAMPLES, OUTPUT_SCHEMA, SYSTEM } from "./prompt.ts";
 import { stateKey } from "./state.ts";
 
@@ -94,15 +94,88 @@ export function validate(
     return { ...a, app: active.app, url: active.url, targetId: el.id, targetPath: el.path, ...(o.value ? { value: o.value } : {}) };
 }
 
-class JevDecider implements Decider {
-    name = "jev";
-    async decide(): Promise<Action | null> {
-        // TODO(B): implement from docs/jev.md once the humans paste the API docs.
-        throw new Error("Jev client not implemented yet");
+/** Jev (TypeSafe, docs/jev.md): code proposes candidate actions, Jev picks one with a calibrated confidence. */
+export class JevDecider implements Decider {
+    name = "jev:jev-latest";
+    private url = `${(process.env.JEV_BASE_URL || "https://api.typesafe.ai").replace(/\/$/, "")}/v1/systemone`;
+    constructor(private key: string) {}
+
+    async decide(m: ModelInput, signal?: AbortSignal): Promise<Action | null> {
+        const cands = candidates(m.active, m.others, m.history);
+        if (cands.length === 0) return null;
+
+        // One option per element; values for selects and fields are separate questions in the same call.
+        const groups = new Map<string, Candidate[]>();
+        for (const c of cands) {
+            const k = c.action.op === "navigate" ? `nav:${c.action.value}` : `el:${c.action.targetId}`;
+            groups.set(k, [...(groups.get(k) ?? []), c]);
+        }
+        const gs = [...groups.values()];
+        const criteria: Record<string, string> = {};
+        const questions: Record<string, unknown> = {};
+        gs.forEach((g, i) => {
+            criteria[`a${i}`] = g.length === 1 ? g[0].desc : g[0].groupDesc ?? g[0].desc;
+            if (g.length > 1) {
+                const vc: Record<string, string> = {};
+                g.forEach((c, j) => (vc[`v${j}`] = c.desc));
+                questions[`value_a${i}`] = { type: "choice", instructions: "If the user acts on this element next, which of these will they do? Values come from text in `OTHER_PAGES`.", criteria: vc };
+            }
+        });
+        criteria.none = "None of these is clearly the next step";
+        questions.next = { type: "choice", instructions: NEXT_INSTRUCTIONS, criteria };
+
+        const res = await fetch(this.url, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${this.key}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ model: "jev-latest", state: jevState(m), questions }),
+            signal: signal ?? AbortSignal.timeout(HARD_TIMEOUT_MS),
+        });
+        if (!res.ok) throw new Error(`Jev HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
+        type Ans = { choice: string; confidence: number; probabilities: Record<string, number> };
+        const out = (await res.json()) as { answers: Record<string, Ans> };
+        const next = out.answers.next;
+        if (process.env.JEV_DEBUG) {
+            const top = Object.entries(next.probabilities).sort((x, y) => y[1] - x[1]).slice(0, 3);
+            console.log("  [jev]", top.map(([k, p]) => `${p.toFixed(2)} ${criteria[k]}`).join(" | "));
+        }
+        if (next.choice === "none") return null;
+        const g = gs[Number(next.choice.slice(1))];
+        if (!g) return null;
+        if (g.length === 1) return { ...g[0].action, confidence: next.confidence };
+        const v = out.answers[`value_${next.choice}`];
+        const c = v && g[Number(v.choice.slice(1))];
+        if (!c) return null;
+        return { ...c.action, confidence: Math.min(next.confidence, v.confidence) };
     }
 }
 
-export function makeDecider(): Decider {
-    if (existsSync(new URL("../../docs/jev.md", import.meta.url)) && process.env.JEV_API_KEY) return new JevDecider();
-    return new ClaudeDecider(process.env.LLM_MODEL || "claude-opus-5-5");
+const NEXT_INSTRUCTIONS =
+    "The user is working in `ACTIVE`. Which single element will they act on next? Rules: (1) It continues what `RECENT_ACTIONS` shows them doing. (2) Forms are filled top to bottom: the next action is on the first element in `ACTIVE.elements` that is empty, unchecked, or not yet set to what `OTHER_PAGES` says. (3) A button that submits, buys, or creates is clicked only after every field above it is filled in. (4) Values they type or choose come from text in `OTHER_PAGES`. (5) When every field in the form is filled in, the next action is the main button that submits it.";
+
+/** Only what the decision needs: Jev loses accuracy on irrelevant state. */
+function jevState(m: ModelInput) {
+    const otherText = otherPagesText(m.active, m.others);
+    const fields = (s: ScreenState, max: number) =>
+        s.elements.slice(0, max).map((e) => {
+            const hint = e.role === "select" ? mentionedOptions(e, otherText)[0] : undefined;
+            if (hint) return `${e.role}: ${e.label} = ${JSON.stringify(e.value ?? "")}, but OTHER_PAGES says ${JSON.stringify(hint)}`;
+            const v = e.role === "checkbox" || e.checked !== undefined ? (e.checked ? " [checked]" : " [not checked]") : e.value ? ` = ${JSON.stringify(e.value.slice(-400))}` : e.role === "textfield" || e.role === "textarea" ? " = (empty)" : "";
+            return `${e.role}: ${e.label}${v}`;
+        });
+    const page = (s: ScreenState) => s.window || s.url || s.app;
+    return {
+        ACTIVE: { page: page(m.active), ...(m.active.url ? { url: m.active.url } : {}), elements: fields(m.active, 80) },
+        OTHER_PAGES: m.others
+            .filter((s) => stateKey(s) !== stateKey(m.active))
+            .slice(0, 3)
+            .map((s) => ({ page: page(s), text: s.elements.filter((e) => e.label).slice(0, 40).map((e) => e.label) })),
+        RECENT_ACTIONS: m.history.slice(-8).map((h) => `${h.by === "tab" ? "Tab" : "user"} ${h.op}${h.target ? ` ${JSON.stringify(h.target.label)}` : ""}${h.value ? ` ${JSON.stringify(h.value.slice(0, 80))}` : ""}`),
+    };
+}
+
+/** Jev if JEV_API_KEY is set; otherwise Claude if Anthropic credentials are set (an LLM may be added later); else no model. */
+export function makeDecider(): Decider | null {
+    if (process.env.JEV_API_KEY) return new JevDecider(process.env.JEV_API_KEY);
+    if (process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN) return new ClaudeDecider(process.env.LLM_MODEL || "claude-opus-5-5");
+    return null;
 }
