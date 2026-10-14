@@ -1,0 +1,185 @@
+{
+  "type": "state",
+  "source": "web",
+  "app": "com.google.Chrome",
+  "window": "Checkout · Hall 9",
+  "url": "http://tickets.localhost:4001/checkout?qty=2",
+  "focused": true,
+  "elements": [
+    {
+      "id": "t1",
+      "role": "link",
+      "label": "Events",
+      "rect": {
+        "x": 1023,
+        "y": 162,
+        "w": 43,
+        "h": 17
+      },
+      "enabled": true,
+      "path": "header > nav > a:nth-child(1)",
+      "list": {
+        "key": "header > nav",
+        "index": 0
+      }
+    },
+    {
+      "id": "t2",
+      "role": "link",
+      "label": "Venue",
+      "rect": {
+        "x": 1086,
+        "y": 162,
+        "w": 40,
+        "h": 17
+      },
+      "enabled": true,
+      "path": "header > nav > a:nth-child(2)",
+      "list": {
+        "key": "header > nav",
+        "index": 1
+      }
+    },
+    {
+      "id": "t3",
+      "role": "link",
+      "label": "Sign in",
+      "rect": {
+        "x": 1146,
+        "y": 162,
+        "w": 44,
+        "h": 17
+      },
+      "enabled": true,
+      "path": "header > nav > a:nth-child(3)",
+      "list": {
+        "key": "header > nav",
+        "index": 2
+      }
+    },
+    {
+      "id": "t4",
+      "role": "button",
+      "label": "Buy tickets",
+      "rect": {
+        "x": 795,
+        "y": 474,
+        "w": 130,
+        "h": 48
+      },
+      "enabled": true,
+      "path": "#buy",
+      "list": {
+        "key": "main > section",
+        "index": 1,
+        "field": "button"
+      }
+    },
+    {
+      "id": "t5",
+      "role": "text",
+      "label": "Hall 9",
+      "rect": {
+        "x": 54,
+        "y": 157,
+        "w": 61,
+        "h": 24
+      },
+      "enabled": true,
+      "path": "header > span"
+    },
+    {
+      "id": "t6",
+      "role": "text",
+      "label": "Checkout",
+      "rect": {
+        "x": 294,
+        "y": 253,
+        "w": 656,
+        "h": 20
+      },
+      "enabled": true,
+      "path": "main > p:nth-child(1)"
+    },
+    {
+      "id": "t7",
+      "role": "text",
+      "label": "Night Owls",
+      "rect": {
+        "x": 294,
+        "y": 286,
+        "w": 656,
+        "h": 46
+      },
+      "enabled": true,
+      "path": "main > h1"
+    },
+    {
+      "id": "t8",
+      "role": "text",
+      "label": "2 × General admission · Fri 9pm",
+      "rect": {
+        "x": 294,
+        "y": 338,
+        "w": 656,
+        "h": 24
+      },
+      "enabled": true,
+      "path": "main > p:nth-child(3)"
+    },
+    {
+      "id": "t9",
+      "role": "text",
+      "label": "2 × General admission",
+      "rect": {
+        "x": 319,
+        "y": 429,
+        "w": 161,
+        "h": 24
+      },
+      "enabled": true,
+      "path": "main > section > div:nth-child(1) > span:nth-child(1)",
+      "list": {
+        "key": "main > section > div:nth-child(1)",
+        "index": 0
+      }
+    },
+    {
+      "id": "t10",
+      "role": "text",
+      "label": "$0.30",
+      "rect": {
+        "x": 883,
+        "y": 429,
+        "w": 42,
+        "h": 24
+      },
+      "enabled": true,
+      "path": "main > section > div:nth-child(1) > span:nth-child(2)",
+      "list": {
+        "key": "main > section > div:nth-child(1)",
+        "index": 1
+      }
+    },
+    {
+      "id": "t11",
+      "role": "text",
+      "label": "Total $0.30",
+      "rect": {
+        "x": 319,
+        "y": 481,
+        "w": 117,
+        "h": 33
+      },
+      "enabled": true,
+      "path": "main > section > div:nth-child(2) > span",
+      "list": {
+        "key": "main > section",
+        "index": 1,
+        "field": "span"
+      }
+    }
+  ],
+  "seq": 9,
+  "ts": 1791968576517
+}

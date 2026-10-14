@@ -1,0 +1,283 @@
+{
+  "type": "state",
+  "source": "web",
+  "app": "com.google.Chrome",
+  "window": "Tracker · Acme",
+  "url": "http://tracker.localhost:4003/",
+  "focused": true,
+  "elements": [
+    {
+      "id": "t1",
+      "role": "link",
+      "label": "Inbox",
+      "rect": {
+        "x": 38,
+        "y": 196,
+        "w": 167,
+        "h": 29
+      },
+      "enabled": true,
+      "path": "aside > a:nth-child(2)",
+      "list": {
+        "key": "aside",
+        "index": 0
+      }
+    },
+    {
+      "id": "t2",
+      "role": "link",
+      "label": "My issues",
+      "rect": {
+        "x": 38,
+        "y": 225,
+        "w": 167,
+        "h": 29
+      },
+      "enabled": true,
+      "path": "aside > a:nth-child(3)",
+      "list": {
+        "key": "aside",
+        "index": 1
+      }
+    },
+    {
+      "id": "t3",
+      "role": "link",
+      "label": "Release v1.4.0",
+      "rect": {
+        "x": 38,
+        "y": 254,
+        "w": 167,
+        "h": 29
+      },
+      "enabled": true,
+      "path": "aside > a:nth-child(4)",
+      "list": {
+        "key": "aside",
+        "index": 2
+      }
+    },
+    {
+      "id": "t4",
+      "role": "textfield",
+      "label": "Search tickets",
+      "rect": {
+        "x": 254,
+        "y": 209,
+        "w": 320,
+        "h": 37
+      },
+      "enabled": true,
+      "path": "#search",
+      "value": ""
+    },
+    {
+      "id": "t7",
+      "role": "button",
+      "label": "ENG-142 Fix checkout rounding In review",
+      "rect": {
+        "x": 255,
+        "y": 263,
+        "w": 718,
+        "h": 41
+      },
+      "enabled": true,
+      "path": "#list > li:nth-child(1) > button",
+      "list": {
+        "key": "#list",
+        "index": 0,
+        "field": "button"
+      }
+    },
+    {
+      "id": "t8",
+      "role": "button",
+      "label": "ENG-150 Retry failed webhooks In review",
+      "rect": {
+        "x": 255,
+        "y": 305,
+        "w": 718,
+        "h": 41
+      },
+      "enabled": true,
+      "path": "#list > li:nth-child(2) > button",
+      "list": {
+        "key": "#list",
+        "index": 1,
+        "field": "button"
+      }
+    },
+    {
+      "id": "t9",
+      "role": "button",
+      "label": "ENG-151 Cache product images In review",
+      "rect": {
+        "x": 255,
+        "y": 347,
+        "w": 718,
+        "h": 41
+      },
+      "enabled": true,
+      "path": "#list > li:nth-child(3) > button",
+      "list": {
+        "key": "#list",
+        "index": 2,
+        "field": "button"
+      }
+    },
+    {
+      "id": "t10",
+      "role": "button",
+      "label": "ENG-155 Dark mode toggle In review",
+      "rect": {
+        "x": 255,
+        "y": 389,
+        "w": 718,
+        "h": 41
+      },
+      "enabled": true,
+      "path": "#list > li:nth-child(4) > button",
+      "list": {
+        "key": "#list",
+        "index": 3,
+        "field": "button"
+      }
+    },
+    {
+      "id": "t11",
+      "role": "button",
+      "label": "ENG-157 Faster search In review",
+      "rect": {
+        "x": 255,
+        "y": 431,
+        "w": 718,
+        "h": 41
+      },
+      "enabled": true,
+      "path": "#list > li:nth-child(5) > button",
+      "list": {
+        "key": "#list",
+        "index": 4,
+        "field": "button"
+      }
+    },
+    {
+      "id": "t12",
+      "role": "button",
+      "label": "ENG-160 Fix cart badge In review",
+      "rect": {
+        "x": 255,
+        "y": 473,
+        "w": 718,
+        "h": 41
+      },
+      "enabled": true,
+      "path": "#list > li:nth-child(6) > button",
+      "list": {
+        "key": "#list",
+        "index": 5,
+        "field": "button"
+      }
+    },
+    {
+      "id": "t13",
+      "role": "select",
+      "label": "Status",
+      "rect": {
+        "x": 907,
+        "y": 259,
+        "w": 291,
+        "h": 35
+      },
+      "enabled": true,
+      "path": "#p-status",
+      "value": "In review",
+      "options": [
+        "Backlog",
+        "In review",
+        "Done"
+      ]
+    },
+    {
+      "id": "t14",
+      "role": "textfield",
+      "label": "Linked PR",
+      "rect": {
+        "x": 907,
+        "y": 335,
+        "w": 291,
+        "h": 37
+      },
+      "enabled": true,
+      "path": "#p-pr",
+      "value": ""
+    },
+    {
+      "id": "t15",
+      "role": "button",
+      "label": "Save",
+      "rect": {
+        "x": 907,
+        "y": 394,
+        "w": 68,
+        "h": 39
+      },
+      "enabled": true,
+      "path": "#save"
+    },
+    {
+      "id": "t5",
+      "role": "text",
+      "label": "Acme",
+      "rect": {
+        "x": 38,
+        "y": 159,
+        "w": 167,
+        "h": 21
+      },
+      "enabled": true,
+      "path": "aside > strong"
+    },
+    {
+      "id": "t6",
+      "role": "text",
+      "label": "Release v1.4.0 · In review",
+      "rect": {
+        "x": 254,
+        "y": 163,
+        "w": 936,
+        "h": 30
+      },
+      "enabled": true,
+      "path": "main > h1"
+    },
+    {
+      "id": "t16",
+      "role": "text",
+      "label": "ENG-142",
+      "rect": {
+        "x": 907,
+        "y": 163,
+        "w": 291,
+        "h": 24
+      },
+      "enabled": true,
+      "path": "#p-id"
+    },
+    {
+      "id": "t17",
+      "role": "text",
+      "label": "Fix checkout rounding",
+      "rect": {
+        "x": 907,
+        "y": 191,
+        "w": 291,
+        "h": 21
+      },
+      "enabled": true,
+      "path": "#p-title"
+    }
+  ],
+  "seq": 11,
+  "ts": 1791968711698
+}

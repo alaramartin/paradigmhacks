@@ -1,0 +1,145 @@
+{
+  "type": "state",
+  "source": "web",
+  "app": "com.google.Chrome",
+  "window": "Inbox · Mail",
+  "url": "http://inbox.localhost:4004/",
+  "focused": true,
+  "elements": [
+    {
+      "id": "t1",
+      "role": "text",
+      "label": "Inbox",
+      "rect": {
+        "x": 22,
+        "y": 139,
+        "w": 259,
+        "h": 49
+      },
+      "enabled": true,
+      "path": "nav > h1"
+    },
+    {
+      "id": "t2",
+      "role": "text",
+      "label": "Oak St Pharmacy",
+      "rect": {
+        "x": 40,
+        "y": 201,
+        "w": 223,
+        "h": 22
+      },
+      "enabled": true,
+      "path": "nav > ul > li > div:nth-child(1)"
+    },
+    {
+      "id": "t3",
+      "role": "text",
+      "label": "Your prescription is ready",
+      "rect": {
+        "x": 40,
+        "y": 223,
+        "w": 223,
+        "h": 22
+      },
+      "enabled": true,
+      "path": "nav > ul > li > div:nth-child(2)"
+    },
+    {
+      "id": "t4",
+      "role": "text",
+      "label": "Your prescription is ready",
+      "rect": {
+        "x": 322,
+        "y": 167,
+        "w": 600,
+        "h": 31
+      },
+      "enabled": true,
+      "path": "article > h2"
+    },
+    {
+      "id": "t5",
+      "role": "text",
+      "label": "Oak St Pharmacy · today 3:12 pm",
+      "rect": {
+        "x": 322,
+        "y": 204,
+        "w": 600,
+        "h": 22
+      },
+      "enabled": true,
+      "path": "article > div"
+    },
+    {
+      "id": "t6",
+      "role": "text",
+      "label": "Hi,",
+      "rect": {
+        "x": 322,
+        "y": 250,
+        "w": 600,
+        "h": 22
+      },
+      "enabled": true,
+      "path": "article > p:nth-child(3)",
+      "list": {
+        "key": "article",
+        "index": 0
+      }
+    },
+    {
+      "id": "t7",
+      "role": "text",
+      "label": "Rx 4471-209 is ready to refill at Oak St. Pick up after 5 pm.",
+      "rect": {
+        "x": 322,
+        "y": 285,
+        "w": 600,
+        "h": 22
+      },
+      "enabled": true,
+      "path": "article > p:nth-child(4)",
+      "list": {
+        "key": "article",
+        "index": 1
+      }
+    },
+    {
+      "id": "t8",
+      "role": "text",
+      "label": "Want a heads-up? Ask us to text you when it's ready.",
+      "rect": {
+        "x": 322,
+        "y": 321,
+        "w": 600,
+        "h": 22
+      },
+      "enabled": true,
+      "path": "article > p:nth-child(5)",
+      "list": {
+        "key": "article",
+        "index": 2
+      }
+    },
+    {
+      "id": "t9",
+      "role": "text",
+      "label": "Oak St Pharmacy",
+      "rect": {
+        "x": 322,
+        "y": 357,
+        "w": 600,
+        "h": 22
+      },
+      "enabled": true,
+      "path": "article > p:nth-child(6)",
+      "list": {
+        "key": "article",
+        "index": 3
+      }
+    }
+  ],
+  "seq": 16,
+  "ts": 1791968582419
+}
