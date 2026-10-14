@@ -14,6 +14,12 @@ const MAX_UNIT = 12;
 export interface Step extends Action {
     /** Click a list item on this page whose label contains `contains`, resolved when the step runs. */
     match?: { listKey: string; contains: string };
+    /** STRETCH: skip this step when its target doesn't show up (~2 s) instead of failing the sequence. */
+    optional?: boolean;
+    /** STRETCH: run this step only after an earlier one failed (switching back to where the user was). */
+    onFail?: boolean;
+    /** STRETCH: skip this step while the element at this path is still on screen (waits ~3 s for it to go). */
+    unlessPresent?: string;
 }
 
 export interface PatternAction extends Action {

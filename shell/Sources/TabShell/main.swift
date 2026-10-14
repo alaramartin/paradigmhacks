@@ -58,6 +58,7 @@ final class Shell: NSObject, InputTapDelegate {
     let tap = InputTap()
     let hub: HubClient
     let terminal = TerminalPoller()
+    let native = NativePoller() // STRETCH: Calendar (branch stretch/calendar-native)
     private var lastHud = Hud()
     private var statusItem: NSStatusItem?
     private var showHudItem: NSMenuItem?
@@ -84,6 +85,7 @@ final class Shell: NSObject, InputTapDelegate {
             self?.overlay.hide()
         }
         terminal.onState = { [weak self] s in self?.hub.send(.state(s)) }
+        native.onState = { [weak self] s in self?.hub.send(.state(s)) }
     }
 
     func start() {
@@ -94,6 +96,7 @@ final class Shell: NSObject, InputTapDelegate {
         NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(appActivated(_:)),
                                                           name: NSWorkspace.didActivateApplicationNotification, object: nil)
         terminal.setFrontmost(NSWorkspace.shared.frontmostApplication)
+        native.setFrontmost(NSWorkspace.shared.frontmostApplication)
         hub.start()
         setUpMenuBar()
         // Re-place the HUD only when displays change; a polling re-place would snap it back mid-drag.
@@ -120,9 +123,7 @@ final class Shell: NSObject, InputTapDelegate {
         let reset = NSMenuItem(title: "Reset HUD Position", action: #selector(resetHud), keyEquivalent: "")
         reset.target = self
         menu.addItem(reset)
-        let hc = NSMenuItem(title: "High Contrast", action: #selector(toggleContrast), keyEquivalent: "")
-        hc.target = self
-        menu.addItem(hc)
+        // High Contrast menu item removed (human's call, 14:40): suggestions are bright red by default instead.
         let rv = NSMenuItem(title: "Reveal Totals", action: #selector(revealTotals), keyEquivalent: "")
         rv.target = self
         menu.addItem(rv)
@@ -133,7 +134,7 @@ final class Shell: NSObject, InputTapDelegate {
         item.menu = menu
         statusItem = item
         showHudItem = show
-        contrastItem = hc
+        contrastItem = nil
         refreshMenu()
     }
 
@@ -176,6 +177,7 @@ final class Shell: NSObject, InputTapDelegate {
     private func reportFrontmost(_ app: NSRunningApplication?) {
         guard let app, let bid = app.bundleIdentifier, bid != selfBundleId else { return }
         terminal.setFrontmost(app)
+        native.setFrontmost(app)
         // The window title is an AX round trip to another app; the tap shares the main run loop, so never block it.
         let pid = app.processIdentifier
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
@@ -192,7 +194,15 @@ final class Shell: NSObject, InputTapDelegate {
 
     private func handle(_ m: HubToShell) {
         switch m {
-        case .ghost(let g):
+        case .ghost(var g):
+            // STRETCH: a cross-app offer sits on that app's Dock icon, pill above it.
+            if let bid = g.dockApp, let icon = NativeApp.dockIcon(bid) {
+                g.rect = icon
+                g.place = "above"
+                g.radius = icon.w * 0.22
+                g.pillAt = nil
+                g.cursor = nil
+            }
             log("ghost \(g.id) \(g.kind.rawValue) \"\(g.label)\" rect=\(g.rect.map { "\($0.x),\($0.y) \($0.w)×\($0.h)" } ?? "-") pillAt=\(g.pillAt.map { "\($0.x),\($0.y)" } ?? "-") place=\(g.place ?? "-") avoid=\(g.avoid?.count ?? 0)")
             overlay.show(g)
         case .ghostHide:
@@ -209,6 +219,14 @@ final class Shell: NSObject, InputTapDelegate {
     }
 
     private func exec(_ ghostId: String, _ a: Action) {
+        if a.op != "switch_app", nativeApps.contains(a.app) {
+            // STRETCH: a step inside Calendar (click / type / choose / key) via Accessibility.
+            native.exec(a) { [weak self] err in
+                log("exec \(ghostId): native \(a.op) \(a.targetPath ?? a.value ?? "") → \(err ?? "ok")")
+                self?.hub.send(.execResult(ghostId: ghostId, ok: err == nil, error: err))
+            }
+            return
+        }
         guard a.op == "switch_app" else {
             hub.send(.execResult(ghostId: ghostId, ok: false, error: "shell only executes switch_app, got \(a.op)"))
             return
@@ -276,6 +294,9 @@ enum AppSwitcher {
     /// Activate by bundle id. A background (LSUIElement) app can't always activate others under cooperative activation,
     /// so try NSRunningApplication, then AX frontmost, then LaunchServices; confirm by pid.
     static func activate(_ bid: String, done: @escaping (Bool, String?) -> Void) {
+        // STRETCH: a native app's steps need its window. LaunchServices "reopens" a running app like a Dock click,
+        // which brings back a closed or minimized Calendar window (plain activate leaves it windowless).
+        if nativeApps.contains(bid) { return open(bid, done: done) }
         let instances = NSRunningApplication.runningApplications(withBundleIdentifier: bid)
         guard let app = pick(instances) else { return open(bid, done: done) }
         let pid = app.processIdentifier
