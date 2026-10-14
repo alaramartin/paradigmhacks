@@ -217,6 +217,8 @@ async function exec(a: Action): Promise<void> {
         await evalJs(`(() => { const el = ${find}; el.focus(); if (el.select) el.select(); else document.execCommand("selectAll"); })()`);
         await Input.insertText({ text: a.value ?? "" });
         await evalJs(`${find}.dispatchEvent(new Event("change", { bubbles: true }))`);
+        // After filling a multi-line box (a PR description), bring it to the top so what follows it (Create pull request) is on screen.
+        if (info.tag === "TEXTAREA") await evalJs(`${find}.scrollIntoView({ block: "start", behavior: "instant" })`);
         return;
     }
     throw new Error(`unsupported op ${a.op}`);

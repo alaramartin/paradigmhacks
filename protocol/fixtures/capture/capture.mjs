@@ -157,6 +157,10 @@ function collect() {
         if (out.length >= MAX || seen.has(el)) return;
         seen.add(el);
         const e = { id: `t${++n}`, role: r, label: label(el), rect: rect(el), enabled: !el.disabled && el.getAttribute("aria-disabled") !== "true", path: path(el) };
+        const br = el.getBoundingClientRect(), cr = getComputedStyle(el).borderTopLeftRadius; // same as web/src/inject.js radiusOf
+        const px = cr.endsWith("%") ? (parseFloat(cr) / 100) * Math.min(br.width, br.height) : parseFloat(cr) || 0;
+        const rad = Math.round(Math.min(px, br.width / 2, br.height / 2) * 10) / 10;
+        e.radius = rad; // 0 too: square, not "unknown"
         if (r === "textfield" || r === "textarea") e.value = el.isContentEditable ? clean(el.innerText) : el.value ?? "";
         if (r === "select") {
             e.options = [...el.options].map((o) => clean(o.label || o.text));

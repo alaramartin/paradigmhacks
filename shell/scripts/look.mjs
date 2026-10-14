@@ -76,6 +76,7 @@ try {
         const ghost = { id: `look${i}`, kind: g.kind ?? "action", label: g.label };
         if (el) {
             ghost.rect = toView(el.rect);
+            if (el.radius !== undefined) ghost.radius = el.radius;
             if ((g.kind ?? "action") === "action") ghost.cursor = { x: ghost.rect.x + ghost.rect.w / 2, y: ghost.rect.y + ghost.rect.h / 2 };
         }
         for (const k of ["ghostText", "place", "pillAt", "ttlMs"]) if (g[k] !== undefined) ghost[k] = g[k];

@@ -133,6 +133,13 @@
         return cs.visibility !== "hidden" && cs.opacity !== "0";
     }
 
+    // Corner radius in points (top-left; % of the shorter side), capped at a capsule. A fits its highlight to it.
+    function radiusOf(el, r) {
+        const v = getComputedStyle(el).borderTopLeftRadius;
+        const px = v.endsWith("%") ? (parseFloat(v) / 100) * Math.min(r.width, r.height) : parseFloat(v) || 0;
+        return Math.round(Math.min(px, r.width / 2, r.height / 2) * 10) / 10;
+    }
+
     function describe(el) {
         const role = roleOf(el);
         if (!role) return null;
@@ -141,6 +148,7 @@
         const v = valueOf(el);
         if (v !== undefined) d.value = v;
         if (el.tagName === "SELECT") d.options = [...el.options].map((o) => clean(o.label));
+        d.radius = radiusOf(el, r); // 0 too: square, not "unknown"
         if (role === "checkbox") d.checked = el.checked;
         else if (el.hasAttribute("aria-pressed")) d.checked = el.getAttribute("aria-pressed") === "true";
         const list = listOf(el);
@@ -160,7 +168,10 @@
         for (const el of document.querySelectorAll(INTERACTIVE)) {
             if (out.length >= MAX) break;
             const r = el.getBoundingClientRect();
-            if (!visible(el, r)) continue;
+            // List items (e.g. GitHub's commit list on the PR page) count up to 3 screens below the fold, like list text:
+            // the brain reads them (commit titles for the PR description) but never targets an off-screen one.
+            const nearList = r.top < innerHeight * 4 && r.bottom > 0 && !!listOf(el);
+            if (!visible(el, r, nearList)) continue;
             const d = describe(el);
             if (d) {
                 out.push(d);

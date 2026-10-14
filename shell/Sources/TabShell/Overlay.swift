@@ -43,40 +43,26 @@ struct Style {
     private var k: CGFloat { hc ? 1.5 : 1 }
 
     // Box
-    var boxOutset: CGFloat { hc ? 5 : 3 }
-    var boxRadius: CGFloat { hc ? 9 : 7 }
-    func boxStroke(_ kind: GhostKind) -> CGFloat { hc ? 4 : (kind == .blocked ? 3 : 2.5) }
+    // Normal mode is a quiet outline that hugs the element (you notice it, it doesn't pop); HC stays loud on purpose.
+    var boxOutset: CGFloat { hc ? 5 : 2 }
+    /// The element's corner radius when the hub doesn't send one (an older web/hub).
+    static let fallbackRadius: CGFloat = 6
+    func boxStroke(_ kind: GhostKind) -> CGFloat { hc ? 4 : (kind == .blocked ? 2 : 1.5) }
     var hcRing: CGFloat { 1.5 }
 
     func boxColor(_ kind: GhostKind) -> NSColor {
         switch kind {
-        case .action: return hc ? hex(Style.yellow) : hex(Style.graphite, 0.90)
-        case .text: return hc ? hex(Style.yellow) : hex(Style.graphite, 0.70)
-        case .pay: return hc ? hex(Style.yellow) : hex(Style.pay, 0.90)
-        case .blocked: return hex(Style.blockStroke)
-        case .done: return hc ? hex(Style.doneStroke) : hex(Style.doneStroke, 0.95)
+        case .action: return hc ? hex(Style.yellow) : hex(Style.graphite, 0.70)
+        case .text: return hc ? hex(Style.yellow) : hex(Style.graphite, 0.55)
+        case .pay: return hc ? hex(Style.yellow) : hex(Style.pay, 0.80)
+        case .blocked: return hc ? hex(Style.blockStroke) : hex(Style.blockStroke, 0.90)
+        case .done: return hc ? hex(Style.doneStroke) : hex(Style.doneStroke, 0.85)
         }
     }
 
-    func haloColor(_ kind: GhostKind) -> NSColor? {
-        if hc { return nil }
-        switch kind {
-        case .action: return hex(Style.graphite, 0.16)
-        case .text: return hex(Style.graphite, 0.12)
-        case .pay: return hex(Style.pay, 0.16)
-        case .blocked: return hex(Style.blockStroke, 0.20)
-        case .done: return hex(Style.doneStroke, 0.18)
-        }
-    }
-
+    /// No tint on the element, except a faint red on Blocked (it's a warning).
     func boxFill(_ kind: GhostKind) -> NSColor? {
-        switch kind {
-        case .action: return hc ? nil : hex(Style.graphite, 0.08)
-        case .text: return nil
-        case .pay: return hc ? nil : hex(Style.pay, 0.07)
-        case .blocked: return hex(Style.blockStroke, hc ? 0.12 : 0.10)
-        case .done: return hc ? nil : hex(Style.doneStroke, 0.08)
-        }
+        kind == .blocked ? hex(Style.blockStroke, hc ? 0.12 : 0.06) : nil
     }
 
     // Pill
@@ -468,6 +454,19 @@ final class GhostView: NSView {
         return CGRect(x: r.x - o, y: r.y - o, width: r.w + 2 * o, height: r.h + 2 * o)
     }
 
+    /// The element's own corner radius (from the page's CSS), capped at a capsule.
+    private var elementRadius: CGFloat {
+        let r = ghost.rect.map { CGFloat(min($0.w, $0.h)) / 2 } ?? .greatestFiniteMagnitude
+        return min(ghost.radius.map { CGFloat($0) } ?? Style.fallbackRadius, r)
+    }
+
+    /// The box's corner radius: concentric with the element's (its radius + the outset), so square buttons get a square
+    /// box, rounded ones a rounded box and capsules a capsule.
+    var boxCorner: CGFloat {
+        guard let b = boxRect() else { return pillRect.height / 2 } // Terminal: the ripple leaves the capsule pill
+        return min(elementRadius + style.boxOutset, b.height / 2, b.width / 2)
+    }
+
     private func layoutPill() -> CGRect {
         let size = pill.size
         var p: CGPoint
@@ -584,16 +583,8 @@ final class GhostView: NSView {
         let k = ghost.kind
         if let b = boxRect() {
             let sw = style.boxStroke(k)
-            let path = NSBezierPath(roundedRect: b, xRadius: style.boxRadius, yRadius: style.boxRadius)
+            let path = NSBezierPath(roundedRect: b, xRadius: boxCorner, yRadius: boxCorner)
             if let fill = style.boxFill(k) { fill.setFill(); path.fill() }
-            if let halo = style.haloColor(k) {
-                let o = sw / 2 + 1.5
-                let hr = style.boxRadius + o
-                let hp = NSBezierPath(roundedRect: b.insetBy(dx: -o, dy: -o), xRadius: hr, yRadius: hr)
-                hp.lineWidth = 3
-                halo.setStroke()
-                hp.stroke()
-            }
             if style.hc {
                 path.lineWidth = sw + 2 * style.hcRing
                 NSColor.black.setStroke()
@@ -611,7 +602,8 @@ final class GhostView: NSView {
     private func drawGhostText(in r: CGRect) {
         // Field cover: Tab brings its own paper, so the text reads on any field and hides the page placeholder.
         NSColor.white.setFill()
-        NSBezierPath(roundedRect: r.insetBy(dx: 1.5, dy: 1.5), xRadius: 4, yRadius: 4).fill()
+        let cr = max(0, elementRadius - 1.5) // inside the field's own corners
+        NSBezierPath(roundedRect: r.insetBy(dx: 1.5, dy: 1.5), xRadius: cr, yRadius: cr).fill()
         guard let gt = ghost.ghostText, !gt.isEmpty else { return }
         let font = ghostTextFont
         let para = NSMutableParagraphStyle()
@@ -906,7 +898,7 @@ final class Overlay {
 extension Overlay {
     /// Accept feedback the room can see: a ring leaves the target and fades, so it's clear where Tab acted.
     fileprivate func ripple(from v: GhostView) {
-        let ring = RippleView(frame: root.bounds, rect: v.rippleRect, style: v.style, kind: v.ghost.kind)
+        let ring = RippleView(frame: root.bounds, rect: v.rippleRect, corner: v.boxCorner, style: v.style, kind: v.ghost.kind)
         ring.setBoundsOrigin(v.bounds.origin)
         root.addSubview(ring, positioned: .below, relativeTo: v)
         let t0 = CACurrentMediaTime()
@@ -922,12 +914,14 @@ extension Overlay {
 final class RippleView: NSView {
     static let seconds = 0.32
     let rect: CGRect
+    let corner: CGFloat
     let style: Style
     let kind: GhostKind
     var progress: CGFloat = 0 { didSet { needsDisplay = true } }
 
-    init(frame: CGRect, rect: CGRect, style: Style, kind: GhostKind) {
+    init(frame: CGRect, rect: CGRect, corner: CGFloat, style: Style, kind: GhostKind) {
         self.rect = rect
+        self.corner = corner
         self.style = style
         self.kind = kind
         super.init(frame: frame)
@@ -938,12 +932,13 @@ final class RippleView: NSView {
     override var isFlipped: Bool { true }
 
     override func draw(_ dirty: NSRect) {
-        let grow = 2 + 14 * progress
+        // Normal: a small, quiet ring (1 → 8 pt out). HC keeps the big one (2 → 16 pt).
+        let grow = style.hc ? 2 + 14 * progress : 1 + 7 * progress
         let r = rect.insetBy(dx: -grow, dy: -grow)
-        let radius = min(r.height / 2, style.boxRadius + grow)
+        let radius = min(r.height / 2, corner + grow) // concentric with the box
         let path = NSBezierPath(roundedRect: r, xRadius: radius, yRadius: radius)
-        path.lineWidth = (style.hc ? 4 : 2.5) * (1 - progress) + 0.5
-        style.boxColor(kind).withAlphaComponent(0.85 * (1 - progress)).setStroke()
+        path.lineWidth = (style.hc ? 4 : 1.5) * (1 - progress) + 0.5
+        style.boxColor(kind).withAlphaComponent((style.hc ? 0.85 : 0.6) * (1 - progress)).setStroke()
         path.stroke()
     }
 }

@@ -126,10 +126,10 @@ func runTapSelftest() -> Never {
     reset(nil)
     fake.paymentSettling = true // Tab accepted a pay ghost; "Paying…" is up, no ghost is current
     let d12 = feed(key(tabK, down: true)), r12 = feed(key(tabK, down: true, repeat: true)), u12 = feed(key(tabK, down: false)); settle(20)
-    check("paying: Tab down, autorepeat and up are swallowed, nothing reported", !d12 && !r12 && !u12 && fake.calls.isEmpty, "\(fake.calls)")
+    check("paying: Tab down, autorepeat and up are swallowed, counted once as input", !d12 && !r12 && !u12 && fake.calls == ["input key"], "\(fake.calls)")
     fake.calls = []
     let k12 = feed(key(aK, down: true)), c12 = feed(click(300, 300)); settle(20)
-    check("paying: other keys and clicks pass through, not reported to the hub", k12 && c12 && fake.calls == ["hide only", "hide only"], "\(fake.calls)")
+    check("paying: other keys and clicks pass through, reported as input", k12 && c12 && fake.calls == ["input key", "input click"], "\(fake.calls)")
     fake.paymentSettling = false
 
     print(failures == 0 ? "all passed" : "\(failures) failed")

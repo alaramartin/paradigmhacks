@@ -414,7 +414,7 @@ func renderSelftest(to out: String) {
         let v = GhostView(ghost: it.ghost, style: st, frame: root.bounds, usable: root.bounds)
         v.pill.holdFraction = it.hold.map { CGFloat($0) }
         if let f = it.ripple {
-            let ring = RippleView(frame: root.bounds, rect: v.rippleRect, style: st, kind: it.ghost.kind)
+            let ring = RippleView(frame: root.bounds, rect: v.rippleRect, corner: v.boxCorner, style: st, kind: it.ghost.kind)
             ring.progress = CGFloat(f)
             root.addSubview(ring)
             v.pill.pressed = true

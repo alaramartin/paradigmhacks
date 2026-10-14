@@ -68,6 +68,7 @@ struct Ghost: Codable, Equatable {
     var ttlMs: Double?
     var place: String? // "below" (default) | "above" | "right" | "inside"
     var avoid: [Rect]? // nearby interactive elements the pill should not cover (used when `place` is absent)
+    var radius: Double? = nil // the target's CSS corner radius: the box is drawn concentric with it
 }
 
 struct TabDid: Codable, Equatable {

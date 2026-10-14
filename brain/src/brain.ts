@@ -42,6 +42,7 @@ export class Brain {
     private lastSig = "";
     private timer: NodeJS.Timeout | null = null;
     private payment: PaymentRequired | null = null;
+    private paying: string | null = null; // paymentId accepted and settling
     private running: { stop: boolean } | null = null;
     private echoUntil = 0;
     private execWaiters = new Map<string, (r: { ok: boolean; error?: string }) => void>();
@@ -60,6 +61,7 @@ export class Brain {
         this.pattern = new PatternEngine({ file: this.o.workflowsFile ?? null }); // reloads what was kept
         this.hud = newHud();
         this.payment = null;
+        this.paying = null;
         this.dismissedKey = null;
         this.modelCache = null;
         this.echoUntil = 0;
@@ -204,7 +206,7 @@ export class Brain {
 
     private async predict(gen: number): Promise<void> {
         if (this.running) return;
-        if (this.payment) return this.showPayment(this.payment);
+        if (this.payment) return this.paying === this.payment.paymentId ? undefined : this.showPayment(this.payment);
         const active = this.store.active();
         if (!active) return;
 
@@ -308,9 +310,9 @@ export class Brain {
         const empty = !el.value;
         const avoid = nearby(el.rect, active, el.id);
         if (a.op === "type" && empty && (el.role === "textfield" || el.role === "textarea")) {
-            return { id, kind: "text", label: "⇥", rect: el.rect, ghostText: a.value, ...(avoid.length ? { avoid } : {}) };
+            return { id, kind: "text", label: "⇥", rect: el.rect, ...(el.radius !== undefined ? { radius: el.radius } : {}), ghostText: a.value, ...(avoid.length ? { avoid } : {}) };
         }
-        const ghost: Ghost = { id, kind: "action", label, rect: el.rect, cursor: center, ...(avoid.length ? { avoid } : {}) };
+        const ghost: Ghost = { id, kind: "action", label, rect: el.rect, ...(el.radius !== undefined ? { radius: el.radius } : {}), cursor: center, ...(avoid.length ? { avoid } : {}) };
         if (this.pillWouldCover(el, active)) ghost.place = "inside"; // ghost-spec amendment: dock in wide fields
         return ghost;
     }
@@ -363,6 +365,12 @@ export class Brain {
         if (!s || s.ghost.id !== ghostId) return;
         if (s.ghost.kind === "pay" && s.paymentId) {
             this.hud.accepted++;
+            // In flight until payment_result (~10 s on venue wifi): the shell shows "Paying …"; input meanwhile must
+            // not hide it or re-offer a live Pay ghost for a payment that's already settling.
+            this.paying = s.paymentId;
+            this.shown = null;
+            this.hud.mode = "running";
+            this.sendHud();
             this.o.sendWeb({ type: "pay", paymentId: s.paymentId });
             return;
         }
@@ -481,6 +489,12 @@ export class Brain {
 
     // ---------- payments ----------
 
+    /** Corner radius of the element at `r` on the active page: pay, blocked and done ghosts only carry a rect (A fits its box to it). */
+    private radiusAt(r: Rect | undefined): number | undefined {
+        if (!r) return undefined;
+        return this.store.active()?.elements.find((e) => e.rect.x === r.x && e.rect.y === r.y && e.rect.w === r.w && e.rect.h === r.h)?.radius;
+    }
+
     private showPayment(p: PaymentRequired): void {
         if (!p.anchorRect) p.anchorRect = this.lastClickedRect(); // C should send it; fall back to what the user just clicked
         const id = `g${++this.ghostSeq}`;
@@ -488,6 +502,8 @@ export class Brain {
             ? { id, kind: "pay", label: `Pay $${p.amountUsd} · ${p.payeeDomain} ⇥`, rect: p.anchorRect }
             : { id, kind: "blocked", label: `Blocked · ${p.verdict.reason ?? "payment does not match the page"}`, rect: p.anchorRect };
         if (p.anchorRect) {
+            const radius = this.radiusAt(p.anchorRect);
+            if (radius !== undefined) ghost.radius = radius;
             const avoid = nearby(p.anchorRect, this.store.active());
             if (avoid.length) ghost.avoid = avoid;
         }
@@ -502,10 +518,17 @@ export class Brain {
     private onPaymentResult(r: { paymentId: string; ok: boolean; txHash?: string; explorerUrl?: string; error?: string }): void {
         const p = this.payment;
         if (p && p.paymentId !== r.paymentId) return; // about a payment we've already moved past
+        const wasPaying = this.paying === r.paymentId;
+        if (wasPaying) this.paying = null;
         this.payment = null;
         if (!r.ok && r.error === "cancelled") {
             // The page went away (navigation, tab closed): nothing to pay or block anymore.
             if (this.shown?.paymentId === r.paymentId) this.hide();
+            else if (wasPaying) this.o.sendShell({ type: "ghost_hide" }); // take down the shell's "Paying …" pill
+            if (wasPaying) {
+                this.hud.mode = "idle";
+                this.sendHud();
+            }
             return;
         }
         const id = `g${++this.ghostSeq}`;
@@ -513,6 +536,8 @@ export class Brain {
         const ghost: Ghost = r.ok
             ? { id, kind: "done", label: `Paid $${p?.amountUsd ?? "?"} ✓`, rect, ttlMs: 1500 }
             : { id, kind: "blocked", label: `Blocked · ${r.error ?? "payment failed"}`, rect };
+        const radius = this.radiusAt(rect);
+        if (radius !== undefined) ghost.radius = radius;
         if (r.ok && r.txHash && r.explorerUrl) this.hud.lastTx = { hash: r.txHash, explorerUrl: r.explorerUrl, amountUsd: p?.amountUsd ?? "" };
         this.shown = r.ok ? null : { ghost, paymentId: r.paymentId };
         this.o.sendShell({ type: "ghost", ghost });

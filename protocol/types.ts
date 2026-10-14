@@ -21,6 +21,7 @@ export interface El {
     rect: Rect;
     enabled: boolean;
     path?: string; // CSS path for web. Replays resolve targets by path.
+    radius?: number; // web: corner radius in points (CSS border-radius, top-left), at most min(w, h) / 2; 0 = square
     list?: { key: string; index: number; field?: string }; // item in a repeated structure; field = path relative to the item
 }
 
@@ -72,6 +73,7 @@ export interface Ghost {
     pillAt?: { x: number; y: number }; // pill position when there is no rect
     ghostText?: string; // gray inline text for kind 'text'
     place?: "below" | "above" | "right" | "inside"; // pill placement relative to rect (default below; A flips it above at the screen edge)
+    radius?: number; // the target's corner radius (El.radius): A draws the highlight concentric with the element's shape
     avoid?: Rect[]; // other elements near rect; with no `place`, A puts an action/text pill where it covers none of them (pay/blocked stay below)
     ttlMs?: number; // auto-hide, used for 'done'
 }
