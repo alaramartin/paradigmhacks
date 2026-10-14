@@ -87,6 +87,11 @@ _Two Macs: the demo runs on **alara's Mac** (B verified there). A works on Ayush
 4. One full-screen `screencapture -x` per flow into `design/proof/`, cropped to the demo windows only. Delete any shot that caught personal windows.
 
 ### Notes for B and C (from A)
+- **B and C — A edited one spot each in your files (11:15, the human asked for it; additive).** The highlight box now fits each element's shape.
+  - `web/src/inject.js`: `radiusOf(el, r)`, plus `d.radius` in `describe()`.
+  - `brain/src/brain.ts`: `radius` on action/text ghosts, and a `radiusAt(anchorRect)` helper for pay/blocked/done.
+  - Protocol: `El.radius?` and `Ghost.radius?` (CHANGES.md). Brain still passes 30/30; brain and web typecheck.
+  - **Restart web (`npm start`) and the hub** to pick it up. If you were mid-edit there, `git pull --rebase` should merge cleanly (different lines).
 - ✅ **Done by B (11:20 PT), A's patch as suggested + a test (brain 30/30); hub restarted on alara's Mac.** **B — IMPORTANT, before the demo (11:35): a click during a payment re-offers it.** On a pay accept `onAccept` sends `pay` but keeps `this.shown` (the pay ghost) and `this.payment` until `payment_result` (9.6 s on venue wifi). Any input in that window, whether the shell's `input` or a page click arriving as web's `user_event`, goes through `onUserInput` → `hide()` → `ghost_hide`, and the next `predict()` → `showPayment(this.payment)` puts up a live `Pay $0.30 ⇥` again while the first payment settles. On screen that reads as a failed payment. A second Tab then sends a `pay` web no longer holds.
   - The shell now covers its half: while Paying it swallows Tab and reports nothing (`37021bd` and the follow-up).
   - The page-click half needs the hub. Suggested patch: in `onAccept`'s pay branch set `this.paying = s.paymentId; this.shown = null; this.hud.mode = "running"; this.sendHud();` before `sendWeb`; in `predict` use `if (this.payment) return this.paying === this.payment.paymentId ? undefined : this.showPayment(this.payment);`; and clear `this.paying` in `onPaymentResult` and `reset`.

@@ -310,9 +310,9 @@ export class Brain {
         const empty = !el.value;
         const avoid = nearby(el.rect, active, el.id);
         if (a.op === "type" && empty && (el.role === "textfield" || el.role === "textarea")) {
-            return { id, kind: "text", label: "⇥", rect: el.rect, ghostText: a.value, ...(avoid.length ? { avoid } : {}) };
+            return { id, kind: "text", label: "⇥", rect: el.rect, ...(el.radius !== undefined ? { radius: el.radius } : {}), ghostText: a.value, ...(avoid.length ? { avoid } : {}) };
         }
-        const ghost: Ghost = { id, kind: "action", label, rect: el.rect, cursor: center, ...(avoid.length ? { avoid } : {}) };
+        const ghost: Ghost = { id, kind: "action", label, rect: el.rect, ...(el.radius !== undefined ? { radius: el.radius } : {}), cursor: center, ...(avoid.length ? { avoid } : {}) };
         if (this.pillWouldCover(el, active)) ghost.place = "inside"; // ghost-spec amendment: dock in wide fields
         return ghost;
     }
@@ -489,6 +489,12 @@ export class Brain {
 
     // ---------- payments ----------
 
+    /** Corner radius of the element at `r` on the active page: pay, blocked and done ghosts only carry a rect (A fits its box to it). */
+    private radiusAt(r: Rect | undefined): number | undefined {
+        if (!r) return undefined;
+        return this.store.active()?.elements.find((e) => e.rect.x === r.x && e.rect.y === r.y && e.rect.w === r.w && e.rect.h === r.h)?.radius;
+    }
+
     private showPayment(p: PaymentRequired): void {
         if (!p.anchorRect) p.anchorRect = this.lastClickedRect(); // C should send it; fall back to what the user just clicked
         const id = `g${++this.ghostSeq}`;
@@ -496,6 +502,8 @@ export class Brain {
             ? { id, kind: "pay", label: `Pay $${p.amountUsd} · ${p.payeeDomain} ⇥`, rect: p.anchorRect }
             : { id, kind: "blocked", label: `Blocked · ${p.verdict.reason ?? "payment does not match the page"}`, rect: p.anchorRect };
         if (p.anchorRect) {
+            const radius = this.radiusAt(p.anchorRect);
+            if (radius !== undefined) ghost.radius = radius;
             const avoid = nearby(p.anchorRect, this.store.active());
             if (avoid.length) ghost.avoid = avoid;
         }
@@ -522,6 +530,8 @@ export class Brain {
         const ghost: Ghost = r.ok
             ? { id, kind: "done", label: `Paid $${p?.amountUsd ?? "?"} ✓`, rect, ttlMs: 1500 }
             : { id, kind: "blocked", label: `Blocked · ${r.error ?? "payment failed"}`, rect };
+        const radius = this.radiusAt(rect);
+        if (radius !== undefined) ghost.radius = radius;
         if (r.ok && r.txHash && r.explorerUrl) this.hud.lastTx = { hash: r.txHash, explorerUrl: r.explorerUrl, amountUsd: p?.amountUsd ?? "" };
         this.shown = r.ok ? null : { ghost, paymentId: r.paymentId };
         this.o.sendShell({ type: "ghost", ghost });
