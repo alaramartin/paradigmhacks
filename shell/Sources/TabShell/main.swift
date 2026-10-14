@@ -2,7 +2,8 @@
 //   TabShell                       run (connects to ws://127.0.0.1:7800)
 //   TabShell --selftest            draw every ghost kind at fixed rects, normal and high contrast
 //   TabShell --dump                print one Terminal snapshot as JSON and exit
-//   TabShell --render out.png      render the selftest ghosts offscreen to a PNG (no permissions needed); --bg img.png, --dark
+//   TabShell --render out.png      render the selftest ghosts offscreen to a PNG (no permissions needed); --bg img.png, --dark,
+//                                  --size WxH (points), --ghosts file.json ([{ghost, hc}] instead of the selftest layout)
 //   flags: --high-contrast, --hub ws://host:port
 import AppKit
 import ApplicationServices
@@ -346,6 +347,8 @@ final class BackgroundView: FlippedView {
     }
 }
 
+let highContrastFlag = args.contains("--high-contrast")
+
 func renderSelftest(to out: String) {
     let size = flagValue("--size").map { s -> CGSize in
         let p = s.split(separator: "x").compactMap { Double($0) }
@@ -354,9 +357,15 @@ func renderSelftest(to out: String) {
     let root = BackgroundView(frame: CGRect(origin: .zero, size: size))
     root.dark = args.contains("--dark")
     root.image = flagValue("--bg").flatMap { NSImage(contentsOfFile: $0) }
-    for (g, hc) in selftestGhosts(screen: size) {
+    // --ghosts file.json: [{"ghost": Ghost, "hc": Bool?}] in view points, instead of the selftest layout.
+    struct Item: Decodable { var ghost: Ghost; var hc: Bool? }
+    let items: [(Ghost, Bool)] = flagValue("--ghosts").map { path in
+        let data = try! Data(contentsOf: URL(fileURLWithPath: path))
+        return try! JSONDecoder().decode([Item].self, from: data).map { ($0.ghost, $0.hc ?? highContrastFlag) }
+    } ?? selftestGhosts(screen: size)
+    for (g, hc) in items {
         let v = GhostView(ghost: g, style: Style(hc: hc), frame: root.bounds, usable: root.bounds)
-        if g.id.hasSuffix("-repeat") { v.pill.holdFraction = 0.55 } // show the hold sweep mid-way
+        if g.id.hasSuffix("-repeat") || g.id.hasSuffix("-hold") { v.pill.holdFraction = 0.55 } // show the hold sweep mid-way
         root.addSubview(v)
     }
     guard let rep = root.bitmapImageRepForCachingDisplay(in: root.bounds) else { fatalError("no bitmap") }

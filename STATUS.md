@@ -45,6 +45,7 @@ _Two Macs: the demo runs on **alara's Mac** (B verified there). A works on Ayush
   - Offscreen check, no permissions needed: `TabShell --render out.png [--dark] [--bg img]` and `--render-hud out.png`.
 - Hub client with auto-reconnect (≤ 2 s across hub restarts); decodes every hub message in B's `npm run drive` stream with no errors.
 - Terminal reader: the AX path is **verified on alara's Mac by B** (`AXWindow > AXSplitGroup > AXScrollArea > AXTextArea`). The session-log fallback is verified here on a real `git push --progress` recorded with `script -q` (`TAB_TERM_SOURCE=log` or `--term-log`).
+- **`shell/scripts/look.mjs`**: see a ghost on a real page without Screen Recording (debug Chrome + real rects + TabShell's AppKit drawing). Example: `node shell/scripts/look.mjs "http://tracker.localhost:4003/" out.png '[{"kind":"action","label":"Repeat for ENG-150 · #13 ⇥","target":"Search tickets","place":"inside"}]'`.
 - **Fixture capture tool** `protocol/fixtures/capture/capture.mjs`: read-only CDP and dependency-free, using PLAN's perception rules. Use it for B's fixtures and as a reference for C (`--list`, `--navigate`, `--scroll`, `--focused`).
 - **The list heuristic works on GitHub's real rendered markdown table** (`protocol/fixtures/reference/real_github_release_table_uv.json`): rows are `tbody > tr` items, fields are `td:nth-of-type(N)` or `td:nth-of-type(N) > a`.
 - **`switch_app` picks the debug Chrome** when your normal Chrome also runs (they share a bundle id). It prefers the instance started with `--remote-debugging-port` (argv via `sysctl`, no permission needed) and confirms by pid. Check with `TabShell --which com.google.Chrome`. This fixes C's "may raise the wrong one" demo note; quitting normal Chrome is still the safest setup.
@@ -60,7 +61,10 @@ _Two Macs: the demo runs on **alara's Mac** (B verified there). A works on Ayush
 - **C — GitHub compare page is a React partial.** It first renders "Loading", then hydrates. Re-emit state after hydration (a MutationObserver catches it), or the commit titles never reach B.
 - **B — commit titles that reference a PR are split into several links** (`"Fix … ("`, `"#22424"`, `")"`, all in one `li`, field `div > p > a:nth-of-type(N)`). Read the whole `<p>`, or keep `#NN` out of the demo commit titles.
 - **Humans/C — release table PR column:** GitHub autolinks `#12` only if PR #12 exists. Use real PR numbers for all six rows or for none, otherwise the PR cell's `field` differs between rows (`td:nth-of-type(3)` vs `td:nth-of-type(3) > a`) and the repeat lookup breaks.
-- **B — `Ghost.place` (new, optional; see `protocol/CHANGES.md`):** send `"inside"` for the flow 3 Repeat ghost on the tracker search box, so the pill docks in the box's right end instead of covering the first row. `"above"` and `"right"` also work; the default stays `below`.
+- **B — `Ghost.place` (new, optional; see `protocol/CHANGES.md`):** default `below`.
+  - Flow 3: send `"inside"` for the Repeat ghost on the tracker search box, so the pill docks in the box's right end instead of covering the first row.
+  - Flow 4: send `"above"` for the time chips, so the pill doesn't cover "Text me when ready" (the next step).
+  - Checked on C's real pages: `design/proof/a-composite-flow3-tracker-inside.png`, `design/proof/a-composite-flow4-pharmacy-hc.png`.
 - **C — hidden pages don't smooth-scroll.** When the display sleeps, `visibilityState` is `hidden` and GitHub's smooth `scrollIntoView` never moves. Use `behavior: "instant"` for any scrolling you do.
 
 ## B — Hub + Brain

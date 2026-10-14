@@ -144,7 +144,7 @@ function collect() {
         return "text";
     };
     const label = (el) =>
-        clean(el.getAttribute("aria-label")) || clean(el.innerText) || clean(el.getAttribute("placeholder")) ||
+        clean(el.getAttribute("aria-label")) || clean(el.labels?.[0]?.innerText) || clean(el.innerText) || clean(el.getAttribute("placeholder")) ||
         clean(el.getAttribute("name")) || clean(el.getAttribute("title")) || clean(el.value);
 
     const out = [];
@@ -189,7 +189,7 @@ function collect() {
         elements: out,
         seq: 1,
         ts: Date.now(),
-        _capture: { screenX, screenY, outerHeight, innerHeight, devicePixelRatio, toolbar: top },
+        _capture: { screenX, screenY, outerHeight, innerHeight, innerWidth, devicePixelRatio, toolbar: top },
     };
 }
 

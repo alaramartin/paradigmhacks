@@ -94,7 +94,8 @@ struct Style {
 
     /// (color, width) of the inner border: a hairline in normal mode, 2 pt in HC.
     func pillBorder(_ kind: GhostKind) -> (NSColor, CGFloat) {
-        if !hc { return (NSColor.white.withAlphaComponent(0.22), 1) }
+        // Pay gets a stronger hairline: Base blue must keep an edge on blue pages (C's tickets site is royal blue).
+        if !hc { return (NSColor.white.withAlphaComponent(kind == .pay ? 0.55 : 0.22), 1) }
         switch kind {
         case .action, .text, .pay: return (hex(Style.yellow), 2)
         case .blocked, .done: return (.white, 2)
@@ -335,11 +336,12 @@ final class GhostView: NSView {
 
     // MARK: layout
 
-    private var isMultiline: Bool { (ghost.rect?.h ?? 0) >= 44 }
+    /// Textareas only: real single-line inputs run up to ~56 pt tall (C's pharmacy field is 46).
+    private var isMultiline: Bool { (ghost.rect?.h ?? 0) >= 64 }
 
     private var ghostTextFont: NSFont {
         guard let r = ghost.rect, !isMultiline else { return .systemFont(ofSize: 14) }
-        return .systemFont(ofSize: min(15, max(12, r.h * 0.42)))
+        return .systemFont(ofSize: min(20, max(12, r.h * 0.42)))
     }
 
     private func boxRect() -> CGRect? {
@@ -364,11 +366,13 @@ final class GhostView: NSView {
                 }
             }
         } else if let b = boxRect(), let r = ghost.rect {
+            let above = CGPoint(x: b.minX, y: b.minY - style.gap - size.height)
+            let right = CGPoint(x: b.maxX + style.gap, y: b.midY - size.height / 2)
             switch ghost.place {
-            case "above":
-                p = CGPoint(x: b.minX, y: b.minY - style.gap - size.height)
-            case "right":
-                p = CGPoint(x: b.maxX + style.gap, y: b.midY - size.height / 2)
+            case "above" where above.y >= usable.minY + style.clamp:
+                p = above
+            case "right" where right.x + size.width <= usable.maxX - style.clamp:
+                p = right
             case "inside":
                 // Docked at the element's right end like a badge, equal space right and top/bottom.
                 let inset = max(4, (r.h - size.height) / 2)
@@ -389,7 +393,8 @@ final class GhostView: NSView {
 
     /// The cursor tip, from the rect (lower-right quadrant, clear of centred labels). Only action ghosts with a cursor.
     private func cursorTip() -> CGPoint? {
-        guard ghost.kind == .action, ghost.cursor != nil, let r = ghost.rect else { return nil }
+        // No cursor under a docked pill: the badge already points at the element.
+        guard ghost.kind == .action, ghost.cursor != nil, ghost.place != "inside", let r = ghost.rect else { return nil }
         if r.w >= 48 { return CGPoint(x: min(r.x + 0.78 * r.w, r.x + r.w - 14), y: r.y + 0.62 * r.h) }
         return CGPoint(x: r.x + 0.6 * r.w, y: r.y + 0.6 * r.h)
     }
@@ -439,7 +444,7 @@ final class GhostView: NSView {
             para.minimumLineHeight = 20.3
             para.maximumLineHeight = 20.3
             // Leave the bottom-right corner to the pill.
-            (gt as NSString).draw(with: CGRect(x: r.minX + 8, y: r.minY + 8, width: r.width - 16, height: r.height - 16 - pill.size.height),
+            (gt as NSString).draw(with: CGRect(x: r.minX + 8, y: r.minY + 8, width: r.width - 16, height: max(20.3, r.height - 16 - pill.size.height)),
                                   options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine], attributes: attrs)
         } else {
             para.lineBreakMode = .byTruncatingTail

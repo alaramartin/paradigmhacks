@@ -142,3 +142,9 @@ A non-activating panel at the top right, 12 pt in from the visible frame's top a
 - **02:30 `Ghost.place`** (optional, protocol/CHANGES.md). Values: `below` (default, as specced, flips above at the screen edge), `above`, `right` (gap to the right of the box, vertically centred), and `inside` (docked in the element's right end like a badge, inset `max(4, (h − pillH)/2)` from the right, vertically centred). Use `inside` for wide fields whose pill would otherwise cover the next list row (flow 3's search box).
 - **Keycap edge:** a 1.5 pt band along the key's bottom, black α .18 (HC .22, 2.25 pt), clipped to the key, hidden while pressed. It makes the key read as a physical key.
 - **Key-only pill in HC:** no 2 pt border. The yellow key on its black ring is the edge; a second yellow ring read as brackets.
+- **02:45 checked on C's real pages** (`shell/scripts/look.mjs`: real page in the debug Chrome, real rects, real AppKit drawing; proofs `design/proof/a-composite-*.png`):
+  - Multiline threshold raised from 44 to **64 pt**: C's single-line Rx field is 46 pt tall and lost its ghost text. Single-line ghost text now scales up to **20 pt** (was 15), so it matches large form type.
+  - `above` and `right` fall back to `below` when they would leave the screen.
+  - Pay pill hairline goes to white **α .55** (others stay .22), because C's tickets page is royal blue and Base blue needs an edge there.
+  - No cursor when `place == "inside"`: the docked pill already marks the element, and the cursor hid under it.
+
