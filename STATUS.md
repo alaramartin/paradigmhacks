@@ -1,5 +1,28 @@
 # STATUS
 
+## Read first: overnight handoff (written by B, ~04:00 Wed)
+
+The C human was asleep, so **Agent B built C's part (`web/`) overnight** and ran every flow live on alara's Mac (hub + A's shell + C + debug Chrome). Details are in each section below; proofs in `design/proof/`.
+
+| Flow | State |
+| --- | --- |
+| 1 Tickets + resale block | Works live through the pay ghost. **Paying fails: payer wallet has 0 USDC.** Resale blocked with the exact reason. |
+| 2 `git push` → PR | Terminal ghost → switch to Chrome → PR URL opens. **Then GitHub asks for login** (debug Chrome not logged in): description + Create untested. |
+| 3 Release day | **Works live end to end** on the real GitHub release + tracker: repeat, repeat, "Do the remaining 3", all six Done. |
+| 4 Pharmacy | Works live through the pay ghost (all Jev). Paying fails: 0 USDC. |
+
+**Start everything** (each in its own terminal): `cd brain && npm start` · `cd web && npm run demo` · `open -na "Google Chrome" --args --remote-debugging-port=9222 --user-data-dir=/tmp/tab-chrome` · `cd web && npm start` · `shell/scripts/build-shell.sh --run`. Reset between rehearsals: `cd web && npm run reset-demo`.
+
+**Humans, first thing:**
+1. Fund the payer `0x4A864e4077fd5d5f95e9A8CC5d1bCe5298F616Df` (Base Sepolia USDC, https://faucet.circle.com), then `cd web && npm run balance` and `npm run pay-test`.
+2. Log into GitHub in the debug Chrome window (`/tmp/tab-chrome` profile).
+3. Grant VS Code Accessibility so agents can press real Tab keys in tests.
+4. Quit normal Chrome during the demo (same bundle id as the debug Chrome).
+
+**Left for C:** design-skill pass on all five sites; pay-test + real payments once funded; capture `web_state_github_compare.json` once logged in and check B's commit-title heuristic; rect check at the real two-window layout. See "Left for C" below.
+**Left for B:** retune Jev on the GitHub compare page (flow 2 second half); watch the weakest steps (`Check "Text me when ready"` 0.64, `Create pull request`).
+**For A:** the pill can sit on top of the first list row (flow 3 proof); real-key test of Tab/Esc/hold still pending the VS Code grant.
+
 ## A — Shell
 
 ### Done
