@@ -167,6 +167,9 @@ function jevState(m: ModelInput) {
             const hint = e.role === "select" ? mentionedOptions(e, otherText)[0] : undefined;
             if (hint) return `${e.role}: ${e.label} = ${JSON.stringify(e.value ?? "")}, but OTHER_PAGES says ${JSON.stringify(hint)}`;
             if (e.role === "checkbox" && !e.checked && askedFor(e.label, otherText)) return `checkbox: ${e.label} [not checked], and OTHER_PAGES asks for this`;
+            // A group of toggle buttons (time chips) with none pressed is an unanswered field, like an empty input.
+            if (e.role === "button" && e.checked === false && e.list && !s.elements.some((o) => o.list?.key === e.list!.key && o.checked))
+                return `option button: ${e.label} [not selected; nothing in this group is selected yet]`;
             const v = e.role === "checkbox" || e.checked !== undefined ? (e.checked ? " [checked]" : " [not checked]") : e.value ? ` = ${JSON.stringify(e.value.slice(-400))}` : e.role === "textfield" || e.role === "textarea" ? " = (empty)" : "";
             return `${e.role}: ${e.label}${v}`;
         });
