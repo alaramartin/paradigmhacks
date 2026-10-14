@@ -404,31 +404,52 @@ func renderSelftest(to out: String) {
     print("wrote \(out) \(Int(size.width))×\(Int(size.height)) pt")
 }
 
+/// Every HUD state side by side, with its shadow, 4 per row (--dark: on a dark page).
 func renderHUD(to out: String) {
-    let states: [(String, Bool, Hud)] = [
-        ("offline", false, Hud()),
-        ("idle", true, Hud(mode: "idle", modelCalls: 0, shown: 0, accepted: 0, tabDid: TabDid(clicks: 0, keys: 0), youDid: 0)),
-        ("predicting", true, Hud(mode: "predicting", lastSource: "model", lastLatencyMs: 212, modelCalls: 3, shown: 3, accepted: 2,
-                                 tabDid: TabDid(clicks: 3, keys: 0), youDid: 5)),
-        ("shown", true, Hud(mode: "shown", lastSource: "pattern", lastLatencyMs: 2.7, modelCalls: 3, shown: 4, accepted: 3,
-                            tabDid: TabDid(clicks: 9, keys: 14), youDid: 9)),
-        ("running", true, Hud(mode: "running", lastSource: "pattern", lastLatencyMs: 1.9, modelCalls: 3, shown: 5, accepted: 4,
-                              tabDid: TabDid(clicks: 14, keys: 21), youDid: 10)),
-        ("paid", true, Hud(mode: "shown", lastSource: "model", lastLatencyMs: 188, modelCalls: 4, shown: 6, accepted: 5,
-                           tabDid: TabDid(clicks: 6, keys: 0), youDid: 7,
-                           lastTx: LastTx(hash: "0x8f3a91c2d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f",
-                                          explorerUrl: "https://sepolia.basescan.org/tx/0x8f3a", amountUsd: "0.30"))),
+    let tx = LastTx(hash: "0x8f3a91c2d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f",
+                    explorerUrl: "https://sepolia.basescan.org/tx/0x8f3a", amountUsd: "0.30")
+    // (name, connected, high contrast, hud before, hud). A tx that appears between `before` and `hud` is a payment
+    // seen live, so it flashes green; one already there on the first hud after connecting does not.
+    let states: [(String, Bool, Bool, Hud?, Hud)] = [
+        ("offline, stale numbers", false, false, nil,
+         Hud(mode: "shown", lastSource: "model", lastLatencyMs: 212, modelCalls: 3, shown: 4, accepted: 3, tabDid: TabDid(clicks: 9, keys: 14), youDid: 9)),
+        ("idle, fresh start", true, false, nil, Hud(mode: "idle", modelCalls: 0, shown: 0, accepted: 0, tabDid: TabDid(clicks: 0, keys: 0), youDid: 0)),
+        ("predicting", true, false, nil, Hud(mode: "predicting", lastSource: "model", lastLatencyMs: 212, modelCalls: 3, shown: 3, accepted: 2,
+                                             tabDid: TabDid(clicks: 3, keys: 0), youDid: 5)),
+        ("flow 1: just paid", true, false,
+         Hud(mode: "running", lastSource: "model", lastLatencyMs: 188, modelCalls: 4, shown: 3, accepted: 3, tabDid: TabDid(clicks: 2, keys: 0), youDid: 6),
+         Hud(mode: "shown", lastSource: "model", lastLatencyMs: 188, modelCalls: 4, shown: 3, accepted: 3, tabDid: TabDid(clicks: 3, keys: 0), youDid: 7, lastTx: tx)),
+        ("flow 3: pattern repeat", true, false, nil,
+         Hud(mode: "shown", lastSource: "pattern", lastLatencyMs: 2, modelCalls: 6, shown: 8, accepted: 7, tabDid: TabDid(clicks: 9, keys: 131), youDid: 61, lastTx: tx)),
+        ("running, <1 ms", true, false, nil,
+         Hud(mode: "running", lastSource: "pattern", lastLatencyMs: 0, modelCalls: 6, shown: 9, accepted: 8, tabDid: TabDid(clicks: 14, keys: 150), youDid: 64, lastTx: tx)),
+        ("reveal, high contrast", true, true, nil,
+         Hud(mode: "idle", lastSource: "model", lastLatencyMs: 640, modelCalls: 9, shown: 16, accepted: 15, tabDid: TabDid(clicks: 31, keys: 168), youDid: 72,
+             lastTx: LastTx(hash: tx.hash, explorerUrl: tx.explorerUrl, amountUsd: "0.05"))),
+        ("stress", true, false, nil,
+         Hud(mode: "predicting", lastSource: "pattern", lastLatencyMs: 1234, modelCalls: 99, shown: 99, accepted: 99, tabDid: TabDid(clicks: 480, keys: 754),
+             youDid: 9999, lastTx: LastTx(hash: tx.hash, explorerUrl: tx.explorerUrl, amountUsd: "1234.56"))),
     ]
     let s = HUDView.size
-    let gap: CGFloat = 16
-    let root = BackgroundView(frame: CGRect(x: 0, y: 0, width: CGFloat(states.count) * (s.width + gap) + gap, height: s.height + 2 * gap))
-    root.dark = false
-    for (i, (_, connected, h)) in states.enumerated() {
-        let v = HUDView(frame: CGRect(x: gap + CGFloat(i) * (s.width + gap), y: gap, width: s.width, height: s.height))
+    let gap: CGFloat = 48, cols = 4
+    let rows = (states.count + cols - 1) / cols
+    let root = BackgroundView(frame: CGRect(x: 0, y: 0, width: CGFloat(cols) * (s.width + gap) + gap, height: CGFloat(rows) * (s.height + gap) + gap))
+    root.dark = args.contains("--dark")
+    for (i, (name, connected, hc, before, h)) in states.enumerated() {
+        let o = CGPoint(x: gap + CGFloat(i % cols) * (s.width + gap), y: gap + CGFloat(i / cols) * (s.height + gap))
+        let m = HUDShadowView.margin
+        root.addSubview(HUDShadowView(frame: CGRect(x: o.x - m, y: o.y - m, width: s.width + 2 * m, height: s.height + 2 * m)))
+        let v = HUDView(frame: CGRect(origin: o, size: s))
         v.connected = connected
+        if let before { v.hud = before }
         v.hud = h
-        v.highContrast = i == states.count - 1
+        v.highContrast = hc
         root.addSubview(v)
+        let cap = NSTextField(labelWithString: name)
+        cap.font = .systemFont(ofSize: 11, weight: .medium)
+        cap.textColor = root.dark ? .lightGray : .darkGray
+        cap.frame = CGRect(x: o.x, y: o.y - 20, width: s.width, height: 16)
+        root.addSubview(cap)
     }
     guard let rep = root.bitmapImageRepForCachingDisplay(in: root.bounds) else { fatalError("no bitmap") }
     root.cacheDisplay(in: root.bounds, to: rep)

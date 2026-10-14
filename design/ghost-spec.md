@@ -132,6 +132,28 @@ A non-activating panel at the top right, 12 pt in from the visible frame's top a
 | 4 (h 22, 8 pt below) | Left: `Paid $<amountUsd> · <hash[0..6]>…<hash[-4..]>`, 11, primary, or `No payments yet` (disabled). For 3 s after `lastTx` changes, prefix `✓ ` and colour the line `#30D158`. Right: a `ledger ↗` button, 11 semibold, padding 3×8, radius 6, fill white α .12, primary text. Without a tx: fill α .05, disabled text, clicks ignored. |
 | 5 (8 pt below) | High-contrast switch: track 24×14, radius 7, fill white α .20 (off) or hc (on). Knob 12 pt, white, at x+1 (off) or x+11 (on), y+1. Label `High contrast`, 11 medium, secondary (primary when on). The whole row is the hit target. |
 
+### Amendments (HUD, 10-14 demo polish)
+
+These override the HUD table above where they differ. Implemented in `HUD.swift`; check with `TabShell --render-hud out.png [--dark]` (8 states including flow 1 just paid, flow 3 pattern, the reveal, and a stress state).
+
+- **Order and size.** The panel is 264 × **227**, with padding 16 horizontal and 14 at the top. From the top: the reveal, a divider, the last prediction, the session totals, the payment, and a footer. Height grows by 31 pt because the old row 3 is now two rows (see below).
+- **The `Tab` title row is gone.** The hero label is a **`tab` keycap** followed by `did`. The keycap is the name and doubles as the bar's legend: 18 pt high, at least 30 pt wide, fill `#0A84FF`, `tab` in 11 semibold white, radius 4.5, with the ghost keycap's 1.5 pt bottom edge in black α .22. `You did` sits right-aligned, 11 medium, secondary.
+- **The mode dot and word moved to the footer's right**, with the same colours and the same predicting pulse. The word is primary when offline.
+- **Reveal numbers.** SF Pro Rounded, 32 semibold, tabular digits, baseline 65. `Tab did` is left-aligned and `You did` is right-aligned. If both don't fit (6+ digits), they shrink together on one baseline, never below 11 pt.
+- **Count-up.** When a number rises it counts up over 350 ms, ease-out cubic (a 60 Hz Timer in `.common` mode, so it keeps running during a drag). It jumps instead when the number falls (a hub restart), under reduced motion, and in offscreen renders.
+- **Proportion bar** (y 75, 6 pt capsules): Tab's share runs from the left in `#0A84FF`, yours from the right in white α .85, 3 pt apart. Each segment is at least 6 pt. When both counts are 0, it is an empty white α .10 track. The bar follows the counted values.
+- **Sub-line under the bar** (replaces "keys and clicks"). Left: Tab's share as `70%` in `#409CFF` semibold, then `9 clicks · 131 keys` in secondary, truncating the tail. Right: your share as `30%` in white α .85 semibold. No percentages are shown while both counts are 0. Singular forms are used (`1 click`, `1 key`).
+- **Old row 3 is split into two rows** so the demo line reads cleanly:
+  - **Last prediction** (12 pt, chip at y 120). A source chip: a capsule 20 pt high, filled with the source colour at α .22, label in 12 semibold. `pattern` uses `#30D158`; `model` uses `#BF5AF2` with its text lifted to `#DA8FFF`, because `#BF5AF2` sank on a projector. After the chip, `pattern` shows **`0 model calls · 2 ms`** and `model` shows `212 ms`. Before the first prediction the row reads `no prediction yet`, disabled, as specced (the shell had said `ready`). Latency shows `<1 ms` below 1, one decimal below 10 only when fractional (the hub sends whole ms), otherwise whole ms.
+  - **Session totals** (11 pt, baseline 156). Left: `7/8 accepted`. Right: `6 model calls so far`. The words "so far" keep the running total from contradicting the per-prediction `0 model calls` just above. If the row is too narrow, "so far" is dropped and the left side truncates.
+- **Paid flash.** It shows only for a tx that appears or changes after the HUD has already received a `hud` since the last connect. Any connection change resets this and ends a running flash, so a hub restart never reads as a new payment. During the flash the ledger button is also green (fill α .20, green text). The payment line truncates before the button.
+- **Footer** (y 198). The high-contrast knob is `#1C1C1E` when on (black on yellow, like HC itself). The hit target is the footer from the left edge to 8 pt before the mode dot.
+- **Offline.** Everything above the footer draws at α .5 (one transparency layer), so stale numbers step back.
+- **Shadow.** Uses this section's values (black α .35, blur 20, 8 pt down). AppKit draws it, not the system: it lives in a separate borderless window with `ignoresMouseEvents`, 36 pt larger on each side, which clips the card out and draws only the outside. That window is ordered right below the panel and moved on the panel's `didMove`.
+  - It isn't drawn inside the panel because the window server sends clicks on any non-transparent pixel to the panel, so the soft edge would swallow clicks.
+  - It isn't a child window because on this Mac's scaled display the window server reported a child window off-centre, moving at 0.81× the parent.
+- **Panel and input.** The level is set after `isFloatingPanel` (NSPanel resets it to `.floating`). The drag threshold is **6 pt** (was 3), so a slightly shaky click still hits ledger or high contrast.
+
 ## Not decided here
 
 - **The cursor position rule moves logic into the shell.** If B would rather send the lower-right point itself, the shell should use `cursor` as given. Agree on one of the two; the drawing is the same either way.
