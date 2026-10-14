@@ -144,3 +144,23 @@ test("ignoring is sticky: input elsewhere hides the ghost and it isn't re-offere
     await brain.predictNow();
     assert.equal(ghosts().length, 2, "offered again after the user acts on the page");
 });
+
+test("no placeholder corner: payment without anchorRect anchors to the last clicked element, else no position", async () => {
+    const { brain, ghosts } = harness();
+    brain.fromShell({ type: "frontmost", app: CHROME, window: "Tracker" });
+    brain.fromWeb(trackerState(Date.now()));
+    const p = (id: string): PaymentRequired => ({
+        type: "payment_required", paymentId: id, url: "http://x/api", method: "POST", payeeDomain: "x.localhost", payTo: "0x",
+        amountUsd: "0.05", network: "eip155:84532", asset: "0x", verdict: { ok: true },
+    });
+    brain.fromWeb(p("p1"));
+    assert.equal(ghosts().at(-1).rect, undefined);
+    assert.equal(ghosts().at(-1).pillAt, undefined, "A places it (top center), not a hardcoded corner");
+    brain.fromShell({ type: "dismiss", ghostId: ghosts().at(-1).id });
+
+    brain.fromWeb(ev("click", SAVE));
+    brain.fromWeb(p("p2"));
+    assert.deepEqual(ghosts().at(-1).rect, SAVE.rect);
+    brain.fromWeb({ type: "payment_result", paymentId: "p2", ok: true, txHash: "0x1", explorerUrl: "https://sepolia.basescan.org/tx/0x1" });
+    assert.deepEqual(ghosts().at(-1).rect, SAVE.rect, "done ghost at the same place");
+});

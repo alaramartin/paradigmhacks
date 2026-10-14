@@ -1,6 +1,6 @@
 // Hub logic: routing, the predict loop, ghosts, payments, sequences, counters.
 // Transport-free so the websocket server, replay, and tests can all drive it.
-import type { Action, El, Ghost, HubToShell, HubToWeb, PaymentRequired, ScreenState, UserEvent } from "../../protocol/types.ts";
+import type { Action, El, Ghost, HubToShell, HubToWeb, PaymentRequired, Rect, ScreenState, UserEvent } from "../../protocol/types.ts";
 import { countStep, newHud } from "./counters.ts";
 import { History, toTarget } from "./history.ts";
 import { log } from "./log.ts";
@@ -265,7 +265,12 @@ export class Brain {
         }
 
         const el = this.ghostTarget(a);
-        if (!el) return a.op === "navigate" ? { id, kind: "action", label, pillAt: { x: 40, y: 40 } } : null;
+        if (!el) {
+            if (a.op !== "navigate") return null;
+            const near = this.lastClickedRect();
+            // pillAt is the pill's bottom-left corner; without an anchor, A centers the pill at the top of the screen.
+            return near ? { id, kind: "action", label, pillAt: { x: near.x, y: near.y + near.h + 36 } } : { id, kind: "action", label };
+        }
         const center = { x: el.rect.x + el.rect.w / 2, y: el.rect.y + el.rect.h / 2 };
         const empty = !el.value;
         if (a.op === "type" && empty && (el.role === "textfield" || el.role === "textarea")) {
@@ -432,11 +437,11 @@ export class Brain {
     // ---------- payments ----------
 
     private showPayment(p: PaymentRequired): void {
+        if (!p.anchorRect) p.anchorRect = this.lastClickedRect(); // C should send it; fall back to what the user just clicked
         const id = `g${++this.ghostSeq}`;
         const ghost: Ghost = p.verdict.ok
             ? { id, kind: "pay", label: `Pay $${p.amountUsd} · ${p.payeeDomain} ⇥`, rect: p.anchorRect }
             : { id, kind: "blocked", label: `Blocked · ${p.verdict.reason ?? "payment does not match the page"}`, rect: p.anchorRect };
-        if (!p.anchorRect) ghost.pillAt = { x: 40, y: 40 };
         if (this.shown?.paymentId === p.paymentId && this.shown.ghost.kind === ghost.kind) return;
         this.shown = { ghost, paymentId: p.paymentId };
         this.hud.shown++;
@@ -453,7 +458,6 @@ export class Brain {
         const ghost: Ghost = r.ok
             ? { id, kind: "done", label: `Paid $${p?.amountUsd ?? "?"} ✓`, rect, ttlMs: 1500 }
             : { id, kind: "blocked", label: `Blocked · ${r.error ?? "payment failed"}`, rect };
-        if (!rect) ghost.pillAt = { x: 40, y: 40 };
         if (r.ok && r.txHash && r.explorerUrl) this.hud.lastTx = { hash: r.txHash, explorerUrl: r.explorerUrl, amountUsd: p?.amountUsd ?? "" };
         this.shown = r.ok ? null : { ghost, paymentId: r.paymentId };
         this.o.sendShell({ type: "ghost", ghost });
@@ -462,6 +466,16 @@ export class Brain {
     }
 
     // ---------- misc ----------
+
+    /** Where the user (or Tab) last clicked, with the element's current rect. */
+    private lastClickedRect(): Rect | undefined {
+        for (let k = this.history.entries.length - 1; k >= 0; k--) {
+            const e = this.history.entries[k];
+            if (e.op !== "click" || !e.target) continue;
+            return findEl(this.store.forStep(e.app, e.url), e.target.id, e.target.path)?.rect;
+        }
+        return undefined;
+    }
 
     private sendHud(): void {
         this.o.sendShell({ type: "hud", hud: this.hud });
