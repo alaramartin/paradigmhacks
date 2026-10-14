@@ -11,6 +11,7 @@
     "balance": "tsx scripts/balance.ts",
     "wallets": "tsx scripts/new-wallets.ts",
     "try": "tsx scripts/try.ts",
+    "fold": "node scripts/fold.mjs",
     "look": "tsx scripts/look.ts",
     "typecheck": "tsc --noEmit"
   },

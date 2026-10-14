@@ -133,3 +133,6 @@ ul.tickets { list-style: none; padding: 0; margin-left: 0; }
 
 h1, h2 { text-wrap: balance; }
 p { text-wrap: pretty; }
+
+/* Half-screen windows: the order box comes right after the title, so Buy tickets is on the first screen. */
+@media (max-width: 760px) { .co-pic { display: none; } }
