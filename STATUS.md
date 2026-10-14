@@ -30,22 +30,34 @@ The C human was asleep, so **Agent B built C's part (`web/`) overnight** and ran
 
 ## A — Shell
 
+_Two Macs: the demo runs on **alara's Mac** (B verified there). A works on Ayush's Mac, where the TabShell Accessibility grant is still missing, so live tap/AX checks happen on alara's Mac._
+
 ### Done
-- `shell/` builds: `shell/scripts/build-shell.sh` (`--run [args]` relaunches; log in `~/.tab/shell.log`). Signed with a stable self-signed identity "Tab Shell Dev" from its own keychain (`~/Library/Keychains/tab-shell-signing.keychain-db`, added to the user search list). DR = `identifier "dev.tab.shell" and certificate leaf = H"4f25…df22"`, the same on every rebuild, so the Accessibility grant should stick.
-- Hub client with auto-reconnect: verified across hub restarts (reconnects in ≤ 2 s). Sends `hello` and `frontmost`; decodes `ghost`, `ghost_hide`, `hud`, `exec`.
-- Overlay draws on the real screen: B's proof `design/proof/b-repeat-ghost-a-overlay.png`. Every kind (action, text, textarea text, pay, blocked, done, Repeat, Do the remaining N, Terminal `pillAt`) is drawn normal and high contrast by `TabShell --selftest` (on screen) and `TabShell --render out.png [--dark] [--bg img]` (offscreen; no permissions needed).
-- **Terminal reader, session-log path: works.** A real `git push --progress` recorded with `script -q` gives clean lines: progress `\r` overwrites collapse to their final state, ANSI is stripped, and the PR URL is intact. The window frame comes from CGWindowList, which needs no permission. `protocol/fixtures/native_state_terminal_push.json` comes from this path. **It's provisional:** the push went to a local bare remote whose post-receive hook prints GitHub's `Create a pull request … by visiting:` lines, so the `To` line says `../origin.git`. Recapture after human setup step 6.
-- Hold-to-dismiss: Tab/pedal held ≥ 600 ms dismisses at the threshold, with a bar filling on the pill. Short press on `blocked` shakes it.
+- `shell/` builds: `shell/scripts/build-shell.sh` (`--run [args]` relaunches; log in `~/.tab/shell.log`). It signs with a stable self-signed identity that the script creates once per Mac, in its own keychain (`~/Library/Keychains/tab-shell-signing.keychain-db`). The designated requirement stays the same across rebuilds, so the Accessibility grant sticks.
+- **Ghost + HUD built to `design/ghost-spec.md`** (prototype `design/ghost/index.html`, proofs `design/proof/ghost-prototype-{full,50}.png`):
+  - keycap `tab`/`esc`, two-weight labels, Base-blue pay, red blocked with `esc`, green done with a check;
+  - halos; HC black/yellow at 1.5× with rings; a white field cover under ghost text;
+  - the cursor tip is computed from the rect (B agreed); hold-to-dismiss sweeps the keycap;
+  - motion: appear 140 ms with a 4 pt rise, accept press 60 ms then fade 120 ms, dismiss 100 ms, done fade 220 ms, blocked shake (reduced motion: alpha only).
+  - HUD: big Tab did / You did reveal, a pulsing predicting dot, a green "just paid" line for 3 s, ledger, and the HC switch.
+  - Offscreen check, no permissions needed: `TabShell --render out.png [--dark] [--bg img]` and `--render-hud out.png`.
+- Hub client with auto-reconnect (≤ 2 s across hub restarts); decodes every hub message in B's `npm run drive` stream with no errors.
+- Terminal reader: the AX path is **verified on alara's Mac by B** (`AXWindow > AXSplitGroup > AXScrollArea > AXTextArea`). The session-log fallback is verified here on a real `git push --progress` recorded with `script -q` (`TAB_TERM_SOURCE=log` or `--term-log`).
+- **Fixture capture tool** `protocol/fixtures/capture/capture.mjs`: read-only CDP and dependency-free, using PLAN's perception rules. Use it for B's fixtures and as a reference for C (`--list`, `--navigate`, `--scroll`, `--focused`).
+- **The list heuristic works on GitHub's real rendered markdown table** (`protocol/fixtures/reference/real_github_release_table_uv.json`): rows are `tbody > tr` items, fields are `td:nth-of-type(N)` or `td:nth-of-type(N) > a`.
 ### In progress
-- Ghost/HUD prototype + `design/ghost-spec.md` (due 03:00), then transcribe the spec into `Overlay.swift`/`HUD.swift`.
+- Look-and-try polish of the ghost and HUD on the real screen. Fixing B's report that the pill below the box covers the first list row (flow 3).
+- Recapture `native_state_terminal_push.json` from a real push to `alaramartin/tab-demo` (needs alara's Mac).
 ### Blocked
-- **Terminal AX path (`AXTextArea → AXValue`) not tested yet.** It needs TabShell's Accessibility grant, and the screen is locked (frontmost = `loginwindow`). Reader order is `TAB_TERM_SOURCE=auto` (AX, then `~/.tab/term.log`), `ax`, or `log` (`--term-log`).
-- Input tap (Tab/Esc swallowing) is written but not running: no Accessibility grant.
-- Agents can't screenshot: `screencapture` → "could not create image from display" (Ghostty has no Screen Recording).
+- (none on the demo Mac)
 ### Needs human
-- **Grant Accessibility to TabShell**: System Settings → Privacy & Security → Accessibility → enable "TabShell" (`shell/build/TabShell.app`). Then run `shell/build/TabShell.app/Contents/MacOS/TabShell --dump` with Terminal frontmost, or tell A.
-- **Grant Screen Recording and Accessibility to Ghostty** (the terminal the agents run in), then restart it.
-- Demo terminal fallback: if the AX path fails, start the demo Terminal tab with `script -q ~/.tab/term.log` before `git push`.
+- On alara's Mac: real-key test of Tab/Esc/hold (B's note), and a full-screen proof shot of a ghost on a real Chrome element.
+
+### Notes for B and C (from A)
+- **C — GitHub compare page is a React partial.** It first renders "Loading", then hydrates. Re-emit state after hydration (a MutationObserver catches it), or the commit titles never reach B.
+- **B — commit titles that reference a PR are split into several links** (`"Fix … ("`, `"#22424"`, `")"`, all in one `li`, field `div > p > a:nth-of-type(N)`). Read the whole `<p>`, or keep `#NN` out of the demo commit titles.
+- **Humans/C — release table PR column:** GitHub autolinks `#12` only if PR #12 exists. Use real PR numbers for all six rows or for none, otherwise the PR cell's `field` differs between rows (`td:nth-of-type(3)` vs `td:nth-of-type(3) > a`) and the repeat lookup breaks.
+- **C — hidden pages don't smooth-scroll.** When the display sleeps, `visibilityState` is `hidden` and GitHub's smooth `scrollIntoView` never moves. Use `behavior: "instant"` for any scrolling you do.
 
 ## B — Hub + Brain
 

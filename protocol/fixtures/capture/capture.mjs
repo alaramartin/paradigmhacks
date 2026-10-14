@@ -64,7 +64,7 @@ if (navigate) {
 }
 
 if (scrollTo) {
-    await send("Runtime.evaluate", { expression: `document.querySelector(${JSON.stringify(scrollTo)})?.scrollIntoView({block: "start"})` });
+    await send("Runtime.evaluate", { expression: `document.querySelector(${JSON.stringify(scrollTo)})?.scrollIntoView({block: "start", behavior: "instant"})` });
     await new Promise((r) => setTimeout(r, 400));
 }
 
