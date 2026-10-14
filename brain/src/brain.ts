@@ -338,7 +338,10 @@ export class Brain {
     /** The element a ghost highlights: the target, or for a sequence, the first step we can find on screen. */
     private ghostTarget(a: Action): El | undefined {
         const steps: Step[] = a.op === "sequence" ? (a.steps as Step[]) ?? [] : [a];
+        const front = this.store.active()?.app;
         for (const s of steps) {
+            // Only what's on screen: a step in another (hidden) app would anchor on its last known, stale rect.
+            if (front && s.app !== front) continue;
             const el = this.resolve(s);
             if (el) return el;
         }

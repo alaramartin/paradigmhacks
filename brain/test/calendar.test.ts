@@ -143,3 +143,18 @@ test("no event popover (Calendar still syncing): skip filing, still switch back 
     while (!ops.includes("switch_app:com.google.Chrome") && Date.now() - t0 < 5000) await new Promise((res) => setTimeout(res, 20));
     assert.deepEqual(ops, ["click:com.apple.iCal", "type:com.apple.iCal", "key:com.apple.iCal", "switch_app:com.google.Chrome"]);
 });
+
+test("offer anchors on the Dock icon even when Calendar's last screen is remembered (no stale rect)", async () => {
+    const shown: HubToShell[] = [];
+    const brain = new Brain({ immediate: true, decider: { name: "fake", decide: async () => null }, sendShell: (m) => shown.push(m), sendWeb: (_m: HubToWeb) => {} });
+    // Calendar was on screen earlier (its Add Event button at the top of the screen), then hidden.
+    brain.fromShell({ type: "frontmost", app: CALENDAR, window: "Calendar" });
+    brain.fromShell({ type: "state", source: "native", app: CALENDAR, window: "Calendar", focused: true, seq: 1, ts: Date.now(),
+        elements: [{ id: "desc:Add Event", role: "button", label: "Add Event", rect: { x: 396, y: 39, w: 44, h: 52 }, enabled: true, path: "desc:Add Event" }] });
+    brain.fromShell({ type: "frontmost", app: "com.google.Chrome", window: "Chrome" });
+    brain.fromWeb(checkout("Checkout · Night Owls · Hall 9", ["Friday 9 pm, Hall 9"]));
+    (brain as any).maybeShow(calendarOffer({ title: "Night Owls", venue: "Hall 9", when: "Fri 9pm" }), ++(brain as any).gen, 0);
+    const g = (shown.find((m) => m.type === "ghost") as any)?.ghost;
+    assert.equal(g?.dockApp, CALENDAR);
+    assert.equal(g?.rect, undefined, "no rect from Calendar's stale screen");
+});
