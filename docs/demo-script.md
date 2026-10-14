@@ -1,62 +1,55 @@
-# Demo script (2 minutes, no slides)
+# Demo script: buy tickets, then add them to Calendar (2 minutes, no slides)
 
-Start on the tickets page. HUD in the top right. Press **Tab** whenever a gray suggestion appears.
-
----
-
-**[Tickets page. Set Qty to 2. A gray highlight appears on Checkout.]**
-
-> "This is Tab. It watches your screen, predicts your next step with TypeSafe's Jev model, and highlights it in gray: here, the Checkout button. I just press Tab."
-
-**[Tab → checkout page, gray highlight on Buy tickets. Tab.]**
-
-> "Buy tickets. Tab."
-
-**[The page asks for payment: blue `Pay $0.30 · tickets.localhost`. Tab → Paying… → Paid ✓, tickets appear.]**
-
-> "The site wants payment, so Tab pays it in stablecoins on Tempo, with one keypress. That whole order was three taps of one key."
-
-**[Resale tab. Click Buy tickets. Red `Blocked · page says $0.30, payment asks $0.51`. Press Tab: nothing. Esc.]**
-
-> "Same show on a resale site. The page says thirty cents, but the payment asks fifty-one cents, to someone else. Tab compares the payment to the price on the page, and blocks it."
+One continuous flow. Start on the Hall 9 tickets page in Chrome, with the HUD in the top right and Calendar in the Dock. Every time a red suggestion appears, let the audience see it for a beat, then press Tab.
 
 ---
 
-**[Ctrl+→ to Terminal + Chrome. Press Enter on the pre-typed `git push`. Gray `Open pull request` appears at the bottom of Terminal. Tab.]**
+**Open on the Night Owls page. Set Qty to 2. A red suggestion lands on the Checkout button.**
 
-> "It works across apps. I push a branch, and Tab offers to open the pull request."
+"This is Tab. It watches what you're doing on your Mac and predicts your next step, using TypeSafe's Jev model. It shows the prediction right on the screen: here, it's highlighting the Checkout button I was about to click. I don't move the mouse. I just press Tab."
 
-**[Chrome comes forward. Gray description text fills the empty field. Tab. Gray highlight on Create pull request. Tab → PR is open.]**
+**Press Tab. The checkout page opens, and the suggestion moves to Buy tickets.**
 
-> "It writes the description from my commits… and creates the PR. Three taps again."
+"Checkout's open, and it's already on the next button: Buy tickets. Tab again."
+
+**Press Tab. The site asks for payment, and a blue suggestion appears: Pay $0.30 · tickets.localhost.**
+
+"Now the site wants to be paid. Tab can pay for me, in stablecoins on Tempo. It checked that thirty cents is the price this page shows. If the payment asked for more than the page says, Tab would refuse to pay it. One more tap."
+
+**Press Tab. "Paying $0.30" shows for a moment, then Paid ✓, and two tickets appear on the page.**
+
+"Paid, and the tickets are here. That whole order was three taps of one key, and I barely moved a finger."
+
+**Wait about two seconds, without touching anything. A red suggestion appears on Calendar's icon in the Dock: Add Night Owls · Fri 9pm to Calendar.**
+
+"And Tab isn't stuck in the browser. It knows what I just bought, and it knows what people usually do next: put it in their calendar. So it's offering that, right on the Calendar icon."
+
+**Press Tab. Calendar opens, a new event is created and typed in, and "Night Owls at Hall 9" lands on Friday at 9 pm.**
+
+"One tap, and it's in my calendar: the right show, the right day, the right time, copied from the ticket page. That's a website feeding a native Mac app, with no copy-paste and no typing."
+
+**Click the Tab did / You did numbers in the HUD. The reveal card counts up.**
+
+"Here's the score: everything Tab did, and the little I did. Tab: your next step, one key, anywhere on your Mac."
 
 ---
 
-**[Ctrl+→ to release notes + tracker. Close ticket ENG-142 by hand: search, open, Status Done, PR #12, Save.]**
+## If something goes wrong
 
-> "Now a tedious one: six tickets to close and link to their pull requests. I do the first one myself."
+If a suggestion hasn't appeared after about three seconds, do that step by hand and keep talking. The next suggestion still comes.
 
-**[Gray `Repeat for ENG-150 · #13` appears. Point at the HUD: `0 model calls`. Tab.]**
+If the payment takes a while, say "settling on chain" and wait. The Paying pill shows it's working.
 
-> "Tab noticed the pattern and offers to do the next one: no AI call, it just repeats what I did."
+If the Calendar suggestion doesn't appear, click the Calendar icon yourself, say "and it would put it right in here", and move on to the reveal.
 
-**[`Do the remaining 3`. Tab → all six Done.]**
+If the wifi dies, play the backup video.
 
-> "And the rest. Done."
+## Before going on stage
 
----
+Run `cd web && npm run reset-demo`, then `shell/scripts/preflight.sh`, on the phone hotspot.
 
-**[Click the numbers in the HUD; the reveal card counts up.]**
+Open Calendar well beforehand, in Week view, and leave it in the Dock. In the sidebar, uncheck every calendar except "Tab Demo", so no personal events show on the projector. Delete any rehearsal "Night Owls" events from Tab Demo, because `reset-demo` doesn't clear them.
 
-> "That's how much Tab did, and how little I did. Tab: your next step, one key, anywhere on your Mac."
+Quit your normal Chrome and turn on Do Not Disturb. Leave the tickets page open with Qty at 1.
 
----
-
-### If something goes wrong
-- **No suggestion after ~3 s:** do the step by hand and keep talking; the next suggestion still comes.
-- **Payment takes long:** "Settling on chain…", then move on.
-- **`git push` fails:** skip straight to the tracker.
-- **Wifi dies:** play the backup video.
-
-### Before going on stage
-`npm run reset-demo` → `shell/scripts/preflight.sh` → `npm run warm` on the hotspot (TabShell quit, relaunch after) → `npm run reset-demo`. Put each flow on its own desktop (Ctrl+→ between them), with `git push -u origin fix/checkout-rounding` already typed in Terminal.
+"Fri 9pm" means the coming Friday. If the demo is on a Friday evening or a weekend, the event lands in next week, so switch Calendar to that week before going on stage.
