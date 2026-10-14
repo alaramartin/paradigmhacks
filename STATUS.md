@@ -3,9 +3,17 @@
 ## A — Shell
 
 ### Done
+- `shell/` SwiftPM skeleton builds (`shell/scripts/build-shell.sh`, `--run` to relaunch; log in `~/.tab/shell.log`). Signed with a stable self-signed identity "Tab Shell Dev" in its own keychain (`~/Library/Keychains/tab-shell-signing.keychain-db`, on the user search list), DR = `identifier "dev.tab.shell" and certificate leaf = H"4f25…df22"`, so the Accessibility grant should survive rebuilds.
+- Websocket client with auto-reconnect (verified: shell started before the hub, connected when it came up). Sends `hello`, `frontmost`; decodes `ghost` / `ghost_hide` / `hud` / `exec`.
+- `npm run send -- --ghost` reaches the overlay (logged: `ghost test action "Click Checkout ⇥" rect=200,300 120×36`). **Not yet seen on screen** (no Screen Recording, see Needs human).
 ### In progress
+- Overlay, HUD, input tap, Terminal reader, `switch_app`, `--selftest`, `--dump` are written; waiting on the grants below to verify on screen.
 ### Blocked
+- Can't screenshot anything: `screencapture` → "could not create image from display" (Ghostty has no Screen Recording).
+- Tap, `--dump`, and window titles need TabShell's Accessibility grant.
 ### Needs human
+- **Grant Accessibility to TabShell**: System Settings → Privacy & Security → Accessibility → enable "TabShell" (`shell/build/TabShell.app`; a prompt should already be up).
+- **Grant Screen Recording and Accessibility to Ghostty** (the terminal the agents run in), then restart Ghostty, so agents can `screencapture` and press keys with `osascript`.
 
 ## B — Hub + Brain
 
