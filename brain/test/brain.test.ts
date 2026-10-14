@@ -208,3 +208,27 @@ test("ghosts carry Ghost.avoid: nearby elements, not the target, nothing far awa
     assert.ok(!g.avoid.some((r: any) => r.y === SAVE.rect.y && r.x === SAVE.rect.x && r.w === SAVE.rect.w), "target excluded");
     assert.ok(g.avoid.every((r: any) => Math.abs(r.y - SAVE.rect.y) <= 120 + 40), "only nearby");
 });
+
+test("reset: a second rehearsal starts from scratch (no batch offer, counters at 0)", async () => {
+    const { brain, ghosts } = harness();
+    brain.fromShell({ type: "frontmost", app: CHROME, window: "Tracker" });
+    brain.fromWeb(releaseState(Date.now()));
+    brain.fromWeb(trackerState(Date.now()));
+    const hand = () => {
+        for (const [kind, el, v] of [["click", SEARCH], ["type", SEARCH, "ENG-142"], ["click", resultEl(0)], ["type", STATUS, "Done"], ["type", PR, "#12"], ["click", SAVE]] as const) brain.fromWeb(ev(kind, el, v));
+    };
+    hand();
+    await brain.predictNow();
+    for (let k = 0; k < 2; k++) {
+        brain.fromShell({ type: "accept", ghostId: ghosts().at(-1)!.id });
+        await new Promise((r) => setTimeout(r, 60));
+        await brain.predictNow();
+    }
+    assert.equal(ghosts().at(-1)!.label, "Do the remaining 3 ⇥");
+    brain.reset();
+    assert.deepEqual(brain.hud.tabDid, { clicks: 0, keys: 0 });
+    assert.equal(brain.hud.youDid, 0);
+    hand();
+    await brain.predictNow();
+    assert.equal(ghosts().at(-1)!.label, "Repeat for ENG-150 · #13 ⇥");
+});

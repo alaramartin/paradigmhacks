@@ -47,6 +47,10 @@ wss.on("connection", (ws) => {
             console.log(`hello from ${role}`);
         }
         if (role === "tool" && (m.to === "shell" || m.to === "web") && m.msg) return out(m.to, m.msg);
+        if (role === "tool" && m.type === "reset") {
+            brain.reset(); // web/scripts/reset-demo.ts: history, units and HUD counters back to zero
+            return console.log("hub: reset");
+        }
         // Tools can impersonate either side: {"as":"shell"|"web", ...msg}
         const from = role === "tool" ? m.as ?? "web" : role;
         if (m.type !== "state") console.log(`← ${from} ${String(data).slice(0, 200)}`);

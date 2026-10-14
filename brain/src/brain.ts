@@ -48,6 +48,24 @@ export class Brain {
 
     constructor(private o: BrainOpts) {}
 
+    /** Fresh start for a rehearsal or the demo: no history, no learned units, counters at 0, nothing on screen. */
+    reset(): void {
+        if (this.timer) clearTimeout(this.timer);
+        this.history = new History();
+        this.pattern = new PatternEngine();
+        this.hud = newHud();
+        this.payment = null;
+        this.dismissedKey = null;
+        this.modelCache = null;
+        this.echoUntil = 0;
+        this.lastSig = "";
+        this.gen++;
+        if (this.running) this.running.stop = true;
+        this.shown = null;
+        this.o.sendShell({ type: "ghost_hide" });
+        this.sendHud();
+    }
+
     // ---------- inbound ----------
 
     fromShell(m: any): void {
