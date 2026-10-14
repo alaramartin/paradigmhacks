@@ -7,6 +7,9 @@ import { log } from "./log.ts";
 import type { Decider } from "./model.ts";
 import { PatternEngine, type PatternAction, type Step } from "./pattern.ts";
 import { CHROME, contentSig, findEl, StateStore, stateKey } from "./state.ts";
+import { calendarOffer, eventFrom } from "./calendar.ts";
+
+const CALENDAR_OFFER_DELAY_MS = Number(process.env.TAB_CALENDAR_OFFER_MS ?? 1800); // after "Paid ✓" (1500 ms)
 
 const DEBOUNCE_MS = 150;
 const IDLE_MS = 600; // model ghosts wait for this much quiet
@@ -231,7 +234,9 @@ export class Brain {
             if (shown) return;
         }
 
-        // 2. Model, only after the user has been idle.
+        // 2. Model, only after the user has been idle. Never for native apps other than Terminal (STRETCH: Calendar
+        // screens stay on this Mac; their steps come from the calendar offer, not the model).
+        if (active.source === "native" && !/terminal|iterm/i.test(active.app)) return;
         const decider = this.o.decider;
         if (!decider) return;
         if (!this.o.immediate) {
@@ -301,7 +306,8 @@ export class Brain {
 
         const el = this.ghostTarget(a);
         if (!el) {
-            if (a.op !== "navigate") return null;
+            // Cross-app offers (open a URL; STRETCH: a sequence that starts in another app) anchor near the last click.
+            if (a.op !== "navigate" && a.op !== "sequence") return null;
             const near = this.lastClickedRect();
             // pillAt is the pill's bottom-left corner; without an anchor, A centers the pill at the top of the screen.
             return near ? { id, kind: "action", label, pillAt: { x: near.x, y: near.y + near.h + 36 } } : { id, kind: "action", label };
@@ -423,7 +429,12 @@ export class Brain {
                     countStep(this.hud, sw);
                     this.store.frontmost = { app: step.app, window: "" };
                 }
-                const target = step.op === "navigate" || step.op === "switch_app" ? undefined : this.resolve(step);
+                let target = step.op === "navigate" || step.op === "switch_app" ? undefined : this.resolve(step);
+                // A native app's screen arrives a beat after switching to it (STRETCH: Calendar): wait for it.
+                for (let i = 0; !target && step.app !== CHROME && step.op !== "key" && step.op !== "switch_app" && i < 6; i++) {
+                    await this.waitForState(step.app);
+                    target = this.resolve(step);
+                }
                 if (!target && step.op !== "navigate" && step.op !== "switch_app" && step.op !== "key")
                     throw new Error(`step ${k}: target not found (${step.targetPath ?? step.match?.contains ?? step.targetId})`);
                 const { match: _m, ...wire } = step;
@@ -539,10 +550,27 @@ export class Brain {
         const radius = this.radiusAt(rect);
         if (radius !== undefined) ghost.radius = radius;
         if (r.ok && r.txHash && r.explorerUrl) this.hud.lastTx = { hash: r.txHash, explorerUrl: r.explorerUrl, amountUsd: p?.amountUsd ?? "" };
+        if (r.ok && p) this.offerCalendarAfter(p);
         this.shown = r.ok ? null : { ghost, paymentId: r.paymentId };
         this.o.sendShell({ type: "ghost", ghost });
         this.hud.mode = r.ok ? "idle" : "shown";
         this.sendHud();
+    }
+
+    // ---------- STRETCH: cross-app memory (Calendar) ----------
+
+    /** After the "Paid ✓" ghost fades, offer to put what was bought into Calendar (if the page has a day and time). */
+    private offerCalendarAfter(p: PaymentRequired): void {
+        const host = (() => { try { return new URL(p.url).host; } catch { return ""; } })();
+        const page = this.store.recent(Date.now()).find((s) => s.source === "web" && s.url && new URL(s.url).host === host);
+        const ev = page && eventFrom(page);
+        if (!ev) return;
+        const offer = calendarOffer(ev);
+        setTimeout(() => {
+            if (this.running || this.payment || this.shown) return;
+            const gen = ++this.gen;
+            this.maybeShow(offer, gen, 0);
+        }, CALENDAR_OFFER_DELAY_MS);
     }
 
     // ---------- misc ----------

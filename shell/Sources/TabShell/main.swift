@@ -58,6 +58,7 @@ final class Shell: NSObject, InputTapDelegate {
     let tap = InputTap()
     let hub: HubClient
     let terminal = TerminalPoller()
+    let native = NativePoller() // STRETCH: Calendar (branch stretch/calendar-native)
     private var lastHud = Hud()
     private var statusItem: NSStatusItem?
     private var showHudItem: NSMenuItem?
@@ -84,6 +85,7 @@ final class Shell: NSObject, InputTapDelegate {
             self?.overlay.hide()
         }
         terminal.onState = { [weak self] s in self?.hub.send(.state(s)) }
+        native.onState = { [weak self] s in self?.hub.send(.state(s)) }
     }
 
     func start() {
@@ -94,6 +96,7 @@ final class Shell: NSObject, InputTapDelegate {
         NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(appActivated(_:)),
                                                           name: NSWorkspace.didActivateApplicationNotification, object: nil)
         terminal.setFrontmost(NSWorkspace.shared.frontmostApplication)
+        native.setFrontmost(NSWorkspace.shared.frontmostApplication)
         hub.start()
         setUpMenuBar()
         // Re-place the HUD only when displays change; a polling re-place would snap it back mid-drag.
@@ -176,6 +179,7 @@ final class Shell: NSObject, InputTapDelegate {
     private func reportFrontmost(_ app: NSRunningApplication?) {
         guard let app, let bid = app.bundleIdentifier, bid != selfBundleId else { return }
         terminal.setFrontmost(app)
+        native.setFrontmost(app)
         // The window title is an AX round trip to another app; the tap shares the main run loop, so never block it.
         let pid = app.processIdentifier
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
@@ -209,6 +213,14 @@ final class Shell: NSObject, InputTapDelegate {
     }
 
     private func exec(_ ghostId: String, _ a: Action) {
+        if a.op != "switch_app", nativeApps.contains(a.app) {
+            // STRETCH: a step inside Calendar (click / type / choose / key) via Accessibility.
+            native.exec(a) { [weak self] err in
+                log("exec \(ghostId): native \(a.op) \(a.targetPath ?? a.value ?? "") → \(err ?? "ok")")
+                self?.hub.send(.execResult(ghostId: ghostId, ok: err == nil, error: err))
+            }
+            return
+        }
         guard a.op == "switch_app" else {
             hub.send(.execResult(ghostId: ghostId, ok: false, error: "shell only executes switch_app, got \(a.op)"))
             return
