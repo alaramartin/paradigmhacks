@@ -26,7 +26,9 @@ The main demo flow. Two minutes, no slides: open straight on the Hall 9 tickets 
 
 **Press Tab. Calendar opens, a new event is typed in, and "Night Owls at Hall 9" lands on Friday at 9 pm.**
 
-"One more tap, and it's in my calendar: right show, right day, right time, taken straight from the ticket page. A website feeding a native Mac app, with no copying and no typing. That's Tab: your next step, one key, anywhere on your Mac."
+"One more tap, and it's in my calendar: right show, right day, right time, taken straight from the ticket page. A website feeding a native Mac app, with no copying and no typing."
+
+"And this goes well beyond tickets: someone who can only press a single switch can fill in a whole form, a developer can go from `git push` to an open pull request in three taps, and any chore you do once, Tab learns to do for you. That's Tab: your next step, one key, anywhere on your Mac."
 
 ---
 
