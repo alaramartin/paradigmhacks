@@ -21,7 +21,7 @@
 **Next steps until the demo works end to end:**
 - **C (now → 12:00):** MPP charging side (PLAN table): `demo/server.ts` `PAY_RAIL` switch with mppx per request; `npm run tempo-wallets` (create + fund 3 testnet wallets, print `.env` lines); `balance` follows the rail; note the testnet token, decimals and **explorer URL format** here. Tell B the moment the demo server answers a Tempo 402. **After 12:00:** capture `web_state_github_compare.json` once GitHub is logged in; rect check at the real two-window layout.
 - **B (now → 12:00):** MPP paying side: `web/src/rail.ts` (x402 moved verbatim + mpp), `main.ts` pay path through the rail, `pay-test` follows the rail. Then `npm run try -- all` on both rails. **After 12:00:** flow 2's second half once GitHub is logged in (description + `Create pull request`, the weakest model step); warm the Jev cache on the demo network.
-- **A (now):** `preflight.sh` checks `PAY_RAIL`, the rail's keys and the payer balance. Then your existing list on alara's Mac: rebuild + preflight, real-key Tab/Esc/hold test (after the VS Code grant), one cropped proof shot per flow in `design/proof/`.
+- **A (now):** ~~`preflight.sh` checks `PAY_RAIL`, the rail's keys and the payer balance~~ **done (A, 10:50), see A → Done.** Then your existing list on alara's Mac: rebuild + preflight, real-key Tab/Esc/hold test (after the VS Code grant), one cropped proof shot per flow in `design/proof/`.
 - **Humans:** the three items under Blockers; then at 12:30 the all-hands look-and-try run of all four flows; 13:00 freeze; rehearse 5× and record the backup video by 14:30.
 
 **Run sheet (before every rehearsal and the demo):** `cd web && npm run reset-demo` (full: tracker, GitHub branch, hub history/counters, saved workflows; use `-- --keep-workflows` only for the recall beat) · `shell/scripts/preflight.sh` · confirm `PAY_RAIL` in `.env` and `npm run balance` > 0 · one warm-up pass of each flow on the demo network.
@@ -50,7 +50,9 @@ _Two Macs: the demo runs on **alara's Mac** (B verified there). A works on Ayush
   - Hub, web, and demo sites 4001–4005.
   - Chrome: only the debug Chrome running, zoom 100%, GitHub logged in and light.
   - The Mac: one display, no secure input, Terminal Secure Keyboard Entry off.
-  - Flows: the flow 2 repo has 2 unpushed commits, the tracker is reset, the payer key is in `.env`.
+  - Flows: the flow 2 repo has 2 unpushed commits, the tracker is reset, the model key and demo repo are in `.env`.
+  - **Payments (10:50, PLAN "Change (10:45)").** `PAY_RAIL` is `mpp` (✓) or `x402` (! fallback); unset or anything else is ✗. The chosen rail's keys are checked for shape, never printed: mpp needs `TEMPO_PAYER_PRIVATE_KEY`, `TEMPO_PAYEE_ADDRESS`, `TEMPO_ATTACKER_ADDRESS` and `MPP_SECRET_KEY`; x402 needs `PAYER_PRIVATE_KEY`, `PAYEE_ADDRESS` and `ATTACKER_ADDRESS`. ✗ if the demo sites or web started before `.env` last changed (a rail switch needs a restart).
+  - **Payer balance:** runs `cd web && npm run balance` (25 s limit; `--offline` skips it). ✗ below $0.35, one run (flow 1 $0.30 + flow 4 $0.05); ! below ~6 runs. It reads the first `<amount> <token>` in balance's output. **C:** keep balance printing one line like `payer 0x…: 12.5 <TOKEN> (…)`.
 - **Review pass (03:00–03:15), all pushed:**
   - Hub disconnect: the HUD shows offline and the ghost drops (Tab passes through again).
   - The overlay follows display changes (projector, mirroring, resolution, second screen).
@@ -64,10 +66,10 @@ _Two Macs: the demo runs on **alara's Mac** (B verified there). A works on Ayush
   - `look.mjs` opens its own window (default 720×875) and never touches your tabs.
 - **HUD redesign** (`1f59005`). The reveal leads: a blue `tab` keycap "did" against "You did", big rounded numbers that count up, and a Tab/You split bar with percentages. Below it, the last prediction as a chip: `[pattern] 0 model calls · 2 ms` or `[model] 212 ms`. The spec shadow, no false "Paid" flash after a hub restart. Renders: `TabShell --render-hud out.png`.
 - **End-of-demo reveal** (`a40821d`, flow 4 step 7). **Presenter: click the numbers in the HUD** (or menu bar ⇥ → Reveal Totals). A 2.4× card opens in the middle of the screen and counts up from 0 to the totals. Any click or key closes it. ![](design/proof/a-reveal-card.png)
-- **B's remembered-workflow ghost (flow 3 step 5) checked on the real tracker (~10:50).** `Do all 6 from v1.4.0 · learned 10:03 am` gets the ↻ icon.
+- **B's remembered-workflow ghost (flow 3 step 5) checked on the real tracker (~10:35).** `Do all 6 from v1.4.0 · learned 10:03 am` gets the ↻ icon.
   - In HC it used to be wider than the search box and spilled out of it. Now an `inside` pill is capped at the field's width, and the tail gives way first (`↻ Do all 6 from v1.4.0 · learned… tab`), cut at a word.
   - A field too narrow for the head drops `inside` and places the pill below instead.
-  - Spec: ghost-spec Amendments "10:50". ![](design/proof/a-recall-tracker.png) ![](design/proof/a-recall-tracker-hc.png)
+  - Spec: ghost-spec Amendments "10:35". ![](design/proof/a-recall-tracker.png) ![](design/proof/a-recall-tracker-hc.png)
 ### In progress
 - M3 audit at 12:30: `redesign-existing-projects` on the ghost and HUD renders, then one full look-and-try run.
 - Recapture `native_state_terminal_push.json` from a real push to `alaramartin/tab-demo` (needs alara's Mac).

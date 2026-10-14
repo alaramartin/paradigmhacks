@@ -1,13 +1,22 @@
 #!/bin/bash
 # Demo-day preflight: one command that checks, read-only, that everything Tab's demo needs is up and set right.
-#   shell/scripts/preflight.sh
+#   shell/scripts/preflight.sh [--offline]
 # One line per check: ✓ fine, ! worth a look, ✗ breaks the demo. Anything not ✓ ends with "→ <fix>".
 # Exits 1 if any ✗. Takes a few seconds.
 #
 # It only reads: no kills, installs, sudo, `defaults write` or System Settings changes, and no network except
-# 127.0.0.1 (hub, demo sites, the debug Chrome's DevTools port). It does run `TabShell --dump` (prints one Terminal
-# snapshot and exits) and evaluates read-only expressions (zoom, GitHub theme/login) in the debug Chrome's tabs.
+# 127.0.0.1 (hub, demo sites, the debug Chrome's DevTools port) and one read-only balance lookup for the payer
+# (`cd web && npm run balance`, on the rail PAY_RAIL picks; --offline skips it). It does run `TabShell --dump` (prints
+# one Terminal snapshot and exits) and evaluates read-only expressions (zoom, GitHub theme/login) in the debug Chrome's
+# tabs.
 set -uo pipefail
+OFFLINE=0
+for a in "$@"; do
+    case "$a" in
+        --offline) OFFLINE=1 ;;
+        *) echo "unknown flag $a (only --offline)" >&2; exit 2 ;;
+    esac
+done
 cd "$(dirname "$0")/../.."
 REPO="$(pwd)"
 APP="$REPO/shell/build/TabShell.app"
@@ -53,6 +62,19 @@ tmo() {
     local s="$1"
     shift
     if [ -x /usr/bin/perl ]; then /usr/bin/perl -e 'alarm shift @ARGV; exec { $ARGV[0] } @ARGV or exit 127' "$s" "$@"; else "$@"; fi
+}
+# Like tmo, but for commands that spawn children (npm → sh → node): on timeout it kills the whole process group, since a
+# child left alive keeps the output pipe open and $(…) would wait for it. Exit 142 on timeout.
+tmo_group() {
+    /usr/bin/perl -e '
+        my $s = shift @ARGV;
+        my $pid = fork // exit 127;
+        if (!$pid) { setpgrp(0, 0); exec { $ARGV[0] } @ARGV or exit 127; }
+        $SIG{ALRM} = sub { kill "TERM", -$pid; sleep 1; kill "KILL", -$pid; exit 142; };
+        alarm $s;
+        waitpid($pid, 0);
+        exit($? & 127 ? 128 + ($? & 127) : $? >> 8);
+    ' "$@"
 }
 rel() { case "$1" in "$HOME"/*) printf '~/%s' "${1#"$HOME"/}" ;; *) printf '%s' "$1" ;; esac; }
 hms() { date -r "$1" +%H:%M:%S; }
@@ -532,33 +554,103 @@ if [[ $tj == \[* ]]; then
 fi
 
 if [ ! -f "$ENV" ]; then
-    if [ -n "$(env_get "$REPO/web/.env" PAYER_PRIVATE_KEY)" ]; then
+    if [ -n "$(env_get "$REPO/web/.env" PAYER_PRIVATE_KEY)$(env_get "$REPO/web/.env" TEMPO_PAYER_PRIVATE_KEY)" ]; then
         fail "the keys are in web/.env, but web, brain and the demo server read the repo-root .env" "mv web/.env .env"
     else
-        fail "no .env at the repo root: flows 1 and 4 can't pay, and the model has no key" "cp .env.example .env and fill it in (the funded payer's key, JEV_API_KEY, …)"
+        fail "no .env at the repo root: flows 1 and 4 can't pay, and the model has no key" "cp .env.example .env and fill it in (PAY_RAIL, the funded payer's key, JEV_API_KEY, …)"
     fi
 else
-    key="$(env_get "$ENV" PAYER_PRIVATE_KEY)"
-    if [ -z "$key" ]; then
-        fail "no PAYER_PRIVATE_KEY in .env: flows 1 and 4 can't pay" "put the funded payer's key in .env"
-    elif [[ $key =~ ^0x[0-9a-fA-F]{64}$ ]]; then
-        ok "payer key present in .env"
-    else
-        fail "PAYER_PRIVATE_KEY in .env isn't 0x + 64 hex digits" "fix it in .env"
-    fi
-    unset key
     missing=""
-    for k in PAYEE_ADDRESS ATTACKER_ADDRESS GITHUB_DEMO_REPO; do
-        [ -z "$(env_get "$ENV" "$k")" ] && missing="$missing $k"
-    done
+    [ -z "$(env_get "$ENV" GITHUB_DEMO_REPO)" ] && missing="$missing GITHUB_DEMO_REPO"
     [ -z "$(env_get "$ENV" JEV_API_KEY)$(env_get "$ENV" ANTHROPIC_API_KEY)" ] && missing="$missing JEV_API_KEY"
     if [ -n "$missing" ]; then
-        fail ".env lacks:$missing" "fill them in (see .env.example), then restart the hub, demo and web"
+        fail ".env lacks:$missing" "fill them in (see .env.example), then restart the hub and web"
     else
-        ok ".env has the payee, attacker, model key and demo repo"
+        ok ".env has the model key and the demo repo"
     fi
 fi
-warn "payer balance not checked (this script makes no internet calls)" "cd web && npm run balance"
+
+# =====================================================================================================
+# PLAN "Change (10:45 PT Wed)": PAY_RAIL=mpp pays on Tempo testnet (the demo), PAY_RAIL=x402 on Base Sepolia (fallback).
+section "Payments"
+RAIL="$(env_get "$ENV" PAY_RAIL)"
+RAIL_OK=0
+case "$RAIL" in
+    mpp)
+        ok "PAY_RAIL=mpp: pays on Tempo testnet (MPP), the demo rail"
+        PKEY=TEMPO_PAYER_PRIVATE_KEY ADDRS="TEMPO_PAYEE_ADDRESS TEMPO_ATTACKER_ADDRESS" SECRETS="MPP_SECRET_KEY" RAIL_OK=1 ;;
+    x402)
+        warn "PAY_RAIL=x402: pays on Base Sepolia, the fallback (the demo rail is mpp unless the 12:00 checkpoint fell back)" "set PAY_RAIL=mpp in .env, then restart the demo sites and web"
+        PKEY=PAYER_PRIVATE_KEY ADDRS="PAYEE_ADDRESS ATTACKER_ADDRESS" SECRETS="" RAIL_OK=1 ;;
+    "")
+        if [ -f "$ENV" ]; then
+            fail "PAY_RAIL isn't set in .env, so the demo sites and web may each pick a different default" "add PAY_RAIL=mpp (demo) or PAY_RAIL=x402 (fallback) to .env, then restart the demo sites and web"
+        else
+            warn "rail, keys and balance not checked: no .env (the ✗ above)"
+        fi ;;
+    *)
+        fail "PAY_RAIL=$RAIL in .env is neither mpp nor x402" "set PAY_RAIL=mpp (demo) or PAY_RAIL=x402 (fallback)" ;;
+esac
+
+KEY_OK=0
+if [ "$RAIL_OK" = 1 ]; then
+    # Values are checked for shape only and never printed.
+    bad="" missing=""
+    v="$(env_get "$ENV" "$PKEY")"
+    if [ -z "$v" ]; then missing="$missing $PKEY"; elif [[ $v =~ ^0x[0-9a-fA-F]{64}$ ]]; then KEY_OK=1; else bad="$bad $PKEY (not 0x + 64 hex)"; fi
+    for k in $ADDRS; do
+        v="$(env_get "$ENV" "$k")"
+        if [ -z "$v" ]; then missing="$missing $k"; elif ! [[ $v =~ ^0x[0-9a-fA-F]{40}$ ]]; then bad="$bad $k (not 0x + 40 hex)"; fi
+    done
+    for k in $SECRETS; do [ -z "$(env_get "$ENV" "$k")" ] && missing="$missing $k"; done
+    unset v
+    [ -n "$missing" ] && fail "$RAIL rail: .env lacks$missing" "$([ "$RAIL" = mpp ] && echo "cd web && npm run tempo-wallets, paste its lines into .env" || echo "see .env.example"), then restart the demo sites and web"
+    [ -n "$bad" ] && fail "$RAIL rail: malformed in .env:$bad" "fix them in .env"
+    [ -z "$missing$bad" ] && ok "$RAIL rail: payer key, payee and attacker$([ -n "$SECRETS" ] && echo ", $SECRETS") set in .env"
+fi
+
+# The demo sites and web read .env once at startup: a rail switch or a new key needs a restart.
+if [ -f "$ENV" ]; then
+    env_m="$(stat -f %m "$ENV" 2>/dev/null)"
+    stale=""
+    demo_pid="$(listen_pid 4001)"
+    [ -n "$demo_pid" ] && [ "$(proc_start "$demo_pid")" -lt "$env_m" ] 2>/dev/null && stale="$stale${stale:+, }the demo sites (npm run demo)"
+    for p in ${web_pids//,/ }; do
+        [ "$(proc_start "$p")" -lt "$env_m" ] 2>/dev/null && { stale="$stale${stale:+, }web (npm start)"; break; }
+    done
+    [ -n "$stale" ] && fail ".env changed at $(hms "$env_m"), after $stale started, so they still use the old rail or keys" "restart them"
+    [ -n "$hub_pid" ] && [ "$(proc_start "$hub_pid")" -lt "$env_m" ] 2>/dev/null &&
+        warn ".env changed at $(hms "$env_m"), after the hub started (it reads the model key once)" "restart it if you changed the model key: cd brain && npm start"
+fi
+
+# Payer balance, on the chosen rail. One demo run pays $0.35 (flow 1 $0.30, flow 4 $0.05); resale is blocked.
+RUN_COST=0.35 RUNS_WANTED=6
+if [ "$OFFLINE" = 1 ]; then
+    warn "payer balance not checked (--offline)" "cd web && npm run balance"
+elif [ "$KEY_OK" = 1 ] && [ -d "$REPO/web/node_modules" ]; then
+    bout="$(cd "$REPO/web" && tmo_group 25 npm run -s balance 2>&1)"
+    rc=$?
+    line="$(grep -E '[0-9]' <<<"$bout" | grep -viE 'error|warn|^[[:space:]]+at ' | tail -1 | cut -c1-160)"
+    # The first "<amount> <token>" in balance's output, e.g. "payer 0x4A86…: 1.25 USDC (Base Sepolia)".
+    amt="$(grep -oE '(^|[[:space:]:])[0-9][0-9,]*(\.[0-9]+)?[[:space:]]+[A-Za-z][A-Za-z0-9.]*' <<<"$line" | head -1 | sed 's/^[[:space:]:]*//')"
+    num="$(sed -E 's/,//g; s/(\.[0-9]*[1-9])0+$/\1/; s/\.0+$//' <<<"${amt%%[[:space:]]*}")" tok="${amt##*[[:space:]]}"
+    if [ "$rc" != 0 ]; then
+        fail "npm run balance failed ($( [ "$rc" = 142 ] && echo "no answer in 25 s" || grep -iE 'error' <<<"$bout" | head -1 | cut -c1-140))" "check the network, then cd web && npm run balance"
+    elif [ -z "$num" ]; then
+        warn "couldn't read an amount from npm run balance: $(grep -v '^[[:space:]]*$' <<<"$bout" | tail -1 | cut -c1-140 | grep . || echo "no output")" "cd web && npm run balance"
+    elif awk -v n="$num" -v c="$RUN_COST" 'BEGIN { exit !(n < c) }'; then
+        fail "payer has $num $tok on the $RAIL rail: one demo run needs $RUN_COST (flow 1 \$0.30 + flow 4 \$0.05)" "$([ "$RAIL" = mpp ] && echo "npx mppx account fund --network testnet (see C's STATUS)" || echo "fund it at https://faucet.circle.com (Base Sepolia USDC)")"
+    else
+        runs="$(awk -v n="$num" -v c="$RUN_COST" 'BEGIN { printf "%d", n / c }')"
+        if [ "$runs" -lt "$RUNS_WANTED" ]; then
+            warn "payer has $num $tok on the $RAIL rail: enough for $runs run(s), the demo and rehearsals want ~$RUNS_WANTED" "top it up"
+        else
+            ok "payer has $num $tok on the $RAIL rail (≈ $runs runs at \$$RUN_COST)"
+        fi
+    fi
+elif [ "$RAIL_OK" = 1 ] && [ ! -d "$REPO/web/node_modules" ]; then
+    fail "payer balance not checked: web/ has no node_modules" "cd web && npm i"
+fi
 
 # =====================================================================================================
 printf '\n%s✓ %d%s  %s! %d%s  %s✗ %d%s  ' "$G" "$NOK" "$N" "$Y" "$NWARN" "$N" "$R" "$NFAIL" "$N"
