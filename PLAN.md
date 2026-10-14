@@ -73,6 +73,48 @@ Layout: Chrome window on the left showing `inbox.localhost:4004` with the email 
 - **Keep your section of `STATUS.md` current,** using the headings Done / In progress / Blocked / Needs human. If you're blocked on a human action (permissions, faucet, GitHub login, Jev docs), write it under Needs human and move on to other work.
 - **Commit small and often.** `main` must always build and run. Pull with rebase before every push.
 - **Respect the latency budget.** From a state change to a ghost on screen: ≤ 50 ms on the pattern path, ≤ 1.5 s via the model. Log latency on every prediction.
+- **Design every visible surface with a skill** and **look at everything you build** (the two sections below). No default-looking UI ships, and nothing is Done without a screenshot.
+
+## Design (ghost, HUD, and demo sites)
+
+The project skills are vendored in `.claude/skills/` and pinned (see `.claude/skills/THIRD_PARTY.md`). Do not edit them. `frontend-design` is the Claude Code plugin `frontend-design@claude-plugins-official`. If `frontend-design:frontend-design` isn't in your skill list, run `/plugin install frontend-design@claude-plugins-official`.
+
+| Surface                                                                                                        | Owner | Skill                                                                                                  |
+| -------------------------------------------------------------------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------------ |
+| The ghost (box, cursor, pill, ghost text) in every kind, `Repeat for …`, `Do the remaining N`, high contrast; the HUD | A     | `frontend-design`: prototype in HTML first, then build in AppKit to match                               |
+| tickets and resale (event page and checkout)                                                                   | C     | `design-taste-frontend`, the full run: draw → copy deck → build → `lint.mjs` + `inspect.mjs` → critique → motion. Resale gets its own direction, so it reads as a different, shadier company. |
+| pharmacy refill page                                                                                           | C     | `design-taste-frontend` for the direction (palette, type, idea); the form itself is built as an app screen |
+| tracker, inbox                                                                                                 | C     | `minimalist-ui`; they must read as real workspace apps at a glance                                      |
+| every demo screen, at M3                                                                                       | owner | `redesign-existing-projects` audit pass                                                                 |
+
+**The ghost is the product. Design it before building it in Swift:**
+
+1. **Capture real backgrounds** at the demo window size: the tickets checkout, GitHub's "Open a pull request" page, Terminal after `git push`, the tracker, and the pharmacy form. Use browse for web pages and `screencapture` for Terminal.
+2. **Build `design/ghost/index.html`:** every ghost kind (action, text, pay, blocked, done, `Repeat for …`, `Do the remaining N`), in normal and high-contrast mode, composited over those screenshots at real element positions. Also show the HUD in its idle, predicting, shown, running, and just-paid states.
+3. **Look at it the way the audience will:** at full size, then scaled to 50% (the back of the room, on a projector). At 50% the ghost must still be noticeable, while reading as a suggestion rather than a dialog. The pay pill must look different from the action pill. Blocked must be unmistakable.
+4. **Iterate at most 4 rounds, then freeze the values in `design/ghost-spec.md`:** colors (on light and dark backgrounds), stroke, radius, cursor shape, pill font, size, padding, and placement rules, ghost-text color, the blocked red, high-contrast variants, and motion (appear, accept, dismiss, done) in ms. The spec supersedes the default numbers in A's Overlay section.
+5. **Build it in AppKit.** Screenshot the real overlay on the real screen next to the prototype and fix the differences.
+
+**Constraints on demo-site design (C):**
+
+- The pages are shown in a half-screen Chrome window. Check them at 960×1000 and 720×900 as well as at the skill's own widths.
+- **Motion never moves an interactive element after first paint.** No scroll-linked, hover-shifting, or looping transforms on buttons, fields, chips, or list items. Ghost rects come from the DOM, so a moving target means a ghost in the wrong place. Entrance motion on non-interactive content is fine.
+- The skills' no-shadow and no-gradient house rules apply to the pages, not to the ghost. The ghost floats, so it may cast a shadow.
+- Still no Tab-specific markup or data attributes on the pages.
+
+## Look-and-try loop (every agent, every change)
+
+Passing tests is not done. After every change, whether UI, UX, or backend, run the real thing, look at it, and try it the way the presenter will. Then fix what you saw and go again.
+
+1. **Run it** with the real processes: hub, web, shell, demo sites, and the debug Chrome.
+2. **Look at it.**
+    - **Web pages:** gstack browse. `B=~/.claude/skills/gstack/browse/dist/browse`, then `$B viewport 960x1000`, `$B goto <url>`, `$B screenshot design/shots/<name>.png`, `$B console`, and `$B click` / `$B fill` as needed. Read the PNG. Without gstack on your machine, use CDP `Page.captureScreenshot` instead.
+    - **Anything native, and anything Tab draws (ghosts, HUD):** the headless browser can't see these. Run `screencapture -x design/shots/<name>.png` (or `-R x,y,w,h` for a region) on the real display with the debug Chrome and TabShell running, then Read the PNG.
+3. **Try it.** Step through the flow as the presenter would. Trigger states with `tools/send.ts`. Press real keys with `osascript -e 'tell application "System Events" to key code 48'` (Tab; 53 is Esc). These presses aren't tagged `0x7AB`, so Tab treats them as the user's.
+4. **Judge** what you saw against the demo script and the UX rules. Is the ghost on the right element, readable, and on time? Did the right thing happen after Tab? Is anything slow, jumpy, or ugly? Write the problems down, fix the worst one, and go back to step 1.
+5. **Prove it.** A "Done" entry in STATUS.md for anything visible links the screenshot that shows it working, committed in `design/proof/`. Scratch screenshots go in `design/shots/` (gitignored). No screenshot, not done.
+
+Backend changes count too. After changing prediction, payments, or the sequence runner, watch the ghost appear and the action land on screen, not only in the logs.
 
 ## Not building (cut from the first plan; do not add back)
 
@@ -106,6 +148,8 @@ shell/     Package.swift  Sources/TabShell/...  scripts/build-shell.sh       # A
 brain/     package.json  src/{hub,predict,pattern,model,prompt,seq,counters,log}.ts  tools/   # B
 web/       package.json  src/{cdp,state,exec,pay402,intent,ledger}.ts  demo/  scripts/          # C
 docs/      jev.md                                                           # humans paste the Jev API docs here, if Jev is required
+design/    ghost/index.html  ghost-spec.md  proof/  shots/ (gitignored)    # A owns ghost/ and the spec; everyone adds proof/
+.claude/skills/  design-taste-frontend/  minimalist-ui/  redesign-existing-projects/   # vendored design skills; do not edit
 ```
 
 ## Protocol (frozen at M0)
@@ -285,7 +329,7 @@ hub → C:  exec{ghostId, action}  (single step) | pay{paymentId} | dismiss_paym
 
 - One borderless, transparent, click-through `NSWindow` (`ignoresMouseEvents = true`) at `.statusBar` level, joining all spaces.
 - **Coordinates:** convert from AX/top-left to AppKit/bottom-left with `y_ns = mainScreenHeight − y − h`.
-- **Draw:**
+- **Draw** (these are defaults until `design/ghost-spec.md` exists; after that, the spec wins):
     - a rounded highlight box, 2 px stroke, gray #8E8E93 at 70% opacity;
     - a gray arrow cursor at `cursor`;
     - a pill next to the rect, or at `pillAt` when there's no rect (Terminal ghosts);
@@ -395,7 +439,7 @@ hub → C:  exec{ghostId, action}  (single step) | pay{paymentId} | dismiss_paym
     - **Labels:** `aria-label`, then trimmed innerText, then placeholder, then name.
     - **Rects:** from `getBoundingClientRect`, converted to screen points as `x = screenX + r.x`, `y = screenY + (outerHeight − innerHeight) + r.y`. This assumes 100% zoom and is computed per window.
     - **Lists:** heuristic: siblings under the same parent with the same tag-and-class signature, at least 2 of them. `list.key` is the parent's path. `field` is the path inside the item. This must work on GitHub's rendered markdown table (`tbody > tr`, with each `td` and its `a` as fields). Don't add data attributes to the demo pages to make this work. Write the demo markup semantically (`<table>` / `<ul>`) so the heuristic works honestly.
-    - **When to emit `state`:** on mutation (debounced 150 ms), navigation, focus change, and scroll. Also poll `screenX`/`screenY` every 500 ms to catch window moves.
+    - **When to emit `state`:** on mutation (debounced 150 ms), navigation, focus change, scroll, and `animationend` / `transitionend` (transforms change rects without a mutation). Also poll `screenX`/`screenY` every 500 ms to catch window moves.
     - **User events:** emit `user_event` for click, change/blur (committed value; for selects, the chosen option's label), focus, and navigation.
 - **Exec (single steps only):**
     - Resolve the target by `targetPath` if given, else by `targetId`.
@@ -430,7 +474,7 @@ All paid actions on the demo sites are `fetch` POSTs from page JS. No paid docum
 
 **Demo sites (`web/demo/`)** — one Express app (`web/demo/server.ts`) listening on five ports, with `@x402/express` + `@x402/evm` on Base Sepolia and the facilitator from `FACILITATOR_URL`.
 
-- **Look:** clean and believable, plain CSS, a distinct look per site. Pages should look like real sites at a glance.
+- **Look:** designed with the skills in the Design section, plain CSS, a distinct look per site. Pages should look like real sites at a glance.
 - **`tickets.localhost:4001`:**
     - `/e/night-owls`: "Night Owls · live at Hall 9 · Fri 9pm", General admission $0.15, a Qty select (1–4), and Checkout.
     - `/checkout?qty=N` shows `Total $X` and Buy tickets. That button `fetch`-POSTs to `/api/buy`, x402-priced at N × $0.15 with payTo `PAYEE_ADDRESS`, and the page renders N ticket cards from the JSON.
@@ -460,10 +504,11 @@ All paid actions on the demo sites are `fetch` POSTs from page JS. No paid docum
 | By          | Milestone                                                                     | A                                                                                       | B                                                         | C                                                                                     |
 | ----------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------- |
 | 02:00       | **M0 skeleton**                                                               | overlay draws every ghost kind via `tools/send.ts`; `--dump` Terminal report in STATUS.md | hub routes and echoes; `tools/send.ts`; model latency measured | CDP state flowing from two windows; tickets site serves; 402 hold test done; fixtures committed |
-| 04:00       | **M1 flow 1**                                                                 | ghosts land on Chrome rects; pay / blocked / done styles                                 | model predicts flow 1; payment ghost flow                 | `pay-test` settles; tickets paid from the ghost; resale blocked                       |
-| 04:00–08:30 | Humans sleep. Agents keep working on tasks that don't need permissions, the faucet, or GitHub login | HUD with counters, ledger, high contrast; pedal hold                                    | pattern rule + tests on fixtures; sequence runner          | tracker, inbox, pharmacy sites; select support; `reset-demo`                          |
+| 04:00       | **M1 flow 1**                                                                 | ghost/HUD prototype and `design/ghost-spec.md` by 03:00; AppKit ghosts match the spec on real Chrome rects; pay / blocked / done styles | model predicts flow 1; payment ghost flow                 | `pay-test` settles; tickets and resale designed (`inspect.mjs`: no FAIL); tickets paid from the ghost; resale blocked |
+| 04:00–08:30 | Humans sleep. Agents keep working on tasks that don't need permissions, the faucet, or GitHub login | HUD with counters, ledger, high contrast; pedal hold                                    | pattern rule + tests on fixtures; sequence runner          | tracker and inbox (`minimalist-ui`), pharmacy (`design-taste-frontend`); select support; `reset-demo` |
 | 10:30       | **M2 flows 2 + 3**                                                            | live Terminal state; `switch_app`                                                       | push → PR predictions; repeat live on the tracker          | GitHub compare and release pages perceived correctly                                  |
 | 12:30       | **M3 flow 4 + polish**                                                        | high-contrast polish                                                                    | counters correct across all flows; latency logs           | refill paid from the ghost                                                            |
+| 12:30–13:00 | **All:** `redesign-existing-projects` audit of every demo screen, then one full look-and-try run of all four flows with proof screenshots in `design/proof/` |                                                                                         |                                                           |                                                                                       |
 | 13:00       | **Freeze**                                                                    |                                                                                         |                                                           |                                                                                       |
 | 13:00–15:00 | Rehearse 5×, record the backup video by 14:30, fix demo-breaking bugs only    |                                                                                         |                                                           |                                                                                       |
 
@@ -473,7 +518,7 @@ All paid actions on the demo sites are `fetch` POSTs from page JS. No paid docum
 2. If Jev is a sponsor requirement, paste the Jev API docs into `docs/jev.md` and the key into `.env`. Otherwise set `ANTHROPIC_API_KEY` and `LLM_MODEL`.
 3. Run `web/scripts/new-wallets.ts` (once C has it). Put the keys in `.env`. Fund the payer with Base Sepolia USDC from the Circle faucet. Gas isn't needed, because the facilitator pays it. Check how much the faucet gives per request.
 4. Quit regular Chrome. Launch Chrome with the debug command above, set zoom to 100%, and log into GitHub in that profile.
-5. After A's first build, grant TabShell Accessibility in System Settings → Privacy & Security.
+5. After A's first build, grant TabShell Accessibility in System Settings → Privacy & Security. Also grant the terminal app each agent runs in **Screen Recording** (for `screencapture`) and **Accessibility** (for `osascript` key presses), so agents can look at and try what they build.
 6. **GitHub demo repo:** create a throwaway repo and set `GITHUB_DEMO_REPO`. Clone it locally with branch `fix/checkout-rounding` holding 2 unpushed commits, and no PR template. Publish release `v1.4.0` whose notes are a markdown table `Ticket | Change | PR` with 6 rows (ENG-142 #12, ENG-150 #13, ENG-151 #14, ENG-155 #15, ENG-157 #16, ENG-160 #17, using real PR numbers if you have them). Run `gh auth login` for the reset script.
 7. Get a USB foot pedal or large button that sends Tab. Fallback: a spare keyboard with every key taped over except Tab and Esc.
 8. Record the Switch Control comparison: turn on Switch Control (System Settings → Accessibility → Switch Control) and fill the pharmacy form with it. Keep the clip with a visible timer.

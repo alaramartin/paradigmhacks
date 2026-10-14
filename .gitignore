@@ -6,3 +6,5 @@ build/
 brain/logs/
 web/data/
 .DS_Store
+design/shots/
+.taste-skill/
