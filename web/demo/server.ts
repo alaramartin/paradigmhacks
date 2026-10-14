@@ -38,14 +38,15 @@ const PATH_USD = "0x20c0000000000000000000000000000000000000";
 // Tempo's RPC (behind Cloudflare) sometimes answers mppx's eth_sendRawTransactionSync with an HTTP 502 while plain
 // calls work (3 of 5 payments on venue wifi, 11:00 PT). On an HTTP failure, send the same signed tx with
 // eth_sendRawTransaction and poll for its receipt; RPC errors (revert, low balance) still pass straight through.
-const rpc = http(undefined, { retryCount: 0 })({ chain: tempoModerato });
+const rpc = http()({ chain: tempoModerato }); // viem's default retries for every other call
+const rpcOnce = http(undefined, { retryCount: 0 })({ chain: tempoModerato }); // the Sync broadcast: fall back below instead of re-sending it
 const tempoClient = createClient({
     chain: tempoModerato,
     transport: custom({
         async request({ method, params }) {
             if (method !== "eth_sendRawTransactionSync") return rpc.request({ method, params });
             try {
-                return await rpc.request({ method, params });
+                return await rpcOnce.request({ method, params });
             } catch (e) {
                 if (!(e instanceof HttpRequestError)) throw e;
                 const raw = (params as [Hex])[0];
