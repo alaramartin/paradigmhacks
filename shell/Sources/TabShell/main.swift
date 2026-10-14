@@ -196,7 +196,15 @@ final class Shell: NSObject, InputTapDelegate {
 
     private func handle(_ m: HubToShell) {
         switch m {
-        case .ghost(let g):
+        case .ghost(var g):
+            // STRETCH: a cross-app offer sits on that app's Dock icon, pill above it.
+            if let bid = g.dockApp, let icon = NativeApp.dockIcon(bid) {
+                g.rect = icon
+                g.place = "above"
+                g.radius = icon.w * 0.22
+                g.pillAt = nil
+                g.cursor = nil
+            }
             log("ghost \(g.id) \(g.kind.rawValue) \"\(g.label)\" rect=\(g.rect.map { "\($0.x),\($0.y) \($0.w)×\($0.h)" } ?? "-") pillAt=\(g.pillAt.map { "\($0.x),\($0.y)" } ?? "-") place=\(g.place ?? "-") avoid=\(g.avoid?.count ?? 0)")
             overlay.show(g)
         case .ghostHide:

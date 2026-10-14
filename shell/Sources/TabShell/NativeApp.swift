@@ -8,6 +8,23 @@ import ApplicationServices
 let nativeApps: Set<String> = ["com.apple.iCal"]
 
 enum NativeApp {
+    /// The app's Dock icon (top-left screen coords), matched by app URL, else by name. Nil if it isn't in the Dock.
+    static func dockIcon(_ bid: String) -> Rect? {
+        guard let dock = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first,
+              let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bid) else { return nil }
+        let name = FileManager.default.displayName(atPath: appURL.path).replacingOccurrences(of: ".app", with: "")
+        let root = AXUIElementCreateApplication(dock.processIdentifier)
+        AXUIElementSetMessagingTimeout(root, 0.25)
+        for list in AX.children(root) {
+            for item in AX.children(list) where (AX.attr(item, kAXSubroleAttribute) as String?) == "AXApplicationDockItem" {
+                let url: URL? = AX.attr(item, kAXURLAttribute)
+                let title: String? = AX.attr(item, kAXTitleAttribute)
+                if url?.standardizedFileURL.path == appURL.standardizedFileURL.path || title == name { return AX.frame(item) }
+            }
+        }
+        return nil
+    }
+
     static let roles: [String: String] = ["AXButton": "button", "AXTextField": "textfield", "AXPopUpButton": "select", "AXCheckBox": "checkbox"]
 
     /// Stable path for an element: its AX identifier, else its description, else its title. Nil = not addressable.

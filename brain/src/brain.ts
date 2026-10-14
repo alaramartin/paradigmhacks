@@ -309,8 +309,11 @@ export class Brain {
             // Cross-app offers (open a URL; STRETCH: a sequence that starts in another app) anchor near the last click.
             if (a.op !== "navigate" && a.op !== "sequence") return null;
             const near = this.lastClickedRect();
+            // STRETCH: a sequence that starts in another native app points at that app's Dock icon.
+            const first = a.op === "sequence" ? (a.steps as Step[] | undefined)?.[0] : undefined;
+            const dock = first && first.app !== CHROME && first.app !== active?.app ? { dockApp: first.app } : {};
             // pillAt is the pill's bottom-left corner; without an anchor, A centers the pill at the top of the screen.
-            return near ? { id, kind: "action", label, pillAt: { x: near.x, y: near.y + near.h + 36 } } : { id, kind: "action", label };
+            return near ? { id, kind: "action", label, pillAt: { x: near.x, y: near.y + near.h + 36 }, ...dock } : { id, kind: "action", label, ...dock };
         }
         const center = { x: el.rect.x + el.rect.w / 2, y: el.rect.y + el.rect.h / 2 };
         const empty = !el.value;
