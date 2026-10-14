@@ -44,7 +44,7 @@ function hall9Event(ga: number): string {
         <select id="qty" name="qty">${[1, 2, 3, 4].map((n) => `<option>${n}</option>`).join("")}</select>
       </label>
       <button class="btn" id="checkout" type="button">Checkout</button>
-      <p class="note">Standing, four per order. Paid in USDC.</p>
+      <p class="note">Standing, four per order. Paid in stablecoin.</p>
     </section>
     <img class="cutout in d2" src="${T}/owl.jpg" width="1530" height="2250" alt="A porcelain owl from the Bow factory, about 1760">
     <p class="aside in d3">Doors at eight. Night Owls play from quarter past nine until the curfew at eleven.</p>
@@ -206,7 +206,7 @@ export function ticketsCheckout(site: "tickets" | "resale", ga: number, qtyIn: n
 buy.addEventListener("click",async()=>{
   buy.disabled=true;status.className="status";status.textContent=${JSON.stringify(hall9 ? "Waiting for payment…" : "Processing…")};
   const r=await fetch("/api/buy?qty=${qty}",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});
-  if(r.status===402){status.className="status err";status.textContent="Payment required. Use a wallet that supports x402 to pay.";buy.disabled=false;return}
+  if(r.status===402){status.className="status err";status.textContent="Payment required. Use a wallet that can pay this site.";buy.disabled=false;return}
   if(!r.ok){status.className="status err";status.textContent="Something went wrong ("+r.status+").";buy.disabled=false;return}
   const {tickets:all}=await r.json();status.textContent="You're going. Show these at the door.";
   document.getElementById("tickets").innerHTML=all.map((t,i)=>${card}).join("");
@@ -331,7 +331,7 @@ export function pharmacyPage(copay: number): string {
     <button class="btn" id="submit" type="button">Request refill</button>
     <p id="done" role="status"></p>
   </main>
-  <footer>CareRx · Main St, Oak St and Elm Ave. Copays are paid in USDC.</footer>
+  <footer>CareRx · Main St, Oak St and Elm Ave. Copays are paid in stablecoin.</footer>
 </div>`,
         `const $=id=>document.getElementById(id);let time=null;
 document.querySelectorAll(".chips button").forEach(b=>b.addEventListener("click",()=>{

@@ -214,7 +214,7 @@ _Hub ↔ A verified live on this Mac (02:0x): with B playing C (`npm run drive`)
   - **Tracker side panel:** its shadow was at 4 %, so the panel looked like the page was cut off ("Release v1.4.0 · In review" clipped). It now has a hairline edge and a warm 10 % shadow, so it reads as a sheet on top.
   - **Tickets:** pure `#000` → `#06071c`, tinted toward the ultramarine.
   - Checks after the change: `fold` (every control fits), `try -- flow3` all ✓, `try -- flow1` on mpp ✓ apart from the two model ghosts (no key here). Screens: `design/proof/c-audit-*-720x707.png`.
-  - **Copy that is now wrong on MPP, left alone because Jev reads page text (humans decide):**
+  - ✅ **Done (B, 12:00 PT, human approved):** rail-neutral copy is live: "Payment required. Use a wallet that can pay this site." (tickets + resale), "Paid in stablecoin." (tickets), "Copays are paid in stablecoin." (pharmacy). Demo server restarted. Only text that isn't a control changed, so the Jev cache keys are unaffected. **Copy that is now wrong on MPP, left alone because Jev reads page text (humans decide):**
     - After Esc on a 402 (shown in flow 1's resale beat), the tickets and resale pages say "Payment required. **Use a wallet that supports x402 to pay.**"
     - Tickets: "Paid in USDC". Pharmacy footer: "Copays are paid in USDC". On Tempo it's pathUSD.
     - Suggested rail-neutral copy: "Payment required. Use a wallet that can pay this site." / "Paid in stablecoin". These sentences aren't part of the controls, so the Jev cache key wouldn't change, but they are in the page text Jev sees.
