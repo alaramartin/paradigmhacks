@@ -185,3 +185,7 @@ These override the HUD table above where they differ. Implemented in `HUD.swift`
   - **A field too narrow for the head declines `inside`.** In a 200 pt field the docked pill read `Do a….4.0 · lear…`. When the field-capped pill would cut its head, the shell places the pill as if `place` were absent (least-covering with `avoid`, else below) at the screen-width cap.
   - Proofs on the real tracker: ![](proof/a-recall-tracker.png) ![](proof/a-recall-tracker-hc.png)
 - **10:40 Display re-frame drops leftovers.** When the overlay moves to another display (the next ghost is there, or displays change), an accepted ghost's fade and its ripple are dropped, not drawn for up to 320 ms at the old display's coordinates on the new one. On the same display the ripple still runs under the next ghost. Checked with a throwaway harness (overlay sources + a test main): re-frame mid-fade leaves 3 views before, 1 after.
+- **10:55 M3 audit, HUD copy** (`redesign-existing-projects` on `--render-hud`). The audience reads these words cold on a projector:
+  - The `shown` mode displays as **`suggesting`**. The protocol value and the white dot are unchanged.
+  - Before the first ghost, the totals row reads **`none offered yet`** (disabled), not `0/0 accepted`, which looked like an error.
+  - Placeholders are lowercase like `no prediction yet`: **`no payments yet`** (was `No payments yet`).

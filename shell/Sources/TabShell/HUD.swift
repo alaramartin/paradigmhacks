@@ -498,7 +498,9 @@ final class HUDView: NSView {
         }
 
         let calls = hud.modelCalls ?? 0
-        let acc = stat([("\(hud.accepted ?? 0)", true), ("/\(hud.shown ?? 0) accepted", false)])
+        // "0/0 accepted" on a fresh start reads like an error: say what it means until the first ghost.
+        let acc = (hud.shown ?? 0) == 0 ? run("none offered yet", .systemFont(ofSize: 11), disabled)
+            : stat([("\(hud.accepted ?? 0)", true), ("/\(hud.shown ?? 0) accepted", false)])
         var total = stat([("\(calls)", true), (calls == 1 ? " model call so far" : " model calls so far", false)])
         if width(acc) + width(total) + 12 > x1 - x0 { total = stat([("\(calls)", true), (calls == 1 ? " model call" : " model calls", false)]) }
         draw(acc, x: x0, base: L.statBase, maxW: x1 - x0 - width(total) - 12)
@@ -521,7 +523,7 @@ final class HUDView: NSView {
 
         let maxW = ledgerRect.minX - 8 - x0
         guard let tx = hud.lastTx else {
-            return draw(run("No payments yet", .systemFont(ofSize: 11), disabled), x: x0, base: base)
+            return draw(run("no payments yet", .systemFont(ofSize: 11), disabled), x: x0, base: base)
         }
         let short = tx.hash.count > 12 ? "\(tx.hash.prefix(6))…\(tx.hash.suffix(4))" : tx.hash
         let line = join([
@@ -538,7 +540,8 @@ final class HUDView: NSView {
         let mf = NSFont.systemFont(ofSize: 11, weight: .medium)
         let base = centred(L.footY, L.footH, mf)
 
-        let word = run(mode, mf, mode == "offline" ? primary : secondary)
+        // The mode names are the protocol's; "shown" reads as jargon on a projector, so a ghost on screen says what Tab is doing.
+        let word = run(mode == "shown" ? "suggesting" : mode, mf, mode == "offline" ? primary : secondary)
         let wx = x1 - width(word)
         draw(word, x: wx, base: base)
         let dot = CGRect(x: wx - 6 - 7, y: L.footY + (L.footH - 7) / 2, width: 7, height: 7)
