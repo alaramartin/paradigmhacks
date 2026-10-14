@@ -1,0 +1,720 @@
+{
+  "type": "state",
+  "source": "web",
+  "app": "com.google.Chrome",
+  "window": "Release 0.13.1 · astral-sh/uv · GitHub",
+  "url": "https://github.com/astral-sh/uv/releases/tag/0.13.1",
+  "focused": true,
+  "elements": [
+    {
+      "id": "t1",
+      "role": "link",
+      "label": "Skip to content",
+      "rect": {
+        "x": 0,
+        "y": -748,
+        "w": 1,
+        "h": 1
+      },
+      "enabled": true,
+      "path": "body > div:nth-of-type(1) > div:nth-of-type(2) > a"
+    },
+    {
+      "id": "t2",
+      "role": "link",
+      "label": "Homepage",
+      "rect": {
+        "x": 32,
+        "y": -728,
+        "w": 32,
+        "h": 32
+      },
+      "enabled": true,
+      "path": "body > div:nth-of-type(1) > div:nth-of-type(2) > react-partial:nth-of-type(3) > div > div > header > div:nth-of-type(1) > div:nth-of-type(1) > a"
+    },
+    {
+      "id": "t3",
+      "role": "button",
+      "label": "Platform",
+      "rect": {
+        "x": 80,
+        "y": -732,
+        "w": 101,
+        "h": 40
+      },
+      "enabled": true,
+      "path": "body > div:nth-of-type(1) > div:nth-of-type(2) > react-partial:nth-of-type(3) > div > div > header > div:nth-of-type(1) > div:nth-of-type(2) > div > nav > ul > li:nth-of-type(1) > div > button",
+      "list": {
+        "key": "body > div:nth-of-type(1) > div:nth-of-type(2) > react-partial:nth-of-type(3) > div > div > header > div:nth-of-type(1) > div:nth-of-type(2) > div > nav > ul",
+        "index": 0,
+        "field": "div > button"
+      }
+    },
+    {
+      "id": "t4",
+      "role": "button",
+      "label": "Solutions",
+      "rect": {
+        "x": 181,
+        "y": -732,
+        "w": 107,
+        "h": 40
+      },
+      "enabled": true,
+      "path": "body > div:nth-of-type(1) > div:nth-of-type(2) > react-partial:nth-of-type(3) > div > div > header > div:nth-of-type(1) > div:nth-of-type(2) > div > nav > ul > li:nth-of-type(2) > div > button",
+      "list": {
+        "key": "body > div:nth-of-type(1) > div:nth-of-type(2) > react-partial:nth-of-type(3) > div > div > header > div:nth-of-type(1) > div:nth-of-type(2) > div > nav > ul",
+        "index": 1,
+        "field": "div > button"
+      }
+    },
+    {
+      "id": "t5",
+      "role": "button",
+      "label": "Resources",
+      "rect": {
+        "x": 289,
+        "y": -732,
+        "w": 116,
+        "h": 40
+      },
+      "enabled": true,
+      "path": "body > div:nth-of-type(1) > div:nth-of-type(2) > react-partial:nth-of-type(3) > div > div > header > div:nth-of-type(1) > div:nth-of-type(2) > div > nav > ul > li:nth-of-type(3) > div > button",
+      "list": {
+        "key": "body > div:nth-of-type(1) > div:nth-of-type(2) > react-partial:nth-of-type(3) > div > div > header > div:nth-of-type(1) > div:nth-of-type(2) > div > nav > ul",
+        "index": 2,
+        "field": "div > button"
+      }
+    },
+    {
+      "id": "t6",
+      "role": "button",
+      "label": "Open Source",
+      "rect": {
+        "x": 405,
+        "y": -732,
+        "w": 135,
+        "h": 40
+      },
+      "enabled": true,
+      "path": "body > div:nth-of-type(1) > div:nth-of-type(2) > react-partial:nth-of-type(3) > div > div > header > div:nth-of-type(1) > div:nth-of-type(2) > div > nav > ul > li:nth-of-type(4) > div > button",
+      "list": {
+        "key": "body > div:nth-of-type(1) > div:nth-of-type(2) > react-partial:nth-of-type(3) > div > div > header > div:nth-of-type(1) > div:nth-of-type(2) > div > nav > ul",
+        "index": 3,
+        "field": "div > button"
+      }
+    },
+    {
+      "id": "t7",
+      "role": "button",
+      "label": "Enterprise",
+      "rect": {
+        "x": 539,
+        "y": -732,
+        "w": 115,
+        "h": 40
+      },
+      "enabled": true,
+      "path": "body > div:nth-of-type(1) > div:nth-of-type(2) > react-partial:nth-of-type(3) > div > div > header > div:nth-of-type(1) > div:nth-of-type(2) > div > nav > ul > li:nth-of-type(5) > div > button",
+      "list": {
+        "key": "body > div:nth-of-type(1) > div:nth-of-type(2) > react-partial:nth-of-type(3) > div > div > header > div:nth-of-type(1) > div:nth-of-type(2) > div > nav > ul",
+        "index": 4,
+        "field": "div > button"
+      }
+    },
+    {
+      "id": "t8",
+      "role": "link",
+      "label": "Pricing",
+      "rect": {
+        "x": 654,
+        "y": -732,
+        "w": 69,
+        "h": 40
+      },
+      "enabled": true,
+      "path": "body > div:nth-of-type(1) > div:nth-of-type(2) > react-partial:nth-of-type(3) > div > div > header > div:nth-of-type(1) > div:nth-of-type(2) > div > nav > ul > li:nth-of-type(6) > a",
+      "list": {
+        "key": "body > div:nth-of-type(1) > div:nth-of-type(2) > react-partial:nth-of-type(3) > div > div > header > div:nth-of-type(1) > div:nth-of-type(2) > div > nav > ul",
+        "index": 5,
+        "field": "a"
+      }
+    },
+    {
+      "id": "t9",
+      "role": "button",
+      "label": "Search or jump to, type / to search",
+      "rect": {
+        "x": 906,
+        "y": -728,
+        "w": 42,
+        "h": 32
+      },
+      "enabled": true,
+      "path": "body > div:nth-of-type(1) > div:nth-of-type(2) > react-partial:nth-of-type(3) > div > div > header > div:nth-of-type(1) > div:nth-of-type(2) > div > div > div:nth-of-type(1) > button"
+    },
+    {
+      "id": "t10",
+      "role": "link",
+      "label": "Sign in",
+      "rect": {
+        "x": 956,
+        "y": -728,
+        "w": 72,
+        "h": 32
+      },
+      "enabled": true,
+      "path": "body > div:nth-of-type(1) > div:nth-of-type(2) > react-partial:nth-of-type(3) > div > div > header > div:nth-of-type(1) > div:nth-of-type(2) > div > div > div:nth-of-type(2) > a"
+    },
+    {
+      "id": "t11",
+      "role": "link",
+      "label": "Sign up",
+      "rect": {
+        "x": 1036,
+        "y": -728,
+        "w": 77,
+        "h": 32
+      },
+      "enabled": true,
+      "path": "body > div:nth-of-type(1) > div:nth-of-type(2) > react-partial:nth-of-type(3) > div > div > header > div:nth-of-type(1) > div:nth-of-type(2) > div > div > a"
+    },
+    {
+      "id": "t12",
+      "role": "button",
+      "label": "",
+      "rect": {
+        "x": 1121,
+        "y": -728,
+        "w": 32,
+        "h": 32
+      },
+      "enabled": true,
+      "path": "body > div:nth-of-type(1) > div:nth-of-type(2) > react-partial:nth-of-type(3) > div > div > header > div:nth-of-type(1) > div:nth-of-type(2) > div > div > button"
+    },
+    {
+      "id": "t13",
+      "role": "link",
+      "label": "astral-sh",
+      "rect": {
+        "x": 16,
+        "y": -660,
+        "w": 69,
+        "h": 32
+      },
+      "enabled": true,
+      "path": "main#js-repo-pjax-container > react-partial > div > header > div:nth-of-type(1) > div:nth-of-type(1) > nav > ol > li:nth-of-type(1) > a",
+      "list": {
+        "key": "main#js-repo-pjax-container > react-partial > div > header > div:nth-of-type(1) > div:nth-of-type(1) > nav > ol",
+        "index": 0,
+        "field": "a"
+      }
+    },
+    {
+      "id": "t14",
+      "role": "link",
+      "label": "uv",
+      "rect": {
+        "x": 100,
+        "y": -660,
+        "w": 28,
+        "h": 32
+      },
+      "enabled": true,
+      "path": "main#js-repo-pjax-container > react-partial > div > header > div:nth-of-type(1) > div:nth-of-type(1) > nav > ol > li:nth-of-type(2) > a",
+      "list": {
+        "key": "main#js-repo-pjax-container > react-partial > div > header > div:nth-of-type(1) > div:nth-of-type(1) > nav > ol",
+        "index": 1,
+        "field": "a"
+      }
+    },
+    {
+      "id": "t15",
+      "role": "link",
+      "label": "Code",
+      "rect": {
+        "x": 16,
+        "y": -616,
+        "w": 75,
+        "h": 32
+      },
+      "enabled": true,
+      "path": "main#js-repo-pjax-container > react-partial > div > header > nav > ul > li:nth-of-type(2) > a",
+      "list": {
+        "key": "main#js-repo-pjax-container > react-partial > div > header > nav > ul",
+        "index": 0,
+        "field": "a"
+      }
+    },
+    {
+      "id": "t16",
+      "role": "link",
+      "label": "Issues 2.4k (2.4k)",
+      "rect": {
+        "x": 99,
+        "y": -616,
+        "w": 131,
+        "h": 32
+      },
+      "enabled": true,
+      "path": "main#js-repo-pjax-container > react-partial > div > header > nav > ul > li:nth-of-type(3) > a",
+      "list": {
+        "key": "main#js-repo-pjax-container > react-partial > div > header > nav > ul",
+        "index": 1,
+        "field": "a"
+      }
+    },
+    {
+      "id": "t17",
+      "role": "link",
+      "label": "Pull requests 596 (596)",
+      "rect": {
+        "x": 239,
+        "y": -616,
+        "w": 174,
+        "h": 32
+      },
+      "enabled": true,
+      "path": "main#js-repo-pjax-container > react-partial > div > header > nav > ul > li:nth-of-type(4) > a",
+      "list": {
+        "key": "main#js-repo-pjax-container > react-partial > div > header > nav > ul",
+        "index": 2,
+        "field": "a"
+      }
+    },
+    {
+      "id": "t18",
+      "role": "link",
+      "label": "Actions",
+      "rect": {
+        "x": 421,
+        "y": -616,
+        "w": 91,
+        "h": 32
+      },
+      "enabled": true,
+      "path": "main#js-repo-pjax-container > react-partial > div > header > nav > ul > li:nth-of-type(5) > a",
+      "list": {
+        "key": "main#js-repo-pjax-container > react-partial > div > header > nav > ul",
+        "index": 3,
+        "field": "a"
+      }
+    },
+    {
+      "id": "t19",
+      "role": "link",
+      "label": "Projects",
+      "rect": {
+        "x": 520,
+        "y": -616,
+        "w": 96,
+        "h": 32
+      },
+      "enabled": true,
+      "path": "main#js-repo-pjax-container > react-partial > div > header > nav > ul > li:nth-of-type(6) > a",
+      "list": {
+        "key": "main#js-repo-pjax-container > react-partial > div > header > nav > ul",
+        "index": 4,
+        "field": "a"
+      }
+    },
+    {
+      "id": "t20",
+      "role": "link",
+      "label": "Security and quality 7 (7)",
+      "rect": {
+        "x": 623,
+        "y": -616,
+        "w": 204,
+        "h": 32
+      },
+      "enabled": true,
+      "path": "main#js-repo-pjax-container > react-partial > div > header > nav > ul > li:nth-of-type(7) > a",
+      "list": {
+        "key": "main#js-repo-pjax-container > react-partial > div > header > nav > ul",
+        "index": 5,
+        "field": "a"
+      }
+    },
+    {
+      "id": "t21",
+      "role": "link",
+      "label": "Insights",
+      "rect": {
+        "x": 835,
+        "y": -616,
+        "w": 94,
+        "h": 32
+      },
+      "enabled": true,
+      "path": "main#js-repo-pjax-container > react-partial > div > header > nav > ul > li:nth-of-type(8) > a",
+      "list": {
+        "key": "main#js-repo-pjax-container > react-partial > div > header > nav > ul",
+        "index": 6,
+        "field": "a"
+      }
+    },
+    {
+      "id": "t22",
+      "role": "link",
+      "label": "Releases",
+      "rect": {
+        "x": 32,
+        "y": -550,
+        "w": 58,
+        "h": 17
+      },
+      "enabled": true,
+      "path": "div#repo-content-pjax-container > div > nav > ol > li:nth-of-type(1) > a"
+    },
+    {
+      "id": "t23",
+      "role": "link",
+      "label": "0.13.1",
+      "rect": {
+        "x": 104,
+        "y": -550,
+        "w": 36,
+        "h": 17
+      },
+      "enabled": true,
+      "path": "div#repo-content-pjax-container > div > nav > ol > li:nth-of-type(2) > a"
+    },
+    {
+      "id": "t24",
+      "role": "link",
+      "label": "Latest",
+      "rect": {
+        "x": 153,
+        "y": -467,
+        "w": 54,
+        "h": 24
+      },
+      "enabled": true,
+      "path": "div#repo-content-pjax-container > div > div > div > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > span > a"
+    },
+    {
+      "id": "t25",
+      "role": "button",
+      "label": "Compare",
+      "rect": {
+        "x": 1046,
+        "y": -482,
+        "w": 90,
+        "h": 28
+      },
+      "enabled": true,
+      "path": "button#select-panel-f045aa8a-9579-4a27-bbb1-68ce7aeead87-button"
+    },
+    {
+      "id": "t26",
+      "role": "link",
+      "label": "astral-releases-bot",
+      "rect": {
+        "x": 73,
+        "y": -416,
+        "w": 131,
+        "h": 17
+      },
+      "enabled": true,
+      "path": "div#repo-content-pjax-container > div > div > div > div:nth-of-type(1) > div:nth-of-type(2) > div > div:nth-of-type(1) > a"
+    },
+    {
+      "id": "t27",
+      "role": "link",
+      "label": "0.13.1",
+      "rect": {
+        "x": 506,
+        "y": -415,
+        "w": 60,
+        "h": 17
+      },
+      "enabled": true,
+      "path": "div#repo-content-pjax-container > div > div > div > div:nth-of-type(1) > div:nth-of-type(2) > div > div:nth-of-type(3) > a"
+    },
+    {
+      "id": "t28",
+      "role": "link",
+      "label": "62faed3",
+      "rect": {
+        "x": 590,
+        "y": -415,
+        "w": 83,
+        "h": 17
+      },
+      "enabled": true,
+      "path": "div#repo-content-pjax-container > div > div > div > div:nth-of-type(1) > div:nth-of-type(2) > div > div:nth-of-type(4) > a"
+    },
+    {
+      "id": "t29",
+      "role": "button",
+      "label": "",
+      "rect": {
+        "x": 681,
+        "y": -417,
+        "w": 16,
+        "h": 21
+      },
+      "enabled": true,
+      "path": "div#repo-content-pjax-container > div > div > div > div:nth-of-type(1) > div:nth-of-type(2) > div > div:nth-of-type(4) > details > summary"
+    },
+    {
+      "id": "t30",
+      "role": "link",
+      "label": "#22500",
+      "rect": {
+        "x": 939,
+        "y": -201,
+        "w": 58,
+        "h": 19
+      },
+      "enabled": true,
+      "path": "div#repo-content-pjax-container > div > div > div > div:nth-of-type(1) > div:nth-of-type(3) > ul:nth-of-type(1) > li:nth-of-type(1) > a",
+      "list": {
+        "key": "div#repo-content-pjax-container > div > div > div > div:nth-of-type(1) > div:nth-of-type(3) > ul:nth-of-type(1)",
+        "index": 0,
+        "field": "a"
+      }
+    },
+    {
+      "id": "t31",
+      "role": "link",
+      "label": "#22463",
+      "rect": {
+        "x": 872,
+        "y": -173,
+        "w": 58,
+        "h": 19
+      },
+      "enabled": true,
+      "path": "div#repo-content-pjax-container > div > div > div > div:nth-of-type(1) > div:nth-of-type(3) > ul:nth-of-type(1) > li:nth-of-type(2) > a",
+      "list": {
+        "key": "div#repo-content-pjax-container > div > div > div > div:nth-of-type(1) > div:nth-of-type(3) > ul:nth-of-type(1)",
+        "index": 1,
+        "field": "a"
+      }
+    },
+    {
+      "id": "t32",
+      "role": "link",
+      "label": "#22241",
+      "rect": {
+        "x": 451,
+        "y": -145,
+        "w": 55,
+        "h": 19
+      },
+      "enabled": true,
+      "path": "div#repo-content-pjax-container > div > div > div > div:nth-of-type(1) > div:nth-of-type(3) > ul:nth-of-type(1) > li:nth-of-type(3) > a",
+      "list": {
+        "key": "div#repo-content-pjax-container > div > div > div > div:nth-of-type(1) > div:nth-of-type(3) > ul:nth-of-type(1)",
+        "index": 2,
+        "field": "a"
+      }
+    },
+    {
+      "id": "t33",
+      "role": "link",
+      "label": "#22527",
+      "rect": {
+        "x": 249,
+        "y": -56,
+        "w": 56,
+        "h": 19
+      },
+      "enabled": true,
+      "path": "div#repo-content-pjax-container > div > div > div > div:nth-of-type(1) > div:nth-of-type(3) > ul:nth-of-type(2) > li > a"
+    },
+    {
+      "id": "t34",
+      "role": "text",
+      "label": "Repository navigation",
+      "rect": {
+        "x": 0,
+        "y": -676,
+        "w": 1,
+        "h": 1
+      },
+      "enabled": true,
+      "path": "main#js-repo-pjax-container > react-partial > div > header > h2"
+    },
+    {
+      "id": "t35",
+      "role": "text",
+      "label": "0.13.1",
+      "rect": {
+        "x": 49,
+        "y": -477,
+        "w": 84,
+        "h": 38
+      },
+      "enabled": true,
+      "path": "div#repo-content-pjax-container > div > div > div > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > h1"
+    },
+    {
+      "id": "t36",
+      "role": "text",
+      "label": "astral-releases-bot released this",
+      "rect": {
+        "x": 49,
+        "y": -418,
+        "w": 321,
+        "h": 22
+      },
+      "enabled": true,
+      "path": "div#repo-content-pjax-container > div > div > div > div:nth-of-type(1) > div:nth-of-type(2) > div > div:nth-of-type(1)"
+    },
+    {
+      "id": "t37",
+      "role": "text",
+      "label": "Immutable release. Only release title and notes can be modified.",
+      "rect": {
+        "x": 414,
+        "y": -415,
+        "w": 68,
+        "h": 17
+      },
+      "enabled": true,
+      "path": "div#repo-content-pjax-container > div > div > div > div:nth-of-type(1) > div:nth-of-type(2) > div > div:nth-of-type(2) > span"
+    },
+    {
+      "id": "t38",
+      "role": "text",
+      "label": "Release Notes",
+      "rect": {
+        "x": 49,
+        "y": -347,
+        "w": 1087,
+        "h": 38
+      },
+      "enabled": true,
+      "path": "div#repo-content-pjax-container > div > div > div > div:nth-of-type(1) > div:nth-of-type(3) > h2:nth-of-type(1)"
+    },
+    {
+      "id": "t39",
+      "role": "text",
+      "label": "Released on 2026-10-14.",
+      "rect": {
+        "x": 49,
+        "y": -293,
+        "w": 1087,
+        "h": 24
+      },
+      "enabled": true,
+      "path": "div#repo-content-pjax-container > div > div > div > div:nth-of-type(1) > div:nth-of-type(3) > p:nth-of-type(1)"
+    },
+    {
+      "id": "t40",
+      "role": "text",
+      "label": "Enhancements",
+      "rect": {
+        "x": 49,
+        "y": -245,
+        "w": 1087,
+        "h": 25
+      },
+      "enabled": true,
+      "path": "div#repo-content-pjax-container > div > div > div > div:nth-of-type(1) > div:nth-of-type(3) > h3:nth-of-type(1)"
+    },
+    {
+      "id": "t41",
+      "role": "text",
+      "label": "Ignore Requires-Python upper bounds in uv pip check and uv pip install --strict,",
+      "rect": {
+        "x": 81,
+        "y": -204,
+        "w": 1055,
+        "h": 24
+      },
+      "enabled": true,
+      "path": "div#repo-content-pjax-container > div > div > div > div:nth-of-type(1) > div:nth-of-type(3) > ul:nth-of-type(1) > li:nth-of-type(1)",
+      "list": {
+        "key": "div#repo-content-pjax-container > div > div > div > div:nth-of-type(1) > div:nth-of-type(3) > ul:nth-of-type(1)",
+        "index": 0
+      }
+    },
+    {
+      "id": "t42",
+      "role": "text",
+      "label": "Support Linux SPARC by falling back when filesystem cloning and detailed cache a",
+      "rect": {
+        "x": 81,
+        "y": -176,
+        "w": 1055,
+        "h": 24
+      },
+      "enabled": true,
+      "path": "div#repo-content-pjax-container > div > div > div > div:nth-of-type(1) > div:nth-of-type(3) > ul:nth-of-type(1) > li:nth-of-type(2)",
+      "list": {
+        "key": "div#repo-content-pjax-container > div > div > div > div:nth-of-type(1) > div:nth-of-type(3) > ul:nth-of-type(1)",
+        "index": 1
+      }
+    },
+    {
+      "id": "t43",
+      "role": "text",
+      "label": "Report missing trusted hashes in resolution errors (#22241)",
+      "rect": {
+        "x": 81,
+        "y": -148,
+        "w": 1055,
+        "h": 24
+      },
+      "enabled": true,
+      "path": "div#repo-content-pjax-container > div > div > div > div:nth-of-type(1) > div:nth-of-type(3) > ul:nth-of-type(1) > li:nth-of-type(3)",
+      "list": {
+        "key": "div#repo-content-pjax-container > div > div > div > div:nth-of-type(1) > div:nth-of-type(3) > ul:nth-of-type(1)",
+        "index": 2
+      }
+    },
+    {
+      "id": "t44",
+      "role": "text",
+      "label": "Python",
+      "rect": {
+        "x": 49,
+        "y": -100,
+        "w": 1087,
+        "h": 25
+      },
+      "enabled": true,
+      "path": "div#repo-content-pjax-container > div > div > div > div:nth-of-type(1) > div:nth-of-type(3) > h3:nth-of-type(2)"
+    },
+    {
+      "id": "t45",
+      "role": "text",
+      "label": "Add CPython 3.16.0a1 (#22527)",
+      "rect": {
+        "x": 81,
+        "y": -59,
+        "w": 1055,
+        "h": 24
+      },
+      "enabled": true,
+      "path": "div#repo-content-pjax-container > div > div > div > div:nth-of-type(1) > div:nth-of-type(3) > ul:nth-of-type(2) > li"
+    },
+    {
+      "id": "t46",
+      "role": "text",
+      "label": "Preview features",
+      "rect": {
+        "x": 49,
+        "y": -11,
+        "w": 1087,
+        "h": 25
+      },
+      "enabled": true,
+      "path": "div#repo-content-pjax-container > div > div > div > div:nth-of-type(1) > div:nth-of-type(3) > h3:nth-of-type(3)"
+    }
+  ],
+  "seq": 1,
+  "ts": 1791969752907,
+  "_capture": {
+    "screenX": 0,
+    "screenY": 0,
+    "outerHeight": 0,
+    "innerHeight": 748,
+    "devicePixelRatio": 2,
+    "toolbar": -748
+  }
+}
