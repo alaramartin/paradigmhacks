@@ -1,0 +1,6 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Night Owls · Tickets</title></head><body><main>
+<h1>Night Owls</h1><p>live at Hall 9 · Fri 9pm</p>
+<label for="qty">Qty</label><select id="qty"><option>1</option><option>2</option><option>3</option><option>4</option></select>
+<p>General admission $0.15</p><button id="checkout">Checkout</button></main>
+<script>document.getElementById('checkout').onclick=()=>location.href='/checkout?qty='+document.getElementById('qty').value</script>
+</body></html>

@@ -17,7 +17,7 @@ const TICKET_MILLS = 150;
 const RESALE_MILLS = 255;
 export const usd = (mills: number) => `$${(Math.round(mills / 10) / 100).toFixed(2)}`;
 const qtyOf = (ctx: HTTPRequestContext) => {
-    const q = Number((ctx.adapter.getBody() as { qty?: unknown } | undefined)?.qty);
+    const q = Number((ctx.adapter.getBody?.() as { qty?: unknown } | undefined)?.qty);
     return Number.isInteger(q) && q >= 1 && q <= 4 ? q : 1;
 };
 

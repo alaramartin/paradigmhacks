@@ -1,0 +1,9 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Checkout · Tickets</title></head><body><main>
+<h1>Checkout</h1><p id="total">Total $0.30</p><button id="buy">Buy tickets</button><div id="out"></div></main>
+<script>
+const qty=Number(new URLSearchParams(location.search).get('qty')||1);
+document.getElementById('total').textContent='Total $'+(qty*0.15).toFixed(2);
+document.getElementById('buy').onclick=async()=>{document.getElementById('out').textContent='waiting';
+const r=await fetch('/api/buy',{method:'POST',headers:{'content-type':'application/json',accept:'application/json'},body:JSON.stringify({qty})});
+document.getElementById('out').textContent=r.status+' '+(await r.text()).slice(0,200);};
+</script></body></html>

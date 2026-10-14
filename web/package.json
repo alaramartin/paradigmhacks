@@ -10,6 +10,7 @@
     "balance": "tsx scripts/balance.ts",
     "reset-demo": "tsx scripts/reset-demo.ts",
     "chrome": "tsx scripts/chrome.ts",
+    "look": "tsx scripts/look.ts",
     "test": "tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
