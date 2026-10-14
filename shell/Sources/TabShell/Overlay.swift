@@ -154,7 +154,7 @@ struct Style {
 
 /// What the pill says, parsed from the protocol label.
 struct PillContent {
-    enum Icon { case none, block, check, repeat_ }
+    enum Icon { case none, block, check, repeat_, spinner }
     var head: String
     var tail: String? // drawn as " · tail"
     var key: String? // "tab" | "esc"
@@ -172,6 +172,8 @@ struct PillContent {
         // The pattern rule's ghosts (PLAN pill formats) get a loop: "teach once, then repeat" at a glance. "Do all " is a
         // saved workflow recalled on a later visit (B's `PatternEngine.recall`): the same unit, so the same loop.
         if g.kind == .action, ["Repeat for ", "Do the remaining ", "Do all "].contains(where: label.hasPrefix) { icon = .repeat_ }
+        // Overlay's own state after Tab on a pay ghost (not a hub label): a spinner where the keycap was.
+        if g.kind == .pay, label.hasPrefix("Paying") { icon = .spinner }
         key = g.kind == .blocked ? "esc" : g.kind == .done ? nil : (hadTab ? "tab" : nil)
         if let r = label.range(of: " · ") {
             head = String(label[..<r.lowerBound])
@@ -195,6 +197,8 @@ final class PillView: NSView {
     var pressed = false { didSet { needsDisplay = true } }
     var holdFraction: CGFloat? { didSet { needsDisplay = true } }
     var borderAlpha: CGFloat = 1 { didSet { needsDisplay = true } }
+    /// Spinner phase, 0…1 per turn.
+    var spin: CGFloat = 0 { didSet { needsDisplay = true } }
 
     /// The head didn't fit and was cut in the middle.
     private(set) var headCut = false
@@ -389,6 +393,20 @@ final class PillView: NSView {
             path.move(to: CGPoint(x: e.x - 2.1 * s, y: e.y - 1.8 * s))
             path.line(to: CGPoint(x: e.x + 0.3 * s, y: e.y))
             path.line(to: CGPoint(x: e.x - 2.1 * s, y: e.y + 1.8 * s))
+            path.lineWidth = 1.6 * s
+        case .spinner:
+            // A faint ring with a bright quarter arc running round it.
+            let ring = NSBezierPath(ovalIn: CGRect(x: r.minX + 1.4 * s, y: r.minY + 1.4 * s, width: 9.2 * s, height: 9.2 * s))
+            ring.lineWidth = 1.6 * s
+            color.withAlphaComponent(0.3).setStroke()
+            ring.stroke()
+            let a0 = Double(spin) * 2 * .pi
+            let pts = (0...12).map { i -> CGPoint in
+                let a = a0 + .pi / 2 * Double(i) / 12
+                return p(6 + 4.6 * cos(a), 6 + 4.6 * sin(a))
+            }
+            path.move(to: pts[0])
+            for q in pts.dropFirst() { path.line(to: q) }
             path.lineWidth = 1.6 * s
         case .none: return
         }
@@ -652,6 +670,11 @@ final class Overlay {
     private var holdTimer: Timer?
     var highContrast: Bool
     private(set) var current: Ghost?
+    /// After Tab on a pay ghost: "Paying $0.30 · tickets.localhost" with a spinner, until the hub's next ghost (Paid ✓
+    /// or Blocked), a hide, or `payingTimeout`. The hub sends nothing while the payment settles (9.6 s on venue wifi),
+    /// and a blank screen at the moment money moves reads as a hang. Not `current`: Tab and Esc pass through meanwhile.
+    private var paying: (ghost: Ghost, appear: DispatchWorkItem, timeout: DispatchWorkItem, spin: Timer)?
+    static var payingTimeout: Double = 45
 
     /// The covered display's frame and visible frame (below the menu bar, above the Dock), in protocol points.
     private var screenTL: CGRect = .zero
@@ -709,6 +732,7 @@ final class Overlay {
     /// Show the single live ghost (replaces any other).
     func show(_ g: Ghost) {
         if let cur = current, cur == g, views[g.id] != nil { return }
+        endPaying()
         let sameId = current?.id == g.id
         for id in Array(views.keys) { remove(id, exit: nil) }
         current = g
@@ -725,21 +749,54 @@ final class Overlay {
 
     /// Selftest: draw many at once, each with its own contrast mode.
     func showAll(_ gs: [(Ghost, Bool)]) {
+        endPaying()
         for id in Array(views.keys) { remove(id, exit: nil) }
         for (g, hc) in gs { add(g, animated: false, hc: hc) }
     }
 
     func hide(_ exit: Exit = .dismiss) {
+        endPaying(fade: true) // a ghost_hide or a hub disconnect ends "Paying…" too
         guard let cur = current else { return }
         current = nil
         stopHold()
         remove(cur.id, exit: exit)
+        if exit == .accept, cur.kind == .pay { startPaying(cur) }
     }
 
     func redraw() {
-        guard let cur = current else { return }
+        let payingShown = paying.map { views[$0.ghost.id] != nil } ?? false
+        guard current != nil || payingShown else { return }
         for id in Array(views.keys) { remove(id, exit: nil) }
-        add(cur, animated: false)
+        if let cur = current { add(cur, animated: false) }
+        if payingShown, let p = paying { add(p.ghost, animated: false) }
+    }
+
+    private func startPaying(_ g: Ghost) {
+        var p = g
+        p.id = g.id + "-paying"
+        let rest = g.label.replacingOccurrences(of: "⇥", with: "").trimmingCharacters(in: .whitespaces)
+        p.label = rest.hasPrefix("Pay ") ? "Paying " + rest.dropFirst(4) : "Paying…"
+        let st = style
+        let appear = DispatchWorkItem { [weak self] in self?.add(p, animated: true) }
+        let timeout = DispatchWorkItem { [weak self] in self?.endPaying(fade: true) }
+        let t0 = CACurrentMediaTime()
+        let spin = Overlay.onCommonModes(Timer(timeInterval: 1.0 / 60, repeats: true) { [weak self] _ in
+            guard !st.reduceMotion, let v = self?.views[p.id] else { return }
+            v.pill.spin = CGFloat(((CACurrentMediaTime() - t0) / 0.9).truncatingRemainder(dividingBy: 1)) // a turn per 0.9 s
+        })
+        paying = (p, appear, timeout, spin)
+        // After the accept press and fade (60 + 120 ms), so it reads as the same pill changing state.
+        DispatchQueue.main.asyncAfter(deadline: .now() + (st.pressMs + st.acceptFadeMs) / 1000, execute: appear)
+        DispatchQueue.main.asyncAfter(deadline: .now() + Overlay.payingTimeout, execute: timeout)
+    }
+
+    private func endPaying(fade: Bool = false) {
+        guard let p = paying else { return }
+        paying = nil
+        p.appear.cancel()
+        p.timeout.cancel()
+        p.spin.invalidate()
+        remove(p.ghost.id, exit: fade ? .dismiss : nil)
     }
 
     func shake() {

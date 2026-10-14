@@ -70,6 +70,11 @@ _Two Macs: the demo runs on **alara's Mac** (B verified there). A works on Ayush
   - In HC it used to be wider than the search box and spilled out of it. Now an `inside` pill is capped at the field's width, and the tail gives way first (`↻ Do all 6 from v1.4.0 · learned… tab`), cut at a word.
   - A field too narrow for the head drops `inside` and places the pill below instead.
   - Spec: ghost-spec Amendments "10:35". ![](design/proof/a-recall-tracker.png) ![](design/proof/a-recall-tracker-hc.png)
+- **M3 audit started early (10:50–11:15), all pushed.** Details and proofs are in ghost-spec Amendments 10:55, 11:00 and 11:15.
+  - HUD copy: a ghost on screen reads `suggesting` (was `shown`), a fresh start reads `none offered yet` (was `0/0 accepted`), and `no payments yet` is lowercase.
+  - Pay and blocked pills ignore `avoid`: in HC, the resale Blocked pill had docked inside Buy tickets and hidden it.
+  - **New `Paying $0.30 · tickets.localhost` pill with a spinner, from Tab on a pay ghost until the hub's `Paid ✓`/Blocked** (a payment took 9.6 s on venue wifi, with nothing on screen).
+  - Also checked on C's pages and fine as is: flow 1 Checkout and pay, flow 4 Rx, 5:30 pm and pay, both modes.
 ### In progress
 - M3 audit at 12:30: `redesign-existing-projects` on the ghost and HUD renders, then one full look-and-try run.
 - Recapture `native_state_terminal_push.json` from a real push to `alaramartin/tab-demo` (needs alara's Mac).
@@ -82,6 +87,7 @@ _Two Macs: the demo runs on **alara's Mac** (B verified there). A works on Ayush
 4. One full-screen `screencapture -x` per flow into `design/proof/`, cropped to the demo windows only. Delete any shot that caught personal windows.
 
 ### Notes for B and C (from A)
+- **B — HUD mode while a payment settles (11:15, one line, optional).** On a pay accept, `onAccept` sends `pay` but leaves `hud.mode` at `shown`. The HUD then says `suggesting` for the whole 9.6 s, while the shell already shows `Paying $0.30 · …`. Suggest `this.hud.mode = "running"; this.sendHud();` before the `return` in the pay branch; `onPaymentResult` already sets it back.
 - **C — GitHub compare page is a React partial.** It first renders "Loading", then hydrates. Re-emit state after hydration (a MutationObserver catches it), or the commit titles never reach B.
 - **B — commit titles that reference a PR are split into several links** (`"Fix … ("`, `"#22424"`, `")"`, all in one `li`, field `div > p > a:nth-of-type(N)`). Read the whole `<p>`, or keep `#NN` out of the demo commit titles.
 - **Humans/C — release table PR column:** GitHub autolinks `#12` only if PR #12 exists. Use real PR numbers for all six rows or for none, otherwise the PR cell's `field` differs between rows (`td:nth-of-type(3)` vs `td:nth-of-type(3) > a`) and the repeat lookup breaks.
