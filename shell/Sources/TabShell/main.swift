@@ -85,14 +85,22 @@ final class Shell: NSObject, InputTapDelegate {
         terminal.setFrontmost(NSWorkspace.shared.frontmostApplication)
         hub.start()
         setUpMenuBar()
-        Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in self?.checkHubShown() }
+        // Re-place the HUD only when displays change; a polling re-place would snap it back mid-drag.
+        NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
+            self?.checkHubShown()
+        }
     }
 
     // MARK: menu bar item (show/hide and reset the HUD, high contrast, quit)
 
     private func setUpMenuBar() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        item.button?.title = "⇥"
+        if let img = NSImage(systemSymbolName: "arrow.right.to.line", accessibilityDescription: "Tab") {
+            img.isTemplate = true
+            item.button?.image = img
+        } else {
+            item.button?.title = "⇥"
+        }
         item.button?.toolTip = "Tab"
         let menu = NSMenu()
         let show = NSMenuItem(title: "Show HUD", action: #selector(toggleHud), keyEquivalent: "")

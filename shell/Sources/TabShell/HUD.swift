@@ -225,10 +225,13 @@ final class HUDView: NSView {
             let lat = hud.lastLatencyMs.map { $0 < 10 ? String(format: " %.1f ms", $0) : " \(Int($0.rounded())) ms" } ?? ""
             src = rich([(s, true), (lat, false)])
         } else {
-            src = rich([("no prediction yet", false)])
+            src = rich([("ready", false)])
         }
-        let calls = rich([("\(hud.modelCalls ?? 0)", true), (" model calls", false)])
+        var calls = rich([("\(hud.modelCalls ?? 0)", true), (" model calls", false)])
         let acc = rich([("\(hud.accepted ?? 0)", true), ("/\(hud.shown ?? 0) accepted", false)])
+        if src.size().width + calls.size().width + acc.size().width + 16 > x1 - x0 {
+            calls = rich([("\(hud.modelCalls ?? 0)", true), (" calls", false)]) // never overlap; shorten instead
+        }
         // Space-between: equal gaps, so a long first item never runs into the second.
         let g = max(8, (x1 - x0 - src.size().width - calls.size().width - acc.size().width) / 2)
         src.draw(at: CGPoint(x: x0, y: y))
