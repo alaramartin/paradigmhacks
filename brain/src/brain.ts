@@ -276,7 +276,18 @@ export class Brain {
         if (a.op === "type" && empty && (el.role === "textfield" || el.role === "textarea")) {
             return { id, kind: "text", label: "⇥", rect: el.rect, ghostText: a.value };
         }
-        return { id, kind: "action", label, rect: el.rect, cursor: center };
+        const ghost: Ghost = { id, kind: "action", label, rect: el.rect, cursor: center };
+        if (this.pillWouldCover(el, active)) ghost.place = "inside"; // ghost-spec amendment: dock in wide fields
+        return ghost;
+    }
+
+    /** A pill below a wide field would sit on whatever comes right under it (flow 3: the first list row). */
+    private pillWouldCover(el: El, active: ScreenState | undefined): boolean {
+        if (!active || !["textfield", "textarea", "select"].includes(el.role) || el.rect.w < 160) return false;
+        const top = el.rect.y + el.rect.h, bottom = top + 44; // pill gap + height, with margin
+        return active.elements.some(
+            (o) => o.id !== el.id && o.rect.y < bottom && o.rect.y + o.rect.h > top && o.rect.x < el.rect.x + 260 && o.rect.x + o.rect.w > el.rect.x,
+        );
     }
 
     /** The element a ghost highlights: the target, or for a sequence, the first step we can find on screen. */

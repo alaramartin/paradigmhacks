@@ -57,11 +57,23 @@ function copyableValues(others: ScreenState[], active: ScreenState): string[] {
 /** GitHub "Open a pull request": a description from the commit titles on the page. */
 export function prDescription(active: ScreenState): string | null {
     if (!active.url || !/github\.com\/.+\/(compare|pull\/new)\//.test(active.url)) return null;
-    // Commit titles: links inside a repeated commit list. Path heuristics until C's real fixture lands.
-    const commits = active.elements
-        .filter((e) => e.role === "link" && e.list && /commit/i.test(`${e.path ?? ""} ${e.list.key}`) && !/^[0-9a-f]{7,40}$/.test(e.label))
-        .map((e) => e.label.trim())
-        .filter((t, i, a) => t && a.indexOf(t) === i);
+    // Commit list items: links in a repeated list whose path or key mentions "commit". GitHub splits a title that
+    // references a PR into several links ("Fix … (", "#22424", ")") inside the message <p>; author and hash links are
+    // separate. So: per item, join the links in its message paragraph; else take the first non-hash, non-empty link.
+    const items = new Map<number, El[]>();
+    for (const e of active.elements) {
+        if (e.role !== "link" || !e.list || !/commit/i.test(`${e.path ?? ""} ${e.list.key}`)) continue;
+        items.set(e.list.index, [...(items.get(e.list.index) ?? []), e]);
+    }
+    const isHash = (t: string) => /^[0-9a-f]{7,40}$/.test(t);
+    const commits: string[] = [];
+    for (const [, links] of [...items].sort((x, y) => x[0] - y[0])) {
+        const msg = links.filter((e) => /(^|> )p > a/.test(e.list?.field ?? "") || /(^|> )p > a/.test(e.path ?? ""));
+        const title = msg.length
+            ? msg.map((e) => e.label.trim()).join(" ").replace(/\(\s+/g, "(").replace(/\s+\)/g, ")").trim()
+            : links.map((e) => e.label.trim()).find((t) => t && !isHash(t));
+        if (title && !commits.includes(title)) commits.push(title);
+    }
     if (commits.length === 0) return null;
     const summary = commits.length === 1 ? commits[0] : `${commits[0]}, and ${commits.length - 1} more change${commits.length > 2 ? "s" : ""}.`;
     return `${summary}\n\n## Changes\n${commits.map((c) => `- ${c}`).join("\n")}`;

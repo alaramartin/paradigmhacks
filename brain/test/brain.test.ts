@@ -176,3 +176,13 @@ test("a cancelled payment (page navigated away) clears quietly", () => {
     void brain.predictNow();
     assert.equal(ghosts().length, n, "the blocked ghost doesn't come back");
 });
+
+test("pill docks inside a wide field when something sits right below it (tracker search box)", async () => {
+    const { brain, ghosts } = harness(() => ({ op: "click", app: CHROME, url: TRACKER_URL, targetId: "s", targetPath: SEARCH.path, label: "Click Search", confidence: 0.9, source: "model" }));
+    brain.fromShell({ type: "frontmost", app: CHROME, window: "Tracker" });
+    const st = trackerState(Date.now());
+    st.elements = st.elements.map((e) => (e.id === "s" ? { ...e, rect: { x: 100, y: 50, w: 320, h: 36 } } : e.id === "t0" ? { ...e, rect: { x: 100, y: 96, w: 600, h: 40 } } : e));
+    brain.fromWeb(st);
+    await brain.predictNow();
+    assert.equal(ghosts().at(-1).place, "inside");
+});

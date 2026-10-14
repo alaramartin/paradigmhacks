@@ -56,3 +56,13 @@ test("A's real Terminal capture (protocol/fixtures/native_state_terminal_push.js
     assert.equal(cs[0].action.label, "Open pull request");
     assert.match(cs[0].action.value!, /\/pull\/new\/fix\/checkout-rounding$/);
 });
+
+test("PR description on A's real GitHub compare capture: titles rejoined, no authors or hashes", async () => {
+    const { readFileSync } = await import("node:fs");
+    const s = JSON.parse(readFileSync(new URL("../../protocol/fixtures/reference/real_github_compare_commits_uv.json", import.meta.url), "utf8"));
+    const d = prDescription({ ...s, url: "https://github.com/astral-sh/uv/compare/0.13.0...0.13.1?expand=1" })!;
+    const lines = d.split("\n").filter((l) => l.startsWith("- "));
+    assert.equal(lines[0], "- Document native Python preference on Windows ARM64 (#22424)");
+    assert.equal(lines.length, 6);
+    assert.ok(!/zanieb|\[bot\]|0e23f06/.test(d), d);
+});

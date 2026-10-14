@@ -187,7 +187,7 @@ async function exec(a: Action): Promise<void> {
         let el = ${sel(a)} ? document.querySelector(${sel(a)}) : null;
         if (!el && ${JSON.stringify(a.targetId ?? "")}) el = document.querySelector('[data-tab-id="${a.targetId ?? ""}"]');
         if (!el) return null;
-        el.scrollIntoView({ block: "nearest", inline: "nearest" });
+        el.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" }); // smooth never moves on a hidden page
         const r = el.getBoundingClientRect();
         const top = screenY + (outerHeight - innerHeight);
         return { x: r.left + r.width / 2, y: r.top + r.height / 2, tag: el.tagName, type: (el.type || ""),
