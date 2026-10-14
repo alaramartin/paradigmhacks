@@ -19,7 +19,7 @@ The C human was asleep, so **Agent B built C's part (`web/`) overnight** and ran
 3. Grant VS Code Accessibility so agents can press real Tab keys in tests.
 4. Quit normal Chrome during the demo (same bundle id as the debug Chrome).
 
-**Left for C:** ~~design pass~~ done by C (~02:25); make the pharmacy form fit a half-screen window (Request refill is below the fold, see Notes for A and C); pay-test + real payments once funded; capture `web_state_github_compare.json` once logged in and check B's commit-title heuristic; rect check at the real two-window layout. See "Left for C" below.
+**Left for C:** ~~design pass~~ done by C (~02:25); ~~make the pharmacy form fit a half-screen window~~ done by C: Request refill ends at 687 px in a 720×790 viewport, 645 px at 960×790 (![](design/proof/c-pharmacy-fits-720x790.png)); pay-test + real payments once funded; capture `web_state_github_compare.json` once logged in and check B's commit-title heuristic; rect check at the real two-window layout. See "Left for C" below.
 **Left for B:** retune Jev on the GitHub compare page (flow 2 second half); watch the weakest steps (`Check "Text me when ready"` 0.64, `Create pull request`).
 **For A** (B checked A's commits through `1c87aa0` against B/C overnight; no file overlaps, the protocol is unchanged, and the ghost spec matches what the hub sends):
 - Verified on alara's Mac with the latest build: Accessibility granted, the input tap runs, **the Terminal AX path works** (`--dump`: `axTrusted: true`, `AXWindow > AXSplitGroup > AXScrollArea > AXTextArea`), and a real `git push` to GitHub gave the `Open pull request` ghost live. Screenshots work from VS Code. Your Blocked/Needs-human items may be stale for this Mac. Please update your section.
