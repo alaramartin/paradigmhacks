@@ -9,11 +9,13 @@ import { paymentMiddleware, x402ResourceServer } from "@x402/express";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { HTTPFacilitatorClient } from "@x402/core/server";
 import { Mppx, tempo } from "mppx/express";
+import { createClient, custom, http, HttpRequestError, keccak256, type Hex } from "viem";
+import { tempoModerato } from "viem/chains";
 import { inboxPage, pharmacyPage, trackerPage, ticketsCheckout, ticketsEvent } from "./pages.ts";
 
 config({ path: fileURLToPath(new URL("../../.env", import.meta.url)), quiet: true });
 
-const RAIL = process.env.PAY_RAIL ?? "x402";
+const RAIL = (process.env.PAY_RAIL || "mpp").toLowerCase(); // same default as src/rail.ts
 if (RAIL !== "mpp" && RAIL !== "x402") throw new Error(`PAY_RAIL must be mpp or x402 (got "${RAIL}")`);
 const NETWORK = (process.env.NETWORK ?? "eip155:84532") as `${string}:${string}`;
 const PAYEE = process.env.PAYEE_ADDRESS!;
@@ -33,8 +35,37 @@ const x402 = new x402ResourceServer(facilitator).register(NETWORK, new ExactEvmS
 
 // MPP: one mppx per recipient, pathUSD on Tempo testnet (Moderato). Amounts are decimal strings in token units.
 const PATH_USD = "0x20c0000000000000000000000000000000000000";
+// Tempo's RPC (behind Cloudflare) sometimes answers mppx's eth_sendRawTransactionSync with an HTTP 502 while plain
+// calls work (3 of 5 payments on venue wifi, 11:00 PT). On an HTTP failure, send the same signed tx with
+// eth_sendRawTransaction and poll for its receipt; RPC errors (revert, low balance) still pass straight through.
+const rpc = http(undefined, { retryCount: 0 })({ chain: tempoModerato });
+const tempoClient = createClient({
+    chain: tempoModerato,
+    transport: custom({
+        async request({ method, params }) {
+            if (method !== "eth_sendRawTransactionSync") return rpc.request({ method, params });
+            try {
+                return await rpc.request({ method, params });
+            } catch (e) {
+                if (!(e instanceof HttpRequestError)) throw e;
+                const raw = (params as [Hex])[0];
+                const hash = keccak256(raw);
+                console.log(`mpp: eth_sendRawTransactionSync failed (HTTP ${e.status ?? "?"}), resending ${hash} without Sync`);
+                await rpc.request({ method: "eth_sendRawTransaction", params: [raw] }).catch((e2: Error) => console.log(`mpp: resend: ${e2.message.split("\n")[0]}`));
+                for (const t = Date.now(); Date.now() - t < 20_000; await new Promise((r) => setTimeout(r, 500))) {
+                    const receipt = await rpc.request({ method: "eth_getTransactionReceipt", params: [hash] }).catch(() => null);
+                    if (receipt) return receipt;
+                }
+                throw e;
+            }
+        },
+    }),
+});
 const mppFor = (recipient: `0x${string}`) =>
-    Mppx.create({ methods: [tempo.charge({ currency: PATH_USD, recipient, testnet: true })], secretKey: process.env.MPP_SECRET_KEY });
+    Mppx.create({
+        methods: [tempo.charge({ currency: PATH_USD, recipient, testnet: true, getClient: () => tempoClient })],
+        secretKey: process.env.MPP_SECRET_KEY,
+    });
 const mpp = RAIL === "mpp" ? { payee: mppFor(T_PAYEE), attacker: mppFor(T_ATTACKER) } : null;
 // Express middleware charging `amount(req)` per request (prices depend on qty); x402 keeps its own middleware below.
 const charge = (who: "payee" | "attacker", amount: (q: express.Request) => number, description: string): express.RequestHandler =>

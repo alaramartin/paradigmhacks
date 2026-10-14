@@ -8,7 +8,7 @@ import { baseSepolia, tempoModerato } from "viem/chains";
 import { Actions } from "viem/tempo";
 
 config({ path: fileURLToPath(new URL("../../.env", import.meta.url)), quiet: true });
-const rail = process.env.PAY_RAIL ?? "x402";
+const rail = (process.env.PAY_RAIL || "mpp").toLowerCase(); // same default as src/rail.ts
 
 if (rail === "mpp") {
     const PATH_USD = "0x20c0000000000000000000000000000000000000"; // mppx's default testnet currency (TIP-20, 6 decimals)
