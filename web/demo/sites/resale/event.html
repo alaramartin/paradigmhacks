@@ -1,6 +1,57 @@
-<!doctype html><html><head><meta charset="utf-8"><title>Night Owls · Tickets</title></head><body><main>
-<h1>Night Owls</h1><p>live at Hall 9 · Fri 9pm</p>
-<label for="qty">Qty</label><select id="qty"><option>1</option><option>2</option><option>3</option><option>4</option></select>
-<p>General admission $0.15</p><button id="checkout">Checkout</button></main>
-<script>document.getElementById('checkout').onclick=()=>location.href='/checkout?qty='+document.getElementById('qty').value</script>
-</body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Night Owls tickets · SeatSwap resale</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/site.css">
+</head>
+<body>
+<main>
+  <section class="hero" aria-label="Night Owls resale tickets">
+    <header class="corner"><a class="mark" href="/e/night-owls">Seat<b>Swap</b></a><a href="#more">Sell your tickets</a></header>
+    <h1 class="in">Night Owls, sold out. Not here.</h1>
+    <div class="strip in d1" aria-label="Photos">
+      <figure><img src="/assets/concert-show.jpg" width="960" height="638" alt="A singer under blue stage lights"><figcaption>Night Owls · Hall 9 · Fri 9 pm</figcaption></figure>
+      <figure><img src="/assets/crowd-people.jpg" width="960" height="640" alt="A crowd with hands raised"><figcaption>Standing floor</figcaption></figure>
+      <figure><img src="/assets/music-concert.jpg" width="960" height="720" alt="A guitarist on a dark stage"><figcaption>Last 4 left</figcaption></figure>
+      <figure><img src="/assets/crowd-audience.jpg" width="960" height="640" alt="An audience facing a lit stage"><figcaption>Verified listing</figcaption></figure>
+      <figure><img src="/assets/concert-festival.jpg" width="960" height="640" alt="A festival crowd at dusk"><figcaption>Instant delivery</figcaption></figure>
+    </div>
+    <form class="buy" action="/checkout" method="get">
+      <p class="what in d2"><strong>Night Owls · Hall 9 · Fri 9 pm</strong>General admission, resold by a verified fan. 14 people are looking at this show.</p>
+      <div class="order">
+        <p class="price-tag">$0.15<small>each</small></p>
+        <label class="field" for="qty">Qty
+          <select id="qty" name="qty"><option>1</option><option>2</option><option>3</option><option>4</option></select>
+        </label>
+        <button class="btn" id="checkout" type="submit">Checkout</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="sheet" id="more" aria-labelledby="more-h">
+    <h2 class="in" id="more-h">More resale this week</h2>
+    <div class="runs">
+      <div class="run in"><p>Paper Lanterns<span>Hall 9 · Sat 8 pm · from $0.22</span></p><div class="frames"><img src="/assets/crowd-audience.jpg" width="960" height="640" alt="" loading="lazy"><img src="/assets/concert-show-2.jpg" width="960" height="640" alt="" loading="lazy"><img src="/assets/crowd-people.jpg" width="960" height="640" alt="" loading="lazy"><img src="/assets/music-concert.jpg" width="960" height="720" alt="" loading="lazy"></div></div>
+      <div class="run in"><p>Low Tide Choir<span>The Pier · Sun 7 pm · from $0.18</span></p><div class="frames"><img src="/assets/concert-festival.jpg" width="960" height="640" alt="" loading="lazy"><img src="/assets/concert-show.jpg" width="960" height="638" alt="" loading="lazy"><img src="/assets/crowd-audience.jpg" width="960" height="640" alt="" loading="lazy"><img src="/assets/concert-show-2.jpg" width="960" height="640" alt="" loading="lazy"></div></div>
+      <div class="run in"><p>Static Bloom<span>Warehouse 3 · Tue 9 pm · from $0.31</span></p><div class="frames"><img src="/assets/music-concert.jpg" width="960" height="720" alt="" loading="lazy"><img src="/assets/crowd-people.jpg" width="960" height="640" alt="" loading="lazy"><img src="/assets/concert-festival.jpg" width="960" height="640" alt="" loading="lazy"><img src="/assets/concert-show.jpg" width="960" height="638" alt="" loading="lazy"></div></div>
+    </div>
+  </section>
+
+  <section class="faq" aria-labelledby="faq-h">
+    <h2 class="in" id="faq-h">Before you buy</h2>
+    <details class="in"><summary>Are these tickets real?</summary><p>Every seller is verified by email. If a ticket doesn't scan, contact us within 30 days of the show.</p></details>
+    <details class="in"><summary>Why is the price different at payment?</summary><p>Service and delivery fees are calculated at payment and may change with demand.</p></details>
+    <details class="in"><summary>Can I get a refund?</summary><p>All resale is final. You can relist your tickets on SeatSwap up to one hour before doors, at any price you like.</p></details>
+  </section>
+</main>
+<footer>
+  <p class="big in" aria-hidden="true">SeatSwap</p>
+  <div class="legal"><p>Photos: “Crowd People”, Anthony Delanoix; “Concert Show”, John Price; “Concert Show”, Nainoa Shizuru; “Music Concert”, Paweł Bukowski; “Crowd Audience”, donterase; “Concert Festival”, Burst. All CC0 via StockSnap.</p><p>SeatSwap is not the venue.</p></div>
+</footer>
+</body>
+</html>
