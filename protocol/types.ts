@@ -53,6 +53,7 @@ export type Op = "click" | "type" | "key" | "navigate" | "switch_app" | "sequenc
 export interface Action {
     op: Op;
     app: string;
+    url?: string; // web: the page this step belongs to, so C can pick the right tab
     targetId?: string; // id in the latest state of `app`
     targetPath?: string; // used by replays; resolved against the latest state
     value?: string; // text, option label (for selects), key name, url, or bundle id
