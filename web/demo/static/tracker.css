@@ -43,7 +43,7 @@
   .who { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
   .who b { width: 20px; height: 20px; border-radius: 50%; background: #ebeae6; font: 600 10px/20px var(--sans); text-align: center; color: var(--ink); }
   .pr { font-size: 13px; color: var(--blue); font-variant-numeric: tabular-nums; }
-  .tag { justify-self: end; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; padding: 2px 9px; border-radius: 9999px; white-space: nowrap; }
+  .tag { justify-self: end; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; font-variant-caps: all-small-caps; font-size: 13px; padding: 2px 9px; border-radius: 9999px; white-space: nowrap; }
   .tag.review { background: var(--yellow-bg); color: var(--yellow); }
   .tag.done { background: var(--green-bg); color: var(--green); }
   .tag.backlog { background: #f1f1ef; color: var(--muted); }
@@ -81,3 +81,6 @@
 
   .ptitle { font: 500 24px/1.2 var(--serif); letter-spacing: -0.02em; color: var(--ink-strong); margin-top: 4px; }
   #p-id { font: 400 13px/1.4 var(--sans); color: var(--muted); }
+
+h1, h2 { text-wrap: balance; }
+p { text-wrap: pretty; }

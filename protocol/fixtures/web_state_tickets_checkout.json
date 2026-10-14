@@ -2,184 +2,178 @@
   "type": "state",
   "source": "web",
   "app": "com.google.Chrome",
-  "window": "Checkout · Hall 9",
+  "window": "Checkout · Night Owls · Hall 9",
   "url": "http://tickets.localhost:4001/checkout?qty=2",
   "focused": true,
   "elements": [
     {
       "id": "t1",
       "role": "link",
-      "label": "Events",
+      "label": "Hall 9",
       "rect": {
-        "x": 1023,
-        "y": 162,
-        "w": 43,
-        "h": 17
+        "x": 38,
+        "y": 129,
+        "w": 58,
+        "h": 36
       },
       "enabled": true,
-      "path": "header > nav > a:nth-child(1)",
-      "list": {
-        "key": "header > nav",
-        "index": 0
-      }
+      "path": "header > a"
     },
     {
       "id": "t2",
-      "role": "link",
-      "label": "Venue",
-      "rect": {
-        "x": 1086,
-        "y": 162,
-        "w": 40,
-        "h": 17
-      },
-      "enabled": true,
-      "path": "header > nav > a:nth-child(2)",
-      "list": {
-        "key": "header > nav",
-        "index": 1
-      }
-    },
-    {
-      "id": "t3",
-      "role": "link",
-      "label": "Sign in",
-      "rect": {
-        "x": 1146,
-        "y": 162,
-        "w": 44,
-        "h": 17
-      },
-      "enabled": true,
-      "path": "header > nav > a:nth-child(3)",
-      "list": {
-        "key": "header > nav",
-        "index": 2
-      }
-    },
-    {
-      "id": "t4",
       "role": "button",
       "label": "Buy tickets",
       "rect": {
-        "x": 795,
-        "y": 474,
-        "w": 130,
-        "h": 48
+        "x": 546,
+        "y": 439,
+        "w": 344,
+        "h": 52
       },
       "enabled": true,
-      "path": "#buy",
-      "list": {
-        "key": "main > section",
-        "index": 1,
-        "field": "button"
-      }
+      "path": "#buy"
     },
     {
-      "id": "t5",
+      "id": "t3",
       "role": "text",
-      "label": "Hall 9",
+      "label": "Box office",
       "rect": {
-        "x": 54,
-        "y": 157,
-        "w": 61,
-        "h": 24
+        "x": 842,
+        "y": 135,
+        "w": 76,
+        "h": 28
       },
       "enabled": true,
       "path": "header > span"
     },
     {
-      "id": "t6",
+      "id": "t4",
       "role": "text",
-      "label": "Checkout",
+      "label": "Night Owls",
       "rect": {
-        "x": 294,
-        "y": 253,
-        "w": 656,
-        "h": 20
+        "x": 38,
+        "y": 232,
+        "w": 442,
+        "h": 61
       },
       "enabled": true,
-      "path": "main > p:nth-child(1)"
+      "path": "main > div > h1"
+    },
+    {
+      "id": "t5",
+      "role": "text",
+      "label": "Friday 9 pm, Hall 9, Dock Road",
+      "rect": {
+        "x": 38,
+        "y": 309,
+        "w": 442,
+        "h": 36
+      },
+      "enabled": true,
+      "path": "main > div > p:nth-child(2)"
+    },
+    {
+      "id": "t6",
+      "role": "text",
+      "label": "2 × General admission",
+      "rect": {
+        "x": 546,
+        "y": 260,
+        "w": 169,
+        "h": 28
+      },
+      "enabled": true,
+      "path": "main > section > p:nth-child(1) > span:nth-child(1)",
+      "list": {
+        "key": "main > section > p:nth-child(1)",
+        "index": 0
+      }
     },
     {
       "id": "t7",
       "role": "text",
-      "label": "Night Owls",
+      "label": "$0.15 each",
       "rect": {
-        "x": 294,
-        "y": 286,
-        "w": 656,
-        "h": 46
+        "x": 806,
+        "y": 260,
+        "w": 84,
+        "h": 28
       },
       "enabled": true,
-      "path": "main > h1"
+      "path": "main > section > p:nth-child(1) > span:nth-child(2)",
+      "list": {
+        "key": "main > section > p:nth-child(1)",
+        "index": 1
+      }
     },
     {
       "id": "t8",
       "role": "text",
-      "label": "2 × General admission · Fri 9pm",
+      "label": "Booking fee",
       "rect": {
-        "x": 294,
-        "y": 338,
-        "w": 656,
-        "h": 24
+        "x": 546,
+        "y": 302,
+        "w": 92,
+        "h": 28
       },
       "enabled": true,
-      "path": "main > p:nth-child(3)"
+      "path": "main > section > p:nth-child(2) > span:nth-child(1)",
+      "list": {
+        "key": "main > section > p:nth-child(2)",
+        "index": 0
+      }
     },
     {
       "id": "t9",
       "role": "text",
-      "label": "2 × General admission",
+      "label": "$0.00",
       "rect": {
-        "x": 319,
-        "y": 429,
-        "w": 161,
-        "h": 24
+        "x": 841,
+        "y": 302,
+        "w": 49,
+        "h": 28
       },
       "enabled": true,
-      "path": "main > section > div:nth-child(1) > span:nth-child(1)",
+      "path": "main > section > p:nth-child(2) > span:nth-child(2)",
       "list": {
-        "key": "main > section > div:nth-child(1)",
-        "index": 0
+        "key": "main > section > p:nth-child(2)",
+        "index": 1
       }
     },
     {
       "id": "t10",
       "role": "text",
-      "label": "$0.30",
+      "label": "Total",
       "rect": {
-        "x": 883,
-        "y": 429,
-        "w": 42,
-        "h": 24
+        "x": 546,
+        "y": 377,
+        "w": 53,
+        "h": 36
       },
       "enabled": true,
-      "path": "main > section > div:nth-child(1) > span:nth-child(2)",
+      "path": "main > section > p:nth-child(3) > span:nth-child(1)",
       "list": {
-        "key": "main > section > div:nth-child(1)",
-        "index": 1
+        "key": "main > section > p:nth-child(3)",
+        "index": 0
       }
     },
     {
       "id": "t11",
       "role": "text",
-      "label": "Total $0.30",
+      "label": "$0.30",
       "rect": {
-        "x": 319,
-        "y": 481,
-        "w": 117,
-        "h": 33
+        "x": 715,
+        "y": 353,
+        "w": 175,
+        "h": 59
       },
       "enabled": true,
-      "path": "main > section > div:nth-child(2) > span",
+      "path": "main > section > p:nth-child(3) > span:nth-child(2)",
       "list": {
-        "key": "main > section",
-        "index": 1,
-        "field": "span"
+        "key": "main > section > p:nth-child(3)",
+        "index": 1
       }
     }
   ],
-  "seq": 9,
-  "ts": 1791968576517
+  "seq": 39,
+  "ts": 1791970276220
 }

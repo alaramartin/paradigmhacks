@@ -5,9 +5,15 @@
 // copy the brain reads are unchanged from B's functional pass.
 // Rule for every page: nothing interactive moves after first paint (ghost rects come from the DOM).
 
+// A one-letter favicon per site, in its own colours.
+const icon = (ch: string, bg: string, fg: string) =>
+    `<link rel="icon" href="data:image/svg+xml,${encodeURIComponent(
+        `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='${bg}'/><text x='16' y='23' font-family='Arial' font-weight='700' font-size='20' text-anchor='middle' fill='${fg}'>${ch}</text></svg>`,
+    )}">`;
+
 const page = (title: string, head: string, body: string, script = "") => `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${title}</title>${head}</head>
+<title>${title}</title><meta name="description" content="${title}">${head}</head>
 <body>${body}${script ? `<script>${script}</script>` : ""}</body></html>`;
 
 const fonts = {
@@ -194,7 +200,7 @@ export function ticketsCheckout(site: "tickets" | "resale", ga: number, qtyIn: n
         : `'<li class="ticket"><span>'+t.show+' · '+t.seat+'</span><span>'+t.code+'</span></li>'`;
     return page(
         hall9 ? "Checkout · Night Owls · Hall 9" : "Checkout | TixSwap",
-        hall9 ? fonts.cabinet + css("tickets/site.css") : fonts.work + css("resale/site.css"),
+        hall9 ? icon("9", "#1423b8", "#ffffff") + fonts.cabinet + css("tickets/site.css") : icon("T", "#0a0d14", "#5a9bfc") + fonts.work + css("resale/site.css"),
         body,
         `const buy=document.getElementById("buy"),status=document.getElementById("status");
 buy.addEventListener("click",async()=>{
@@ -202,7 +208,7 @@ buy.addEventListener("click",async()=>{
   const r=await fetch("/api/buy?qty=${qty}",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});
   if(r.status===402){status.className="status err";status.textContent="Payment required. Use a wallet that supports x402 to pay.";buy.disabled=false;return}
   if(!r.ok){status.className="status err";status.textContent="Something went wrong ("+r.status+").";buy.disabled=false;return}
-  const {tickets:all}=await r.json();status.textContent="You're going! Show these at the door.";
+  const {tickets:all}=await r.json();status.textContent="You're going. Show these at the door.";
   document.getElementById("tickets").innerHTML=all.map((t,i)=>${card}).join("");
   buy.hidden=true;
 });`,
@@ -214,10 +220,10 @@ buy.addEventListener("click",async()=>{
 export function trackerPage(): string {
     return page(
         "Release v1.4.0 · Relay",
-        fonts.geist + css("tracker.css"),
+        icon("R", "#111111", "#ffffff") + fonts.geist + css("tracker.css"),
         `<aside>
   <div class="ws"><i>R</i>Relay</div>
-  <nav aria-label="Views"><p>Checkout team</p><a href="#" class="on">Release v1.4.0 <span>6</span></a><a href="#">Backlog <span>23</span></a><a href="#">My issues <span>4</span></a></nav>
+  <nav aria-label="Views"><p>Checkout team</p><a href="#" class="on" aria-current="page">Release v1.4.0 <span>6</span></a><a href="#">Backlog <span>23</span></a><a href="#">My issues <span>4</span></a></nav>
   <nav aria-label="Teams"><p>Teams</p><a href="#">Payments</a><a href="#">Web</a></nav>
 </aside>
 <main>
@@ -234,9 +240,9 @@ export function trackerPage(): string {
   <ul class="list" id="list" aria-label="Tickets"></ul>
   <section id="panel" class="panel" aria-label="Ticket details">
     <div><h2 id="p-id" class="key"></h2><p id="p-title" class="ptitle"></p></div>
-    <div class="f"><label for="p-status">Status</label>
+    <div class="f f-status"><label for="p-status">Status</label>
       <select id="p-status" name="status"><option>Backlog</option><option>In review</option><option>Done</option></select></div>
-    <div class="f"><label for="p-pr">Linked PR</label>
+    <div class="f f-pr"><label for="p-pr">Linked PR</label>
       <input id="p-pr" name="pr" type="text" placeholder="#123" autocomplete="off"></div>
     <div class="actions"><button id="save" class="btn primary" type="button">Save</button></div>
   </section>
@@ -262,11 +268,11 @@ load();`,
 export function inboxPage(): string {
     return page(
         "Inbox · Post",
-        fonts.geist + css("inbox.css"),
+        icon("P", "#edf3ec", "#346538") + fonts.geist + css("inbox.css"),
         `<aside>
   <p class="who">Sam Ortiz<span>sam@post.localhost</span></p>
   <button class="compose" type="button">New message</button>
-  <nav aria-label="Mailboxes"><a href="#" class="on">Inbox <span>3</span></a><a href="#">Starred</a><a href="#">Sent</a><a href="#">Archive</a></nav>
+  <nav aria-label="Mailboxes"><a href="#" class="on" aria-current="page">Inbox <span>3</span></a><a href="#">Starred</a><a href="#">Sent</a><a href="#">Archive</a></nav>
 </aside>
 <section class="threads" aria-label="Messages">
   <header>Inbox</header>
@@ -300,7 +306,7 @@ export function inboxPage(): string {
 export function pharmacyPage(copay: number): string {
     return page(
         "Refill a prescription · CareRx",
-        fonts.gambarino + css("pharmacy/site.css"),
+        icon("+", "#7d0c14", "#e2e2e2") + fonts.gambarino + css("pharmacy/site.css"),
         `<figure class="stage">
   <img src="/static/pharmacy/pharmacy-jar.jpg" width="1400" height="1744" alt="A blue and white maiolica pharmacy jar lettered Basilicon, Italy, about 1740">
   <figcaption>Pharmacy jar, probably Savona, c. 1740. Art Institute of Chicago, public domain (CC0).</figcaption>
@@ -310,11 +316,11 @@ export function pharmacyPage(copay: number): string {
   <h1>Refill a prescription</h1>
   <p class="lede">Pick up at any CareRx location. Tell us the number on your label and when you'll come in.</p>
   <main class="form">
-    <div class="f"><label for="rx">Rx number</label>
+    <div class="f f-rx"><label for="rx">Rx number</label>
       <input id="rx" name="rx" type="text" placeholder="e.g. 1234-567" autocomplete="off"></div>
-    <div class="f"><label for="loc">Pickup location</label>
+    <div class="f f-loc"><label for="loc">Pickup location</label>
       <select id="loc" name="location"><option>Main St</option><option>Oak St</option><option>Elm Ave</option></select></div>
-    <div class="f"><p id="time-lbl">Pickup time</p>
+    <div class="f f-time"><p id="time-lbl">Pickup time</p>
       <ul class="chips" aria-labelledby="time-lbl">
         <li><button class="chip" type="button" aria-pressed="false">4:00 pm</button></li>
         <li><button class="chip" type="button" aria-pressed="false">5:30 pm</button></li>

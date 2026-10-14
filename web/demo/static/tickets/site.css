@@ -130,3 +130,6 @@ select:hover { background-color: var(--bg); }
 .tickets:not(:empty) ~ .co-pic { display: none; }
 
 ul.tickets { list-style: none; padding: 0; margin-left: 0; }
+
+h1, h2 { text-wrap: balance; }
+p { text-wrap: pretty; }

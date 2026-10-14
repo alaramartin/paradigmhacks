@@ -57,3 +57,6 @@
     @keyframes rise { from { opacity: 0; transform: translateY(16px); } }
   }
   @media (max-width: 800px) { body { grid-template-columns: 1fr; } .stage { position: relative; height: 120px; } .stage figcaption { display: none; } }
+
+h1, h2 { text-wrap: balance; }
+p { text-wrap: pretty; }

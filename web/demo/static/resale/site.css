@@ -105,3 +105,6 @@ footer .legal p { max-width: 60ch; }
 @media (prefers-reduced-motion: reduce) { .frames img, .strip figure { animation: none !important; } }
 
 ul.tickets { list-style: none; padding: 0; margin-left: 0; }
+
+h1, h2 { text-wrap: balance; }
+p { text-wrap: pretty; }

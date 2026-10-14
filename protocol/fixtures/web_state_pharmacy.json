@@ -11,10 +11,10 @@
       "role": "textfield",
       "label": "Rx number",
       "rect": {
-        "x": 375,
-        "y": 375,
-        "w": 494,
-        "h": 46
+        "x": 416,
+        "y": 399,
+        "w": 360,
+        "h": 56
       },
       "enabled": true,
       "path": "#rx",
@@ -25,10 +25,10 @@
       "role": "select",
       "label": "Pickup location",
       "rect": {
-        "x": 375,
-        "y": 469,
-        "w": 494,
-        "h": 43
+        "x": 416,
+        "y": 513,
+        "w": 360,
+        "h": 56
       },
       "enabled": true,
       "path": "#loc",
@@ -44,16 +44,16 @@
       "role": "button",
       "label": "4:00 pm",
       "rect": {
-        "x": 375,
-        "y": 560,
-        "w": 84,
-        "h": 35
+        "x": 416,
+        "y": 626,
+        "w": 82,
+        "h": 34
       },
       "enabled": true,
-      "path": "main > ul > li:nth-child(1) > button",
+      "path": "div > main > div:nth-child(3) > ul > li:nth-child(1) > button",
       "checked": false,
       "list": {
-        "key": "main > ul",
+        "key": "div > main > div:nth-child(3) > ul",
         "index": 0,
         "field": "button"
       }
@@ -63,16 +63,16 @@
       "role": "button",
       "label": "5:30 pm",
       "rect": {
-        "x": 467,
-        "y": 560,
-        "w": 84,
-        "h": 35
+        "x": 506,
+        "y": 626,
+        "w": 81,
+        "h": 34
       },
       "enabled": true,
-      "path": "main > ul > li:nth-child(2) > button",
+      "path": "div > main > div:nth-child(3) > ul > li:nth-child(2) > button",
       "checked": false,
       "list": {
-        "key": "main > ul",
+        "key": "div > main > div:nth-child(3) > ul",
         "index": 1,
         "field": "button"
       }
@@ -82,16 +82,16 @@
       "role": "button",
       "label": "7:00 pm",
       "rect": {
-        "x": 559,
-        "y": 560,
-        "w": 83,
-        "h": 35
+        "x": 595,
+        "y": 626,
+        "w": 81,
+        "h": 34
       },
       "enabled": true,
-      "path": "main > ul > li:nth-child(3) > button",
+      "path": "div > main > div:nth-child(3) > ul > li:nth-child(3) > button",
       "checked": false,
       "list": {
-        "key": "main > ul",
+        "key": "div > main > div:nth-child(3) > ul",
         "index": 2,
         "field": "button"
       }
@@ -101,14 +101,13 @@
       "role": "checkbox",
       "label": "Text me when ready",
       "rect": {
-        "x": 379,
-        "y": 616,
-        "w": 13,
-        "h": 13
+        "x": 416,
+        "y": 686,
+        "w": 16,
+        "h": 16
       },
       "enabled": true,
       "path": "#sms",
-      "value": "on",
       "checked": false
     },
     {
@@ -116,10 +115,10 @@
       "role": "button",
       "label": "Request refill",
       "rect": {
-        "x": 722,
-        "y": 659,
-        "w": 147,
-        "h": 48
+        "x": 416,
+        "y": 817,
+        "w": 360,
+        "h": 60
       },
       "enabled": true,
       "path": "#submit"
@@ -127,51 +126,85 @@
     {
       "id": "t8",
       "role": "text",
-      "label": "CareRx",
+      "label": "Pharmacy jar, probably Savona, c. 1740. Art Institute of Chicago, public domain (CC0).",
       "rect": {
-        "x": 22,
-        "y": 139,
-        "w": 1200,
-        "h": 57
+        "x": 10,
+        "y": 944,
+        "w": 368,
+        "h": 66
       },
       "enabled": true,
-      "path": "header"
+      "path": "figure > figcaption"
     },
     {
       "id": "t9",
       "role": "text",
-      "label": "Refill a prescription",
+      "label": "CareRx",
       "rect": {
-        "x": 375,
-        "y": 257,
-        "w": 494,
-        "h": 36
+        "x": 416,
+        "y": 146,
+        "w": 63,
+        "h": 28
       },
       "enabled": true,
-      "path": "main > h1"
+      "path": "div > header > span:nth-child(1)",
+      "list": {
+        "key": "div > header",
+        "index": 0
+      }
     },
     {
       "id": "t10",
       "role": "text",
-      "label": "Pick up at any CareRx location.",
+      "label": "Open until 9 pm",
       "rect": {
-        "x": 375,
-        "y": 297,
-        "w": 494,
-        "h": 24
+        "x": 760,
+        "y": 146,
+        "w": 134,
+        "h": 28
       },
       "enabled": true,
-      "path": "main > p:nth-child(2)"
+      "path": "div > header > span:nth-child(2)",
+      "list": {
+        "key": "div > header",
+        "index": 1
+      }
+    },
+    {
+      "id": "t14",
+      "role": "text",
+      "label": "Refill a prescription",
+      "rect": {
+        "x": 416,
+        "y": 219,
+        "w": 478,
+        "h": 49
+      },
+      "enabled": true,
+      "path": "div > h1"
+    },
+    {
+      "id": "t15",
+      "role": "text",
+      "label": "Pick up at any CareRx location. Tell us the number on your label and when you'll come in.",
+      "rect": {
+        "x": 416,
+        "y": 280,
+        "w": 427,
+        "h": 55
+      },
+      "enabled": true,
+      "path": "div > p"
     },
     {
       "id": "t11",
       "role": "text",
       "label": "Pickup time",
       "rect": {
-        "x": 375,
-        "y": 530,
-        "w": 494,
-        "h": 24
+        "x": 416,
+        "y": 591,
+        "w": 478,
+        "h": 28
       },
       "enabled": true,
       "path": "#time-lbl"
@@ -181,15 +214,28 @@
       "role": "text",
       "label": "Copay $0.05",
       "rect": {
-        "x": 375,
-        "y": 671,
-        "w": 93,
-        "h": 24
+        "x": 432,
+        "y": 741,
+        "w": 137,
+        "h": 40
       },
       "enabled": true,
-      "path": "main > div > span"
+      "path": "div > main > p:nth-child(5) > span"
+    },
+    {
+      "id": "t13",
+      "role": "text",
+      "label": "CareRx · Main St, Oak St and Elm Ave. Copays are paid in USDC.",
+      "rect": {
+        "x": 416,
+        "y": 941,
+        "w": 478,
+        "h": 23
+      },
+      "enabled": true,
+      "path": "div > footer"
     }
   ],
-  "seq": 19,
-  "ts": 1791968585311
+  "seq": 33,
+  "ts": 1791970258822
 }
