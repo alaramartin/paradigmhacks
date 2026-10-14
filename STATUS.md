@@ -49,8 +49,26 @@ _Two Macs: the demo runs on **alara's Mac** (B verified there). A works on Ayush
 - **Fixture capture tool** `protocol/fixtures/capture/capture.mjs`: read-only CDP and dependency-free, using PLAN's perception rules. Use it for B's fixtures and as a reference for C (`--list`, `--navigate`, `--scroll`, `--focused`).
 - **The list heuristic works on GitHub's real rendered markdown table** (`protocol/fixtures/reference/real_github_release_table_uv.json`): rows are `tbody > tr` items, fields are `td:nth-of-type(N)` or `td:nth-of-type(N) > a`.
 - **`switch_app` picks the debug Chrome** when your normal Chrome also runs (they share a bundle id). It prefers the instance started with `--remote-debugging-port` (argv via `sysctl`, no permission needed) and confirms by pid. Check with `TabShell --which com.google.Chrome`. This fixes C's "may raise the wrong one" demo note; quitting normal Chrome is still the safest setup.
+- **`shell/scripts/preflight.sh`: run it on the demo Mac before every rehearsal.** One read-only command (~1 s, exit 1 on any ✗) checks:
+  - TabShell: built from HEAD (`build-shell.sh` stamps `TabGitCommit`), running the new binary, connected to the hub, Accessibility granted.
+  - Hub, web, and demo sites 4001–4005.
+  - Chrome: only the debug Chrome running, zoom 100%, GitHub logged in and light.
+  - The Mac: one display, no secure input, Terminal Secure Keyboard Entry off.
+  - Flows: the flow 2 repo has 2 unpushed commits, the tracker is reset, the payer key is in `.env`.
+- **Review pass (03:00–03:15), all pushed:**
+  - Hub disconnect: the HUD shows offline and the ghost drops (Tab passes through again).
+  - The overlay follows display changes (projector, mirroring, resolution, second screen).
+  - AX calls are off the tap's run loop, and a lost Tab keyUp recovers.
+  - Pill width cap with middle truncation; labels stay single-line.
+  - Huge-target, screen-edge and narrow-field placement.
+  - `Ghost.avoid` placement (B sends it, verified live on flow 3).
+  - Accept ripple; ↻ icon on pattern ghosts.
+  - `TabShell --tap-selftest` checks the Tab/Esc/hold rules on synthetic events, no permissions needed (14/14).
+  - `uninstall.sh` only stops what Tab started.
+  - `look.mjs` opens its own window (default 720×875) and never touches your tabs.
 ### In progress
-- Look-and-try polish on the real screen (the display here is locked, so it's offscreen renders for now). Flow 3 pill-covers-row is fixed shell-side with `Ghost.place`; B needs to send it.
+- Look-and-try polish: offscreen renders on real pages and a torture page (dark fields, tiny links, screen edges, huge cards). The display here is locked, so the real-screen check happens on alara's Mac.
+- HUD redesign pass (reveal bar, count-up, pattern-vs-model row): in a worktree, not merged yet.
 - Recapture `native_state_terminal_push.json` from a real push to `alaramartin/tab-demo` (needs alara's Mac).
 ### Blocked
 - (none on the demo Mac)
