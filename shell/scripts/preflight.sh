@@ -651,7 +651,7 @@ elif [ "$KEY_OK" = 1 ] && [ -d "$REPO/web/node_modules" ]; then
     elif [ -z "$num" ]; then
         warn "couldn't read an amount from npm run balance: $(grep -v '^[[:space:]]*$' <<<"$bout" | tail -1 | cut -c1-140 | grep . || echo "no output")" "cd web && npm run balance"
     elif awk -v n="$num" -v c="$RUN_COST" 'BEGIN { exit !(n < c) }'; then
-        fail "payer has $num $tok on the $RAIL rail: one demo run needs $RUN_COST (flow 1 \$0.30 + flow 4 \$0.05)" "$([ "$RAIL" = mpp ] && echo "npx mppx account fund --network testnet (see C's STATUS)" || echo "fund it at https://faucet.circle.com (Base Sepolia USDC)")"
+        fail "payer has $num $tok on the $RAIL rail: one demo run needs $RUN_COST (flow 1 \$0.30 + flow 4 \$0.05)" "$([ "$RAIL" = mpp ] && echo "cd web && npm run tempo-wallets (tops up the payer in .env)" || echo "fund it at https://faucet.circle.com (Base Sepolia USDC)")"
     else
         runs="$(awk -v n="$num" -v c="$RUN_COST" 'BEGIN { printf "%d", n / c }')"
         if [ "$runs" -lt "$RUNS_WANTED" ]; then
