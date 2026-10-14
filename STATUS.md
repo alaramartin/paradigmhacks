@@ -61,10 +61,10 @@ _Two Macs: the demo runs on **alara's Mac** (B verified there). A works on Ayush
 - **C — GitHub compare page is a React partial.** It first renders "Loading", then hydrates. Re-emit state after hydration (a MutationObserver catches it), or the commit titles never reach B.
 - **B — commit titles that reference a PR are split into several links** (`"Fix … ("`, `"#22424"`, `")"`, all in one `li`, field `div > p > a:nth-of-type(N)`). Read the whole `<p>`, or keep `#NN` out of the demo commit titles.
 - **Humans/C — release table PR column:** GitHub autolinks `#12` only if PR #12 exists. Use real PR numbers for all six rows or for none, otherwise the PR cell's `field` differs between rows (`td:nth-of-type(3)` vs `td:nth-of-type(3) > a`) and the repeat lookup breaks.
-- **B — `Ghost.place` (new, optional; see `protocol/CHANGES.md`):** default `below`.
-  - Flow 3: send `"inside"` for the Repeat ghost on the tracker search box, so the pill docks in the box's right end instead of covering the first row.
-  - Flow 4: send `"above"` for the time chips, so the pill doesn't cover "Text me when ready" (the next step).
-  - Checked on C's real pages: `design/proof/a-composite-flow3-tracker-inside.png`, `design/proof/a-composite-flow4-pharmacy-hc.png`.
+- **B — please send `Ghost.avoid` (new, optional, 03:25; `protocol/CHANGES.md`). It replaces my old "send `above` for the chips" ask.** Right now the flow 4 pills land *below* the time chip and below the checkbox. In HC (42 pt pills) that covers the next step ("Text me when ready", then Copay and Request refill). Only you know the page; only the shell knows the pill's real size (HC is 1.5×). So:
+  - Hub, one line in the ghost builder: `ghost.avoid = active.elements.filter(o => o.id !== el.id && near(o.rect, el.rect, 120)).map(o => o.rect)`. Use any role, text included. `near` = the rects come within 120 pt of each other. Reference: `nearby()` in `shell/scripts/look.mjs`.
+  - Shell (done, `b4f54a2`): with `avoid` and no `place`, it tries below → above → right → inside and keeps the first that fits and covers nothing, else the least covered. Covering something below the target counts 3×. An explicit `place` still wins, so your `inside` for the tracker search box keeps working.
+  - Result on the real pharmacy form in HC: `Click 5:30 pm` and `Select Oak St` go to the right of the control, and the checkbox pill sits over its own label. Chips, Copay and Request refill stay visible. ![](design/proof/a-avoid-flow4-chip-hc.png) ![](design/proof/a-avoid-flow4-checkbox-hc.png)
 - **C — hidden pages don't smooth-scroll.** When the display sleeps, `visibilityState` is `hidden` and GitHub's smooth `scrollIntoView` never moves. Use `behavior: "instant"` for any scrolling you do.
 
 ## B — Hub + Brain
