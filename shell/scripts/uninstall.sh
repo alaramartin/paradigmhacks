@@ -4,10 +4,11 @@
 #   shell/scripts/uninstall.sh --yes      do it
 #   add --artifacts to also delete gitignored build output in the repo (shell/.build, shell/build, brain/node_modules, brain/logs, design/shots)
 #
-# Stops TabShell, the hub on :7800, the debug Chrome (only the one using /tmp/tab-chrome; your normal Chrome is untouched),
-# and agent A's gstack browse server (only the pid recorded in A's own state file). It deletes the signing keychain and
-# takes it off the keychain search list, resets TabShell's Accessibility entry and saved HUD position, and deletes ~/.tab,
-# /tmp/tab-chrome and look.mjs's temp folders.
+# Stops TabShell, the hub on :7800, C's web daemon and demo sites (only this repo's, by working directory), the debug
+# Chrome (only the one using /tmp/tab-chrome; your normal Chrome is untouched), and agent A's gstack browse server (only
+# the pid recorded in A's own state file). It deletes the signing keychain and takes it off the keychain search list,
+# resets TabShell's Accessibility entry and saved HUD position, and deletes ~/.tab (logs, saved workflows),
+# /tmp/tab-chrome, look.mjs's temp folders and try.ts's hub log. web/data (the payment ledger) stays.
 # It does NOT touch the Screen Recording / Accessibility grants you gave your terminal app. Revoke those in
 # System Settings → Privacy & Security if you want them gone.
 set -uo pipefail
@@ -32,10 +33,15 @@ KC="$HOME/Library/Keychains/tab-shell-signing.keychain-db"
 # Processes (matched narrowly so nothing else is hit).
 REPO="$(pwd)"
 pgrep -x TabShell >/dev/null && run pkill -x TabShell
-# The hub: only node processes running this repo's brain/src/hub.ts (cwd check), so another project's hub.ts is safe.
-for p in $(pgrep -f "tsx.* src/hub.ts"); do
-    [ "$(lsof -a -p "$p" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p')" = "$REPO/brain" ] && run kill "$p"
-done
+# Node processes running one of this repo's entry points (cwd check), so another project's hub.ts or main.ts is safe.
+stop_in() { # <dir under the repo> <pgrep -f pattern>
+    for p in $(pgrep -f "$2"); do
+        [ "$(lsof -a -p "$p" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p')" = "$REPO/$1" ] && run kill "$p"
+    done
+}
+stop_in brain "tsx.* src/hub.ts"    # the hub (npm start, or try.ts flow3-recall's detached restart)
+stop_in web "tsx.* src/main.ts"     # C's web daemon (npm start)
+stop_in web "tsx.* demo/server.ts"  # the five demo sites (npm run demo)
 for p in $(pgrep -f "Chrome\.app/Contents/MacOS/Google Chrome --.*user-data-dir=/tmp/tab-chrome"); do run kill "$p"; done # browser process only
 # Agent A's gstack browse server: the pid in A's own state file, and only if it's still that server.
 BROWSE_STATE="/tmp/claude-$(id -u)/browse-a-design.json"
@@ -68,6 +74,7 @@ defaults read dev.tab.shell >/dev/null 2>&1 && run defaults delete dev.tab.shell
 [ -d /tmp/tab-chrome ] && run rm -rf /tmp/tab-chrome
 [ -f "$BROWSE_STATE" ] && run rm -f "$BROWSE_STATE"
 for d in "${TMPDIR:-/tmp}"/tab-look-*; do [ -d "$d" ] && run rm -rf "$d"; done
+[ -f "${TMPDIR:-/tmp}/tab-hub-try.log" ] && run rm -f "${TMPDIR:-/tmp}/tab-hub-try.log"
 
 if [ "$ARTIFACTS" = 1 ]; then
     for d in shell/.build shell/build brain/node_modules brain/logs design/shots; do
