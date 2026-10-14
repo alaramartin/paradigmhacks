@@ -454,6 +454,10 @@ export class Brain {
                 });
                 this.sendHud();
                 await waitState;
+                // Native type posts keystrokes asynchronously (STRETCH: Calendar QuickEventCell).
+                // waitForState can resolve on a stale poll while the field is still empty; Return then
+                // discards the draft. Wait until the typed text is in the field, or ~1 s.
+                if (step.op === "type" && step.value && step.app !== CHROME) await this.waitForTyped(step);
             }
         } catch (err) {
             ok = false;
@@ -496,6 +500,18 @@ export class Brain {
                 resolve();
             }, STATE_WAIT_MS);
         });
+    }
+
+    /** After a native `type`, wait until that field's reported value contains what we typed. */
+    private async waitForTyped(step: Step, timeoutMs = 1000): Promise<void> {
+        const want = step.value ?? "";
+        if (!want) return;
+        const t0 = Date.now();
+        while (Date.now() - t0 < timeoutMs) {
+            const v = this.resolve(step)?.value ?? "";
+            if (v === want || v.includes(want)) return;
+            await new Promise((r) => setTimeout(r, 50));
+        }
     }
 
     // ---------- payments ----------

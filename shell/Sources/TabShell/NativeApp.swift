@@ -82,7 +82,16 @@ enum NativeApp {
             if AX.role(el) == "AXPopUpButton" { return choose(el, item: a.value ?? "") }
             AXUIElementSetAttributeValue(el, kAXFocusedAttribute as CFString, kCFBooleanTrue)
             usleep(120_000)
-            type(a.value ?? "", pid: pid)
+            let want = a.value ?? ""
+            type(want, pid: pid)
+            // Calendar (and other native fields) apply unicode keystrokes on their own run loop.
+            // Returning immediately lets the hub send Return ~0.15 s later, before the text is in the field.
+            if !want.isEmpty {
+                for _ in 0..<20 {
+                    if let v: String = AX.attr(el, kAXValueAttribute), v == want || v.contains(want) { break }
+                    usleep(50_000)
+                }
+            }
             return nil
         default:
             return "native op \(a.op) not supported"
