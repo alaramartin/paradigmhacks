@@ -73,3 +73,17 @@ test("askedFor: a checkbox the other page asks for", async () => {
     assert.equal(askedFor("Text me when ready", "rx 4471-209 is ready to refill at oak st."), false);
     assert.equal(askedFor("Subscribe to newsletter", "rx 4471-209 is ready"), false);
 });
+
+test("submit hint on the real GitHub PR page: Create pull request after the description, never the sidebar Request", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { submitAfterFill } = await import("../src/model.ts");
+    const page = JSON.parse(readFileSync(new URL("../../protocol/fixtures/web_state_github_compare.json", import.meta.url), "utf8"));
+    const ta = page.elements.find((e: El) => e.path === "#pull_request_body");
+    const create = page.elements.find((e: El) => e.role === "button" && e.label === "Create pull request");
+    const typed = { op: "type" as const, app: page.app, url: page.url, target: { id: ta.id, path: ta.path, role: "textarea" as const, label: ta.label }, value: "x", ts: 1, by: "tab" as const };
+    const filled = { ...page, elements: page.elements.map((e: El) => (e === ta ? { ...e, value: "Round checkout totals…" } : create && e === create ? { ...e, rect: { ...e.rect, y: ta.rect.y + ta.rect.h + 20 } } : e)) };
+    if (create) assert.equal(submitAfterFill({ active: filled, others: [], history: [typed] }), create.id);
+    assert.equal(submitAfterFill({ active: page, others: [], history: [typed] }), undefined, "empty field → no hint");
+    const reloaded = { op: "navigate" as const, app: page.app, url: "x", value: page.url, ts: 2, by: "user" as const };
+    assert.equal(submitAfterFill({ active: filled, others: [], history: [typed, reloaded] }), undefined, "page reloaded since the fill → no hint");
+});

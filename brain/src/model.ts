@@ -183,6 +183,11 @@ export class JevDecider implements Decider {
         if (next.choice === "none") return null;
         const g = gs[Number(next.choice.slice(1))];
         if (!g) return null;
+        // Two independent signals agree: Jev's top pick is the submit button the code found right below the field the
+        // user just filled. Jev alone stays unsure on busy pages (GitHub PR page: 0.26–0.32), so trust the agreement.
+        const submitId = submitAfterFill(m);
+        if (g.length === 1 && submitId && g[0].action.targetId === submitId && next.confidence >= 0.2)
+            return { action: { ...g[0].action, confidence: Math.max(next.confidence, 0.7) }, desc: g[0].desc };
         if (g.length === 1) return { action: { ...g[0].action, confidence: next.confidence }, desc: g[0].desc };
         const v = out.answers[`value_${next.choice}`];
         const c = v && g[Number(v.choice.slice(1))];
@@ -238,13 +243,33 @@ export function askedFor(label: string, otherText: string): boolean {
 }
 
 /** Only what the decision needs: Jev loses accuracy on irrelevant state. */
+/** The nearest submit-style button below the field just filled on this page (resolves "the form is done → submit"). */
+export function submitAfterFill(m: ModelInput): string | undefined {
+    // Only what happened since this page was last loaded (a reload empties the form).
+    let k = m.history.length - 1;
+    for (; k >= 0; k--) if (m.history[k].op === "navigate" && m.history[k].value === m.active.url) break;
+    const last = m.history.slice(k + 1).reverse().find((h) => h.url === m.active.url && h.op !== "navigate");
+    if (!last || last.op !== "type" || !last.target) return undefined;
+    const field = m.active.elements.find((e) => (last.target!.path && e.path === last.target!.path) || e.id === last.target!.id);
+    if (!field || !["textfield", "textarea"].includes(field.role) || !field.value?.trim()) return undefined;
+    // Same column as the field (not a sidebar "Request" reviewer button), at or below its bottom edge.
+    const sameColumn = (e: El) => e.rect.x < field.rect.x + field.rect.w && e.rect.x + e.rect.w > field.rect.x;
+    const below = m.active.elements
+        .filter((e) => e.role === "button" && e.enabled && SUBMIT.test(e.label) && sameColumn(e) && e.rect.y >= field.rect.y + field.rect.h - 4)
+        .sort((a, b) => a.rect.y - b.rect.y);
+    return below[0]?.id;
+}
+const SUBMIT = /^(create|submit|save|send|buy|place|request|post|publish|confirm|pay|check ?out|sign up|continue)\b/i;
+
 function jevState(m: ModelInput) {
     const otherText = otherPagesText(m.active, m.others);
+    const submitId = submitAfterFill(m);
     const fields = (s: ScreenState, max: number) =>
         s.elements.slice(0, max).map((e) => {
             const hint = e.role === "select" ? mentionedOptions(e, otherText)[0] : undefined;
             if (hint) return `${e.role}: ${e.label} = ${JSON.stringify(e.value ?? "")}, but OTHER_PAGES says ${JSON.stringify(hint)}`;
             if (e.role === "checkbox" && !e.checked && askedFor(e.label, otherText)) return `checkbox: ${e.label} [not checked], and OTHER_PAGES asks for this`;
+            if (e.id === submitId) return `button: ${e.label} (submits the form the user just filled in)`;
             // A group of toggle buttons (time chips) with none pressed is an unanswered field, like an empty input.
             if (e.role === "button" && e.checked === false && e.list && !s.elements.some((o) => o.list?.key === e.list!.key && o.checked))
                 return `option button: ${e.label} [not selected; nothing in this group is selected yet]`;
