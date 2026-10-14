@@ -111,3 +111,6 @@ p { text-wrap: pretty; }
 
 /* Half-screen windows: the order box comes right after the title, so Buy tickets is on the first screen. */
 @media (max-width: 760px) { .co .seat { display: none; } }
+
+/* Short windows (the demo Mac's half-screen window shows ~707 pt): a shorter photo strip keeps Checkout well above the fold. */
+@media (max-height: 760px) { .strip { padding-block: 20px; } .strip img { height: 130px; } }

@@ -136,3 +136,7 @@ p { text-wrap: pretty; }
 
 /* Half-screen windows: the order box comes right after the title, so Buy tickets is on the first screen. */
 @media (max-width: 760px) { .co-pic { display: none; } }
+
+/* Short windows (a full-height half-screen window on the demo Mac shows ~707 pt): a smaller title, so Checkout keeps
+   room below it for the ghost even if the web font falls back to a taller system face. */
+@media (max-height: 760px) { .statement { font-size: 17svh; margin-top: 5svh; } }
