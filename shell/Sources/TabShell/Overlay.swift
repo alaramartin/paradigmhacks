@@ -39,6 +39,9 @@ struct Style {
     static let doneFill: UInt32 = 0x248A3D
     static let doneStroke: UInt32 = 0x34C759
     static let yellow: UInt32 = 0xFFD60A
+    /// Suggestions (action/text) are bright red by default (human's call, 14:40: the graphite read as grey).
+    static let suggest: UInt32 = 0xFF3B30
+    static let blockDark: UInt32 = 0x2A0A0C // Blocked moves to a dark pill with a red edge, so it doesn't look like a suggestion
 
     private var k: CGFloat { hc ? 1.5 : 1 }
 
@@ -47,13 +50,13 @@ struct Style {
     var boxOutset: CGFloat { hc ? 5 : 2 }
     /// The element's corner radius when the hub doesn't send one (an older web/hub).
     static let fallbackRadius: CGFloat = 6
-    func boxStroke(_ kind: GhostKind) -> CGFloat { hc ? 4 : (kind == .blocked ? 2 : 1.5) }
+    func boxStroke(_ kind: GhostKind) -> CGFloat { hc ? 4 : (kind == .action || kind == .text || kind == .blocked ? 2.5 : 1.5) }
     var hcRing: CGFloat { 1.5 }
 
     func boxColor(_ kind: GhostKind) -> NSColor {
         switch kind {
-        case .action: return hc ? hex(Style.yellow) : hex(Style.graphite, 0.70)
-        case .text: return hc ? hex(Style.yellow) : hex(Style.graphite, 0.55)
+        case .action: return hc ? hex(Style.yellow) : hex(Style.suggest, 0.95)
+        case .text: return hc ? hex(Style.yellow) : hex(Style.suggest, 0.85)
         case .pay: return hc ? hex(Style.yellow) : hex(Style.pay, 0.80)
         case .blocked: return hc ? hex(Style.blockStroke) : hex(Style.blockStroke, 0.90)
         case .done: return hc ? hex(Style.doneStroke) : hex(Style.doneStroke, 0.85)
@@ -87,9 +90,9 @@ struct Style {
 
     func pillFill(_ kind: GhostKind) -> NSColor {
         switch kind {
-        case .action, .text: return hc ? .black : hex(Style.slate, 0.96)
+        case .action, .text: return hc ? .black : hex(Style.suggest)
         case .pay: return hc ? hex(Style.payHC) : hex(Style.pay)
-        case .blocked: return hex(Style.blockFill)
+        case .blocked: return hc ? hex(Style.blockFill) : hex(Style.blockDark)
         case .done: return hex(Style.doneFill)
         }
     }
@@ -101,7 +104,7 @@ struct Style {
     /// (color, width) of the inner border: a hairline in normal mode, 2 pt in HC.
     func pillBorder(_ kind: GhostKind) -> (NSColor, CGFloat) {
         // Pay gets a stronger hairline: Base blue must keep an edge on blue pages (C's tickets site is royal blue).
-        if !hc { return (NSColor.white.withAlphaComponent(kind == .pay ? 0.55 : 0.22), 1) }
+        if !hc { return kind == .blocked ? (hex(Style.blockStroke), 2) : (NSColor.white.withAlphaComponent(kind == .pay ? 0.55 : 0.30), 1) }
         switch kind {
         case .action, .text, .pay: return (hex(Style.yellow), 2)
         case .blocked, .done: return (.white, 2)
@@ -116,7 +119,7 @@ struct Style {
     var keyText: NSColor { hc ? .black : .white }
     /// Hold-progress sweep fill and the label colour over it.
     var holdFill: NSColor { hc ? .black : .white }
-    var holdText: NSColor { hc ? hex(Style.yellow) : hex(Style.slate) }
+    var holdText: NSColor { hc ? hex(Style.yellow) : hex(Style.suggest) }
 
     var shadow: NSShadow? {
         if hc { return nil }
@@ -644,7 +647,7 @@ final class GhostView: NSView {
         sh.shadowBlurRadius = 3
         sh.shadowOffset = NSSize(width: 0, height: -1)
         sh.set()
-        (style.hc ? hex(Style.yellow) : hex(Style.graphite, 0.90)).setFill()
+        (style.hc ? hex(Style.yellow) : hex(Style.suggest)).setFill()
         path.fill()
         NSGraphicsContext.restoreGraphicsState()
         (style.hc ? NSColor.black : NSColor.white.withAlphaComponent(0.95)).setStroke()

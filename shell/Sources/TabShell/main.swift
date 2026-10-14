@@ -123,9 +123,7 @@ final class Shell: NSObject, InputTapDelegate {
         let reset = NSMenuItem(title: "Reset HUD Position", action: #selector(resetHud), keyEquivalent: "")
         reset.target = self
         menu.addItem(reset)
-        let hc = NSMenuItem(title: "High Contrast", action: #selector(toggleContrast), keyEquivalent: "")
-        hc.target = self
-        menu.addItem(hc)
+        // High Contrast menu item removed (human's call, 14:40): suggestions are bright red by default instead.
         let rv = NSMenuItem(title: "Reveal Totals", action: #selector(revealTotals), keyEquivalent: "")
         rv.target = self
         menu.addItem(rv)
@@ -136,7 +134,7 @@ final class Shell: NSObject, InputTapDelegate {
         item.menu = menu
         statusItem = item
         showHudItem = show
-        contrastItem = hc
+        contrastItem = nil
         refreshMenu()
     }
 
