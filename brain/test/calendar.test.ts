@@ -19,7 +19,7 @@ test("event from the real checkout page text", () => {
     assert.equal(eventFrom(checkout("Refill · CareRx", ["Copay $0.05"])), null, "no day and time → no offer");
 });
 
-test("offer: Add Event → quick event text → Return → Tab Demo → back to Chrome", () => {
+test("offer: Add Event → quick event text → Return → Tab Demo → Return → Escape (Chrome only on failure)", () => {
     const o = calendarOffer({ title: "Night Owls", venue: "Hall 9", when: "Fri 9pm" });
     assert.equal(o.label, "Add Night Owls · Fri 9pm to Calendar");
     assert.deepEqual(o.steps.map((s) => [s.op, s.app === CALENDAR ? "cal" : s.app, s.targetPath ?? "", s.value ?? ""]), [
@@ -27,8 +27,12 @@ test("offer: Add Event → quick event text → Return → Tab Demo → back to 
         ["type", "cal", "id:QuickEventCell", "Night Owls at Hall 9 Fri 9pm"],
         ["key", "cal", "", "Return"],
         ["type", "cal", "id:calendar-button", "Tab Demo"],
+        ["key", "cal", "id:title-field", "Return"],
+        ["key", "cal", "", "Escape"],
         ["switch_app", "com.google.Chrome", "", "com.google.Chrome"],
     ]);
+    assert.equal(o.steps.at(-1)?.onFail, true);
+    assert.equal(o.steps.at(-2)?.unlessPresent, "id:title-field");
 });
 
 test("hub offers it after a paid order, and never asks the model about Calendar screens", async () => {
@@ -108,7 +112,7 @@ test("sequence waits until QuickEventCell holds the typed text before Return", a
     assert.ok(ret.ts >= valueAt - 20, `Return at ${ret.ts - typedAt}ms after type, value at ${valueAt - typedAt}ms — must wait for the field`);
 });
 
-test("no event popover (Calendar still syncing): skip filing, still switch back to Chrome", async () => {
+test("no event popover (Calendar still syncing): skip filing and finalizing, deselect, stay in Calendar", async () => {
     const TEXT = "Night Owls at Hall 9 Fri 9pm";
     const cal = (seq: number, value: string): ScreenState => ({
         type: "state", source: "native", app: CALENDAR, window: "Calendar", focused: true, seq, ts: Date.now(),
@@ -140,8 +144,8 @@ test("no event popover (Calendar still syncing): skip filing, still switch back 
     const g = shown.find((m) => m.type === "ghost") as any;
     brain.fromShell({ type: "accept", ghostId: g.ghost.id });
     const t0 = Date.now();
-    while (!ops.includes("switch_app:com.google.Chrome") && Date.now() - t0 < 5000) await new Promise((res) => setTimeout(res, 20));
-    assert.deepEqual(ops, ["click:com.apple.iCal", "type:com.apple.iCal", "key:com.apple.iCal", "switch_app:com.google.Chrome"]);
+    while (ops.length < 4 && Date.now() - t0 < 8000) await new Promise((res) => setTimeout(res, 20));
+    assert.deepEqual(ops, ["click:com.apple.iCal", "type:com.apple.iCal", "key:com.apple.iCal", "key:com.apple.iCal"]);
 });
 
 test("offer anchors on the Dock icon even when Calendar's last screen is remembered (no stale rect)", async () => {
@@ -157,4 +161,68 @@ test("offer anchors on the Dock icon even when Calendar's last screen is remembe
     const g = (shown.find((m) => m.type === "ghost") as any)?.ghost;
     assert.equal(g?.dockApp, CALENDAR);
     assert.equal(g?.rect, undefined, "no rect from Calendar's stale screen");
+});
+
+// A fake Calendar for the full beat: Add Event → quick field → (Return) event popover with title-field → (Return) closed.
+function fakeCalendar(opts: { popoverStaysOpen?: boolean; failClick?: boolean } = {}) {
+    const TEXT = "Night Owls at Hall 9 Fri 9pm";
+    const base = [{ id: "desc:Add Event", role: "button" as const, label: "Add Event", rect: r, enabled: true, path: "desc:Add Event" }];
+    const quick = (value: string) => ({ id: "id:QuickEventCell", role: "textfield" as const, label: "Add Event", value, rect: r, enabled: true, path: "id:QuickEventCell" });
+    const popover = [
+        { id: "id:title-field", role: "textfield" as const, label: "title", value: "Night Owls at Hall 9", rect: r, enabled: true, path: "id:title-field" },
+        { id: "id:calendar-button", role: "select" as const, label: "Tab Demo", rect: r, enabled: true, path: "id:calendar-button" },
+    ];
+    let seq = 1, returns = 0;
+    const st = (elements: ScreenState["elements"]): ScreenState => ({ type: "state", source: "native", app: CALENDAR, window: "Calendar", focused: true, seq: ++seq, ts: Date.now(), elements });
+    const ops: string[] = [];
+    let brain!: InstanceType<typeof Brain>;
+    brain = new Brain({
+        immediate: true,
+        decider: { name: "fake", decide: async () => null },
+        sendShell: (m) => {
+            if (m.type !== "exec") return;
+            const a = (m as any).action;
+            ops.push(`${a.op}:${a.value ?? a.targetPath ?? ""}`);
+            const fail = opts.failClick && a.op === "click";
+            queueMicrotask(() => brain.fromShell({ type: "exec_result", ghostId: (m as any).ghostId, ok: !fail, ...(fail ? { error: "boom" } : {}) }));
+            let next: ScreenState["elements"] | null = null;
+            if (a.op === "click") next = [...base, quick("")];
+            if (a.op === "type" && a.value === TEXT) next = [...base, quick(TEXT)];
+            if (a.op === "key" && a.value === "Return") next = ++returns === 1 || opts.popoverStaysOpen ? [...base, ...popover] : base;
+            if (next) { const n = next; setTimeout(() => brain.fromShell(st(n)), 30); }
+        },
+        sendWeb: (_m: HubToWeb) => {},
+    });
+    brain.fromShell({ type: "frontmost", app: CALENDAR, window: "Calendar" });
+    brain.fromShell(st(base));
+    const shown: HubToShell[] = [];
+    const orig = (brain as any).o.sendShell.bind((brain as any).o);
+    (brain as any).o.sendShell = (m: HubToShell) => (shown.push(m), orig(m));
+    const go = async (until: (ops: string[]) => boolean) => {
+        (brain as any).maybeShow(calendarOffer({ title: "Night Owls", venue: "Hall 9", when: "Fri 9pm" }), ++(brain as any).gen, 0);
+        const g = shown.find((m) => m.type === "ghost") as any;
+        brain.fromShell({ type: "accept", ghostId: g.ghost.id });
+        const t0 = Date.now();
+        while (!until(ops) && Date.now() - t0 < 10000) await new Promise((res) => setTimeout(res, 20));
+        await new Promise((res) => setTimeout(res, 300));
+        return ops;
+    };
+    return { go };
+}
+
+test("full beat: create, file in Tab Demo, Return finalizes, Escape deselects, stays in Calendar", async () => {
+    const ops = await fakeCalendar().go((o) => o.includes("key:Escape"));
+    assert.deepEqual(ops, ["click:desc:Add Event", "type:Night Owls at Hall 9 Fri 9pm", "key:Return", "type:Tab Demo", "key:Return", "key:Escape"]);
+});
+
+test("never Escape while the event popover is still open (it would discard the event)", async () => {
+    const ops = await fakeCalendar({ popoverStaysOpen: true }).go((o) => o.filter((x) => x === "key:Return").length >= 2);
+    await new Promise((res) => setTimeout(res, 3500)); // the guard waits ~3 s for the popover to go
+    assert.ok(!ops.includes("key:Escape"), `ops: ${ops.join(", ")}`);
+    assert.ok(!ops.some((x) => x.startsWith("switch_app")), "no failure, so no switch back");
+});
+
+test("a failed step switches back to Chrome", async () => {
+    const ops = await fakeCalendar({ failClick: true }).go((o) => o.some((x) => x.startsWith("switch_app")));
+    assert.deepEqual(ops, ["click:desc:Add Event", "switch_app:com.google.Chrome"]);
 });

@@ -10,6 +10,8 @@ import { CHROME, contentSig, findEl, StateStore, stateKey } from "./state.ts";
 import { calendarOffer, eventFrom } from "./calendar.ts";
 
 const CALENDAR_OFFER_DELAY_MS = Number(process.env.TAB_CALENDAR_OFFER_MS ?? 1800); // after "Paid ✓" (1500 ms)
+/** STRETCH: native steps take this many times as long, so the audience can follow (human's call: 10% slower). */
+const NATIVE_PACE = Number(process.env.TAB_NATIVE_PACE ?? 1.1);
 
 const DEBOUNCE_MS = 150;
 const IDLE_MS = 600; // model ghosts wait for this much quiet
@@ -430,6 +432,8 @@ export class Brain {
             for (let k = 0; k < steps.length && !run.stop; k++) {
                 at = k;
                 const step = steps[k];
+                if (step.onFail) continue; // only runs after a failure (below)
+                const t0 = Date.now();
                 if (step.app !== this.store.frontmost?.app && step.op !== "switch_app") {
                     const sw: Action = { op: "switch_app", app: step.app, value: step.app, label: "", confidence: 1, source: step.source };
                     const r = await this.exec(`${ghostId}:${k}a`, sw, "shell");
@@ -437,20 +441,31 @@ export class Brain {
                     countStep(this.hud, sw);
                     this.store.frontmost = { app: step.app, window: "" };
                 }
-                let target = step.op === "navigate" || step.op === "switch_app" ? undefined : this.resolve(step);
+                // A key step with a target (STRETCH: Return in Calendar's title field) needs it on screen like a click does.
+                const needsTarget = step.op !== "navigate" && step.op !== "switch_app" && (step.op !== "key" || !!step.targetPath);
+                let target = needsTarget ? this.resolve(step) : undefined;
                 // A native app's screen arrives a beat after switching to it (STRETCH: Calendar): wait for it.
-                for (let i = 0; !target && step.app !== CHROME && step.op !== "key" && step.op !== "switch_app" && i < (step.optional ? 2 : 6); i++) {
+                for (let i = 0; !target && needsTarget && step.app !== CHROME && i < (step.optional ? 2 : 6); i++) {
                     await this.waitForState(step.app);
                     target = this.resolve(step);
                 }
-                if (!target && step.op !== "navigate" && step.op !== "switch_app" && step.op !== "key") {
+                // STRETCH: a step that must not run while something is still on screen (Escape with Calendar's event
+                // popover open would discard the new event): wait for it to go, else skip.
+                if (step.unlessPresent) {
+                    for (let i = 0; i < 3 && findEl(this.store.forStep(step.app), step.unlessPresent, step.unlessPresent); i++) await this.waitForState(step.app);
+                    if (findEl(this.store.forStep(step.app), step.unlessPresent, step.unlessPresent)) {
+                        console.log(`[seq] ${ghostId}: step ${k} skipped, ${step.unlessPresent} still on screen`);
+                        continue;
+                    }
+                }
+                if (!target && needsTarget) {
                     if (step.optional) {
                         console.log(`[seq] ${ghostId}: step ${k} skipped, target not found (${step.targetPath ?? step.targetId})`);
                         continue;
                     }
                     throw new Error(`step ${k}: target not found (${step.targetPath ?? step.match?.contains ?? step.targetId})`);
                 }
-                const { match: _m, optional: _o, always: _a, ...wire } = step;
+                const { match: _m, optional: _o, onFail: _f, unlessPresent: _u, ...wire } = step;
                 const action: Action = { ...wire, targetId: target?.id ?? step.targetId, targetPath: target?.path ?? step.targetPath };
                 const waitState = this.waitForState(step.app === CHROME && step.url ? step.url : step.app);
                 const r = await this.exec(`${ghostId}:${k}`, action, step.op === "switch_app" ? "shell" : step.app === CHROME ? "web" : "shell");
@@ -471,13 +486,14 @@ export class Brain {
                 // waitForState can resolve on a stale poll while the field is still empty; Return then
                 // discards the draft. Wait until the typed text is in the field, or ~1 s.
                 if (step.op === "type" && step.value && step.app !== CHROME) await this.waitForTyped(step);
+                if (step.app !== CHROME && step.op !== "switch_app" && NATIVE_PACE > 1) await new Promise((res) => setTimeout(res, (Date.now() - t0) * (NATIVE_PACE - 1)));
             }
         } catch (err) {
             ok = false;
             console.error(`[seq] ${ghostId}:`, (err as Error).message);
-            // Never strand the user in another app: still switch back (STRETCH: Calendar → Chrome).
-            for (const s of steps.slice(at + 1).filter((s) => s.always && s.op === "switch_app")) {
-                const { match: _m, optional: _o, always: _a, ...wire } = s;
+            // Never strand the user in another app after a failure: switch back (STRETCH: Calendar → Chrome).
+            for (const s of steps.filter((s) => s.onFail && s.op === "switch_app")) {
+                const { match: _m, optional: _o, onFail: _f, unlessPresent: _u, ...wire } = s;
                 await this.exec(`${ghostId}:back`, wire, "shell");
             }
         } finally {

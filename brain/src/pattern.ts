@@ -16,8 +16,10 @@ export interface Step extends Action {
     match?: { listKey: string; contains: string };
     /** STRETCH: skip this step when its target doesn't show up (~2 s) instead of failing the sequence. */
     optional?: boolean;
-    /** STRETCH: run this step even after an earlier one failed (switching back to where the user was). */
-    always?: boolean;
+    /** STRETCH: run this step only after an earlier one failed (switching back to where the user was). */
+    onFail?: boolean;
+    /** STRETCH: skip this step while the element at this path is still on screen (waits ~3 s for it to go). */
+    unlessPresent?: string;
 }
 
 export interface PatternAction extends Action {

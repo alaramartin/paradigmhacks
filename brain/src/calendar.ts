@@ -34,8 +34,9 @@ export function eventFrom(page: ScreenState): EventInfo | null {
 }
 
 /**
- * One sequence: Calendar → Add Event → type the quick event (Calendar parses the date) → Return → file it in
- * CALENDAR_NAME → back to Chrome (switching apps closes the event popover and keeps the event; Escape would discard it).
+ * One sequence: Calendar → Add Event → type the quick event (Calendar parses the date) → Return creates it → file it in
+ * CALENDAR_NAME → Return again finalizes it (closes the event popover, like a person pressing Enter) → Escape deselects
+ * it → stay in Calendar, so the audience sees the confirmed event. Only after a failure does Tab switch back to Chrome.
  */
 export function calendarOffer(ev: EventInfo, back = CHROME): PatternAction {
     const text = `${ev.title}${ev.venue ? ` at ${ev.venue}` : ""} ${ev.when}`;
@@ -47,7 +48,11 @@ export function calendarOffer(ev: EventInfo, back = CHROME): PatternAction {
         // Optional: right after Calendar launches (still syncing) Return saves the event without opening its popover.
         // Tab Demo is Calendar's default for new events, so the event still lands there.
         step({ op: "type", app: CALENDAR, targetId: "id:calendar-button", targetPath: "id:calendar-button", value: CALENDAR_NAME, optional: true }),
-        step({ op: "switch_app", app: back, value: back, always: true }),
+        // Finalize: Return in the event's title field commits it and closes the popover (only if the popover is open).
+        step({ op: "key", app: CALENDAR, targetId: "id:title-field", targetPath: "id:title-field", value: "Return", optional: true }),
+        // Deselect, so it shows as a confirmed event. Never while the popover is open: Escape there discards the event.
+        step({ op: "key", app: CALENDAR, value: "Escape", unlessPresent: "id:title-field" }),
+        step({ op: "switch_app", app: back, value: back, onFail: true }),
     ];
     return { op: "sequence", app: CALENDAR, steps, label: `Add ${ev.title} · ${ev.when} to Calendar`, confidence: 0.9, source: "pattern", sig: `calendar|${text}` };
 }

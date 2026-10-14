@@ -232,11 +232,8 @@ final class Shell: NSObject, InputTapDelegate {
             return
         }
         let bid = a.value ?? a.app
-        // STRETCH: leaving Calendar for another app hides it again, so it lives in the Dock until the next Tab.
-        let leaving = NSWorkspace.shared.frontmostApplication.flatMap { nativeApps.contains($0.bundleIdentifier ?? "") && !nativeApps.contains(bid) ? $0 : nil }
         AppSwitcher.activate(bid) { [weak self] ok, err in
-            if ok, let leaving { leaving.hide() }
-            log("exec \(ghostId): switch_app \(bid) → \(ok ? "ok" : err ?? "failed")\(ok && leaving != nil ? " (hid \(leaving!.bundleIdentifier ?? ""))" : "")")
+            log("exec \(ghostId): switch_app \(bid) → \(ok ? "ok" : err ?? "failed")")
             self?.hub.send(.execResult(ghostId: ghostId, ok: ok, error: err))
         }
     }
