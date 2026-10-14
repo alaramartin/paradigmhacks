@@ -482,7 +482,9 @@ final class GhostView: NSView {
             case "inside":
                 p = inside(r, size)
                 docked = true
-            case nil where !(ghost.avoid ?? []).isEmpty:
+            // Not for pay/blocked: they end the flow, and what sits above their button is the amount they quote (Total,
+            // Copay). Scored, the HC Blocked pill docked inside resale's Buy button, hiding it; below covers fine print.
+            case nil where !(ghost.avoid ?? []).isEmpty && ghost.kind != .pay && ghost.kind != .blocked:
                 p = leastCovering(b, r, size, above: above, right: right)
                 docked = p == inside(r, size)
             default:
