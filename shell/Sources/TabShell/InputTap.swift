@@ -12,6 +12,8 @@ let holdDismissMs: Double = 600
 protocol InputTapDelegate: AnyObject {
     /// The ghost the overlay currently shows, if any.
     var visibleGhost: Ghost? { get }
+    /// Tab accepted a pay ghost and the payment is settling ("Paying…").
+    var paymentSettling: Bool { get }
     /// Screen rects (top-left points) whose clicks are ours, e.g. the HUD.
     var ownRects: [CGRect] { get }
     func tapAccept(_ g: Ghost)
@@ -31,6 +33,7 @@ final class InputTap {
     private var tabPress: (ghost: Ghost, downAt: Double, dismissed: Bool)?
     private var holdTimer: DispatchWorkItem?
     private var escSwallowed = false
+    private var tabSwallowedPaying = false
 
     var isRunning: Bool { tap != nil }
 
@@ -57,6 +60,7 @@ final class InputTap {
             // Keys went by unseen; a held Tab's keyUp may be among them.
             if tabPress != nil { resetPress() }
             escSwallowed = false
+            tabSwallowedPaying = false
             return Unmanaged.passUnretained(event)
         }
         if event.getIntegerValueField(.eventSourceUserData) == tabEventMarker { return Unmanaged.passUnretained(event) }
@@ -72,6 +76,14 @@ final class InputTap {
                 resetPress()
             }
             if code == kEsc, escSwallowed { return nil }
+            // While a payment settles, Tab stays Tab's: swallowed and unreported, so a second pedal press neither moves
+            // the page's focus nor makes the hub hide the accepted payment and offer it again. Other input isn't
+            // reported either (below), for the same reason.
+            let settling = d.visibleGhost == nil && d.paymentSettling
+            if code == kTab, mods.isEmpty, settling {
+                tabSwallowedPaying = true
+                return nil
+            }
             // Tab already held when the ghost appeared: its autorepeats are the old press, never an accept.
             let isRepeat = event.getIntegerValueField(.keyboardEventAutorepeat) != 0
             if let g = d.visibleGhost, g.kind != .done, mods.isEmpty, !(code == kTab && isRepeat) {
@@ -91,7 +103,7 @@ final class InputTap {
             }
             // Typing in a secure field (a password) still hides the ghost, but nothing about it leaves this process.
             let secure = IsSecureEventInputEnabled()
-            DispatchQueue.main.async { d.tapOtherInput(kind: "key", report: !secure) }
+            DispatchQueue.main.async { d.tapOtherInput(kind: "key", report: !secure && !settling) }
             return Unmanaged.passUnretained(event)
 
         case .keyUp:
@@ -110,6 +122,10 @@ final class InputTap {
                 }
                 return nil
             }
+            if code == kTab, tabSwallowedPaying {
+                tabSwallowedPaying = false
+                return nil
+            }
             if code == kEsc, escSwallowed {
                 escSwallowed = false
                 return nil
@@ -119,7 +135,8 @@ final class InputTap {
         case .leftMouseDown:
             let loc = event.location
             if d.ownRects.contains(where: { $0.contains(loc) }) { return Unmanaged.passUnretained(event) }
-            DispatchQueue.main.async { d.tapOtherInput(kind: "click", report: true) }
+            let settling = d.visibleGhost == nil && d.paymentSettling
+            DispatchQueue.main.async { d.tapOtherInput(kind: "click", report: !settling) }
             return Unmanaged.passUnretained(event)
 
         default:

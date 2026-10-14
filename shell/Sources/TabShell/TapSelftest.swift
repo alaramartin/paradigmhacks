@@ -5,6 +5,7 @@ import AppKit
 
 private final class FakeShell: InputTapDelegate {
     var visibleGhost: Ghost?
+    var paymentSettling = false
     var ownRects: [CGRect] = [CGRect(x: 1000, y: 0, width: 264, height: 196)]
     var calls: [String] = []
     func tapAccept(_ g: Ghost) { calls.append("accept \(g.id)"); visibleGhost = nil }
@@ -121,6 +122,15 @@ func runTapSelftest() -> Never {
     let c2 = feed(click(300, 300)); settle(20)
     check("click on the HUD: passes through, not input", c1 && hudCalls.isEmpty, "\(hudCalls)")
     check("click elsewhere: passes through, reported as input", c2 && fake.calls == ["input click"], "\(fake.calls)")
+
+    reset(nil)
+    fake.paymentSettling = true // Tab accepted a pay ghost; "Paying…" is up, no ghost is current
+    let d12 = feed(key(tabK, down: true)), r12 = feed(key(tabK, down: true, repeat: true)), u12 = feed(key(tabK, down: false)); settle(20)
+    check("paying: Tab down, autorepeat and up are swallowed, nothing reported", !d12 && !r12 && !u12 && fake.calls.isEmpty, "\(fake.calls)")
+    fake.calls = []
+    let k12 = feed(key(aK, down: true)), c12 = feed(click(300, 300)); settle(20)
+    check("paying: other keys and clicks pass through, not reported to the hub", k12 && c12 && fake.calls == ["hide only", "hide only"], "\(fake.calls)")
+    fake.paymentSettling = false
 
     print(failures == 0 ? "all passed" : "\(failures) failed")
     exit(failures == 0 ? 0 : 1)

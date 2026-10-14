@@ -5,10 +5,7 @@ import { fileURLToPath } from "node:url";
 import CDP from "chrome-remote-interface";
 import { readFileSync } from "node:fs";
 import WebSocket from "ws";
-import { decodePaymentRequiredHeader, decodePaymentResponseHeader } from "@x402/core/http";
-import { wrapFetchWithPaymentFromConfig } from "@x402/fetch";
-import { ExactEvmScheme } from "@x402/evm";
-import { privateKeyToAccount } from "viem/accounts";
+import { makeRail, type ParsedChallenge } from "./rail.ts";
 import type { Action, El, PaymentRequired, Rect, ScreenState } from "../../protocol/types.ts";
 import { fmtUsd, intentCheck } from "./intent.ts";
 import { record } from "./ledger.ts";
@@ -18,7 +15,6 @@ config({ path: fileURLToPath(new URL("../../.env", import.meta.url)), quiet: tru
 const CHROME = "com.google.Chrome";
 const CDP_PORT = Number(process.env.CDP_PORT ?? 9222);
 const HUB = `ws://127.0.0.1:${process.env.HUB_PORT ?? 7800}`;
-const NETWORK = (process.env.NETWORK ?? "eip155:84532") as `${string}:${string}`;
 const INJECT = readFileSync(new URL("./inject.js", import.meta.url), "utf8");
 const log = (...a: unknown[]) => console.log(new Date().toISOString().slice(11, 23), ...a);
 
@@ -231,8 +227,7 @@ async function exec(a: Action): Promise<void> {
 type Paused = { tab: Tab; requestId: string; url: string; method: string; headers: Record<string, string>; postData?: string; req: PaymentRequired };
 const pending = new Map<string, Paused>();
 
-const account = process.env.PAYER_PRIVATE_KEY ? privateKeyToAccount(process.env.PAYER_PRIVATE_KEY as `0x${string}`) : null;
-const fetchWithPayment = account ? wrapFetchWithPaymentFromConfig(fetch, { schemes: [{ network: NETWORK, client: new ExactEvmScheme(account) }] }) : null;
+const rail = makeRail(); // PAY_RAIL in .env: mpp (Tempo testnet, demo) or x402 (Base Sepolia, fallback)
 
 async function onPaused(tab: Tab, e: any): Promise<void> {
     const { Fetch } = tab.client;
@@ -240,14 +235,17 @@ async function onPaused(tab: Tab, e: any): Promise<void> {
         await Fetch.continueResponse({ requestId: e.requestId });
         return;
     }
-    const header = (e.responseHeaders ?? []).find((h: { name: string }) => h.name.toLowerCase() === "payment-required")?.value;
-    if (!header) {
+    let parsed: ParsedChallenge | null = null;
+    try {
+        parsed = rail.parseChallenge(new Headers((e.responseHeaders ?? []).map((h: { name: string; value: string }) => [h.name, h.value])));
+    } catch (err) {
+        log(`402 challenge unreadable for ${rail.name}: ${(err as Error).message}`);
+    }
+    if (!parsed) {
         await Fetch.continueResponse({ requestId: e.requestId });
         return;
     }
-    const required = decodePaymentRequiredHeader(header);
-    const accept = required.accepts.find((x) => x.network === NETWORK) ?? required.accepts[0];
-    const amount = Number(accept.amount) / 1e6; // USDC has 6 decimals
+    const amount = parsed.amountUsd;
     const anchorRect = tab.lastClick;
     const req: PaymentRequired = {
         type: "payment_required",
@@ -255,10 +253,10 @@ async function onPaused(tab: Tab, e: any): Promise<void> {
         url: e.request.url,
         method: e.request.method,
         payeeDomain: new URL(e.request.url).hostname,
-        payTo: accept.payTo,
+        payTo: parsed.payTo,
         amountUsd: fmtUsd(amount),
-        network: accept.network,
-        asset: accept.asset,
+        network: parsed.network,
+        asset: parsed.asset,
         verdict: intentCheck(tab.state, amount, anchorRect),
         ...(anchorRect ? { anchorRect } : {}),
     };
@@ -278,27 +276,23 @@ async function pay(paymentId: string): Promise<void> {
         send({ type: "payment_result", paymentId, ok: false, error });
     };
     if (!p.req.verdict.ok) return fail(p.req.verdict.reason ?? "blocked by intent check"); // never pay a blocked request
-    if (!fetchWithPayment) return fail("no PAYER_PRIVATE_KEY");
     pending.delete(paymentId);
     try {
         const headers = Object.fromEntries(Object.entries(p.headers).filter(([k]) => !HOP.has(k.toLowerCase())));
-        const res = await fetchWithPayment(p.url, { method: p.method, headers, body: p.postData });
-        const body = Buffer.from(await res.arrayBuffer());
-        const responseHeaders = [...res.headers].filter(([k]) => !["content-encoding", "content-length", "transfer-encoding"].includes(k)).map(([name, value]) => ({ name, value }));
-        await p.tab.client.Fetch.fulfillRequest({ requestId: p.requestId, responseCode: res.status, responseHeaders, body: body.toString("base64") });
-        const settle = res.headers.get("payment-response");
-        const tx = settle ? decodePaymentResponseHeader(settle) : null;
-        if (!res.ok || !tx?.success) {
-            // A second 402 carries the reason (e.g. insufficient funds) in its PAYMENT-REQUIRED header.
-            const again = res.headers.get("payment-required");
-            let reason = tx?.errorReason;
-            if (!reason && again) reason = (() => { try { return decodePaymentRequiredHeader(again).error; } catch { return undefined; } })();
-            return fail(reason?.includes("insufficient_balance") ? "not enough USDC in the wallet" : (reason ?? `HTTP ${res.status}`).replace(/_/g, " "));
+        const r = await rail.pay(p.url, { method: p.method, headers, body: p.postData });
+        if (r.res) {
+            const res = r.res;
+            const body = Buffer.from(await res.arrayBuffer());
+            const responseHeaders = [...res.headers].filter(([k]) => !["content-encoding", "content-length", "transfer-encoding"].includes(k)).map(([name, value]) => ({ name, value }));
+            await p.tab.client.Fetch.fulfillRequest({ requestId: p.requestId, responseCode: res.status, responseHeaders, body: body.toString("base64") });
+        } else {
+            await p.tab.client.Fetch.continueResponse({ requestId: p.requestId }).catch(() => {}); // the page gets the original 402
         }
-        const explorerUrl = `https://sepolia.basescan.org/tx/${tx.transaction}`;
-        record({ domain: p.req.payeeDomain, payTo: p.req.payTo, amountUsd: p.req.amountUsd, url: p.url, txHash: tx.transaction, ok: true });
-        log(`paid $${p.req.amountUsd} → ${explorerUrl}`);
-        send({ type: "payment_result", paymentId, ok: true, txHash: tx.transaction, explorerUrl });
+        if (!r.ok || !r.txHash) return fail(r.error ?? "payment failed");
+        const explorerUrl = r.explorerUrl!;
+        record({ domain: p.req.payeeDomain, payTo: p.req.payTo, amountUsd: p.req.amountUsd, url: p.url, txHash: r.txHash, ok: true });
+        log(`paid $${p.req.amountUsd} on ${rail.name} → ${explorerUrl}`);
+        send({ type: "payment_result", paymentId, ok: true, txHash: r.txHash, explorerUrl });
     } catch (e) {
         await p.tab.client.Fetch.continueResponse({ requestId: p.requestId }).catch(() => {});
         fail((e as Error).message);
@@ -328,4 +322,4 @@ async function dismissPayment(paymentId: string): Promise<void> {
 connectHub();
 await discover();
 setInterval(() => void discover(), 1000);
-log(`web: CDP :${CDP_PORT}, hub ${HUB}, payer ${account?.address ?? "(none)"}`);
+log(`web: CDP :${CDP_PORT}, hub ${HUB}, pay rail ${rail.name}${rail.ready ? "" : " (NO PAYER KEY: payments will fail)"}`);
