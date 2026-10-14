@@ -66,14 +66,19 @@ _Two Macs: the demo runs on **alara's Mac** (B verified there). A works on Ayush
   - `TabShell --tap-selftest` checks the Tab/Esc/hold rules on synthetic events, no permissions needed (14/14).
   - `uninstall.sh` only stops what Tab started.
   - `look.mjs` opens its own window (default 720×875) and never touches your tabs.
+- **HUD redesign** (`1f59005`). The reveal leads: a blue `tab` keycap "did" against "You did", big rounded numbers that count up, and a Tab/You split bar with percentages. Below it, the last prediction as a chip: `[pattern] 0 model calls · 2 ms` or `[model] 212 ms`. The spec shadow, no false "Paid" flash after a hub restart. Renders: `TabShell --render-hud out.png`.
+- **End-of-demo reveal** (`a40821d`, flow 4 step 7). **Presenter: click the numbers in the HUD** (or menu bar ⇥ → Reveal Totals). A 2.4× card opens in the middle of the screen and counts up from 0 to the totals. Any click or key closes it. ![](design/proof/a-reveal-card.png)
 ### In progress
 - Look-and-try polish: offscreen renders on real pages and a torture page (dark fields, tiny links, screen edges, huge cards). The display here is locked, so the real-screen check happens on alara's Mac.
-- HUD redesign pass (reveal bar, count-up, pattern-vs-model row): in a worktree, not merged yet.
+- A second correctness review of everything since `4c6d21f` (avoid, ripple, HUD, reveal).
 - Recapture `native_state_terminal_push.json` from a real push to `alaramartin/tab-demo` (needs alara's Mac).
 ### Blocked
 - (none on the demo Mac)
-### Needs human
-- On alara's Mac: real-key test of Tab/Esc/hold (B's note), and a full-screen proof shot of a ghost on a real Chrome element.
+### Needs human (alara's Mac, in this order)
+1. `git pull && shell/scripts/build-shell.sh --run`. The running build there is older than the ghost and HUD you'll see in the proofs.
+2. `shell/scripts/preflight.sh`, then fix every ✗. On a fresh profile GitHub follows macOS dark mode, and the ghost text's white field cover then shows as a white box: set GitHub → Settings → Appearance → Light in the debug Chrome.
+3. Real keys, once VS Code has Accessibility: tap Tab on a ghost (accepts, with a ripple), hold Tab 600 ms (the keycap fills, then it dismisses), Esc (dismisses), Tab on the red Blocked ghost (shakes, nothing happens). Also try the pedal, if you have one.
+4. One full-screen `screencapture -x` per flow into `design/proof/`, cropped to the demo windows only. Delete any shot that caught personal windows.
 
 ### Notes for B and C (from A)
 - **C — GitHub compare page is a React partial.** It first renders "Loading", then hydrates. Re-emit state after hydration (a MutationObserver catches it), or the commit titles never reach B.
