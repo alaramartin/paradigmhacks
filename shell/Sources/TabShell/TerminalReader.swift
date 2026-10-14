@@ -64,7 +64,32 @@ struct ReadError: Error, CustomStringConvertible {
 enum TerminalReader {
     static let keepLines = 40
 
+    /// Where the text comes from: "auto" (AX, then the session log), "ax", or "log". Env TAB_TERM_SOURCE or --term-log.
+    static var source: String {
+        if CommandLine.arguments.contains("--term-log") { return "log" }
+        return ProcessInfo.processInfo.environment["TAB_TERM_SOURCE"] ?? "auto"
+    }
+
     static func snapshot(pid: pid_t, bundleId: String) -> Result<TerminalSnapshot, ReadError> {
+        var axError = "skipped"
+        if source != "log" {
+            switch axSnapshot(pid: pid, bundleId: bundleId) {
+            case .success(let s): return .success(s)
+            case .failure(let e): axError = e.description
+            }
+            if source == "ax" { return .failure(ReadError(axError)) }
+        }
+        guard let text = SessionLog.read() else {
+            return .failure(ReadError("AX: \(axError); session log: none at \(SessionLog.path) (run `script -q \(SessionLog.path)` in the demo terminal)"))
+        }
+        guard let frame = windowFrame(pid: pid) else { return .failure(ReadError("no on-screen window for \(bundleId)")) }
+        var title = ""
+        if AXIsProcessTrusted(), let w = AX.focusedWindow(pid: pid) { title = AX.attr(w, kAXTitleAttribute) ?? "" }
+        return .success(TerminalSnapshot(app: bundleId, window: title, frame: frame, lines: lastLines(text),
+                                         path: "session log \(SessionLog.path) (AX: \(axError))"))
+    }
+
+    static func axSnapshot(pid: pid_t, bundleId: String) -> Result<TerminalSnapshot, ReadError> {
         guard AXIsProcessTrusted() else { return .failure(ReadError("Accessibility not granted to this process")) }
         guard let win = AX.focusedWindow(pid: pid) else { return .failure(ReadError("no window for \(bundleId) (pid \(pid))")) }
         let title: String = AX.attr(win, kAXTitleAttribute) ?? ""
@@ -76,12 +101,29 @@ enum TerminalReader {
         return .success(TerminalSnapshot(app: bundleId, window: title, frame: frame, lines: lastLines(text), path: path + " → AXValue"))
     }
 
+    /// Frontmost on-screen window of `pid`, in top-left screen points. CGWindowList bounds need no permission.
+    static func windowFrame(pid: pid_t) -> Rect? {
+        if AXIsProcessTrusted(), let w = AX.focusedWindow(pid: pid), let f = AX.frame(w) { return f }
+        // On-screen windows first (front to back); all windows if none (another Space, or the screen is locked).
+        for opts: CGWindowListOption in [[.optionOnScreenOnly, .excludeDesktopElements], [.optionAll]] {
+            guard let list = CGWindowListCopyWindowInfo(opts, kCGNullWindowID) as? [[String: Any]] else { continue }
+            for w in list where (w[kCGWindowOwnerPID as String] as? pid_t) == pid && (w[kCGWindowLayer as String] as? Int) == 0 {
+                guard let b = w[kCGWindowBounds as String] as? [String: Double], let width = b["Width"], width > 100,
+                      let height = b["Height"], height > 100 else { continue }
+                return Rect(x: b["X"] ?? 0, y: b["Y"] ?? 0, w: width, h: height)
+            }
+        }
+        return nil
+    }
+
     /// The last 40 lines, with trailing blank lines and trailing spaces removed.
     static func lastLines(_ text: String) -> [String] {
-        var lines = text.split(separator: "\n", omittingEmptySubsequences: false).map { s -> String in
-            var t = Substring(s)
-            while let last = t.last, last == " " || last == "\r" { t = t.dropLast() }
-            return String(t)
+        var lines = text.unicodeScalars.split(separator: "\n", omittingEmptySubsequences: false).map { s -> String in
+            var t = Array(s)
+            while let last = t.last, last == " " || last == "\r" { t.removeLast() }
+            var v = String.UnicodeScalarView()
+            v.append(contentsOf: t)
+            return String(v)
         }
         while let last = lines.last, last.isEmpty { lines.removeLast() }
         return Array(lines.suffix(keepLines))
@@ -137,5 +179,70 @@ final class TerminalPoller {
             let st = TerminalReader.state(s, seq: seq)
             DispatchQueue.main.async { self.onState?(st) }
         }
+    }
+}
+
+/// Fallback when Terminal's text isn't readable via AX: the demo terminal runs `script -q ~/.tab/term.log`,
+/// and we read the file's tail, strip escape sequences, and apply carriage returns and backspaces.
+enum SessionLog {
+    static var path: String {
+        ProcessInfo.processInfo.environment["TAB_TERM_LOG"] ?? (NSHomeDirectory() + "/.tab/term.log")
+    }
+
+    static func read(tailBytes: Int = 64 * 1024) -> String? {
+        guard let fh = FileHandle(forReadingAtPath: path) else { return nil }
+        defer { try? fh.close() }
+        let size = (try? fh.seekToEnd()) ?? 0
+        try? fh.seek(toOffset: size > UInt64(tailBytes) ? size - UInt64(tailBytes) : 0)
+        guard let data = try? fh.readToEnd() else { return "" }
+        return clean(String(decoding: data, as: UTF8.self))
+    }
+
+    /// Strip CSI/OSC/other escapes, then render each line: \r returns to column 0 and overwrites, \b moves back one.
+    static func clean(_ raw: String) -> String {
+        var out = ""
+        var it = Array(raw.unicodeScalars)[...]
+        var plain = String.UnicodeScalarView()
+        while let c = it.first {
+            it = it.dropFirst()
+            if c == "\u{1B}" {
+                guard let n = it.first else { break }
+                it = it.dropFirst()
+                if n == "[" { // CSI: params, then one final byte in 0x40...0x7E
+                    while let f = it.first { it = it.dropFirst(); if (0x40...0x7E).contains(f.value) { break } }
+                } else if n == "]" { // OSC: until BEL or ESC \\
+                    while let f = it.first {
+                        it = it.dropFirst()
+                        if f == "\u{07}" { break }
+                        if f == "\u{1B}", it.first == "\\" { it = it.dropFirst(); break }
+                    }
+                } else if n == "(" || n == ")" { it = it.dropFirst() } // charset designation
+                continue
+            }
+            if c == "\u{07}" || c == "\u{04}" { continue }
+            plain.append(c)
+        }
+        // Work on scalars: Swift treats "\r\n" as one Character, which would hide the line breaks.
+        var line: [Unicode.Scalar] = []
+        var col = 0
+        func flush() {
+            var l = String.UnicodeScalarView()
+            l.append(contentsOf: line)
+            out += String(l) + "\n"
+            line = []
+            col = 0
+        }
+        for ch in plain {
+            switch ch {
+            case "\n": flush()
+            case "\r": col = 0
+            case "\u{08}": col = max(0, col - 1)
+            default:
+                if col < line.count { line[col] = ch } else { line.append(ch) }
+                col += 1
+            }
+        }
+        if !line.isEmpty { flush() }
+        return out
     }
 }
