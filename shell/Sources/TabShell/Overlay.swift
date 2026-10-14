@@ -696,6 +696,10 @@ final class Overlay {
         usable = s.map { Screens.topLeft($0.visibleFrame) } ?? tl
         guard tl != screenTL else { return }
         screenTL = tl
+        // Leftovers laid out for the old display (an accepted ghost's fade, its ripple) would draw at the wrong place
+        // on the new one for up to 320 ms: drop them. Live ghosts are re-added by the caller.
+        let live = Set(views.values.map(ObjectIdentifier.init))
+        for sub in root.subviews where !live.contains(ObjectIdentifier(sub)) { sub.removeFromSuperview() }
         window.setFrame(f, display: false)
         root.frame = CGRect(origin: .zero, size: f.size)
     }
