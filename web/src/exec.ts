@@ -33,6 +33,7 @@ async function call(tab: Tab, objectId: string, fn: string, args: unknown[] = []
 }
 
 // Bring the element into view only if it isn't already (no needless scrolling), then report
+// (a hidden tab drops synthetic mouse input, so it falls back to el.click())
 // its viewport-center and whether a click there actually lands on it.
 const PREPARE = `function () {
     const r0 = this.getBoundingClientRect();
@@ -40,7 +41,7 @@ const PREPARE = `function () {
     const r = this.getBoundingClientRect();
     const x = r.left + r.width / 2, y = r.top + r.height / 2;
     const hit = document.elementFromPoint(x, y);
-    return { x, y, hits: !!hit && (hit === this || this.contains(hit) || (this.labels && [...this.labels].some(l => l.contains(hit)))) };
+    return { x, y, hits: document.visibilityState === "visible" && !!hit && (hit === this || this.contains(hit) || (this.labels && [...this.labels].some(l => l.contains(hit)))) };
 }`;
 
 async function click(tab: Tab, a: Action): Promise<void> {
