@@ -255,7 +255,7 @@ final class HUDView: NSView {
 
     /// Pulse the dot (alpha 1 → .35 → 1, 900 ms) only while predicting.
     private func updateDot() {
-        if mode == "predicting" {
+        if mode == "predicting", !revealOnly { // the reveal card has no dot
             guard pulse == nil else { return }
             let t0 = CACurrentMediaTime()
             let t = Timer(timeInterval: 1.0 / 30, repeats: true) { [weak self] _ in
@@ -578,7 +578,7 @@ final class HUDView: NSView {
         }
         let q = convert(e.locationInWindow, from: nil)
         let p = CGPoint(x: q.x / drawScale, y: q.y / drawScale)
-        if revealOnly || p.y < L.divY {
+        if revealOnly || (L.keyY + L.keyH...L.barY + L.barH + 4).contains(p.y) {
             onClick?("reveal") // the numbers: open (or, on the card, close) the end-of-demo reveal
         } else if ledgerRect.contains(p) {
             if hud.lastTx != nil { onClick?("ledger") }

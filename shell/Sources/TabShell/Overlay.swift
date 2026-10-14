@@ -393,6 +393,8 @@ final class GhostView: NSView {
     let style: Style
     let pill: PillView
     private(set) var pillRect: CGRect = .zero
+    /// The pill sits inside the element (explicit `inside`, or chosen from `avoid`): then no cursor, it would hide under it.
+    private var docked = false
     private let usable: CGRect // top-left coords, below the menu bar
 
     init(ghost: Ghost, style: Style, frame: CGRect, usable: CGRect) {
@@ -461,8 +463,10 @@ final class GhostView: NSView {
                 p = right
             case "inside":
                 p = inside(r, size)
+                docked = true
             case nil where !(ghost.avoid ?? []).isEmpty:
                 p = leastCovering(b, r, size, above: above, right: right)
+                docked = p == inside(r, size)
             default:
                 p = CGPoint(x: b.minX, y: b.maxY + style.gap)
                 if p.y + size.height > usable.maxY - style.clamp { p.y = above.y }
@@ -518,7 +522,7 @@ final class GhostView: NSView {
     /// The cursor tip, from the rect (lower-right quadrant, clear of centred labels). Only action ghosts with a cursor.
     private func cursorTip() -> CGPoint? {
         // No cursor under a docked pill: the badge already points at the element.
-        guard ghost.kind == .action, ghost.cursor != nil, ghost.place != "inside", let r = ghost.rect else { return nil }
+        guard ghost.kind == .action, ghost.cursor != nil, !docked, let r = ghost.rect else { return nil }
         // Tall targets (cards, editors): stay near the top, where the label usually is, not mid-air.
         if r.w >= 48 { return CGPoint(x: min(r.x + 0.78 * r.w, r.x + r.w - 14), y: r.y + min(0.62 * r.h, 40)) }
         return CGPoint(x: r.x + 0.6 * r.w, y: r.y + 0.6 * r.h)
@@ -710,11 +714,11 @@ final class Overlay {
             let p = v.pill
             let t0 = CACurrentMediaTime()
             let ms = style.shakeMs
-            Timer.scheduledTimer(withTimeInterval: 1.0 / 60, repeats: true) { t in
+            Overlay.onCommonModes(Timer(timeInterval: 1.0 / 60, repeats: true) { t in
                 let f = min(1, (CACurrentMediaTime() - t0) * 1000 / ms)
                 p.borderAlpha = 1 - 0.6 * CGFloat(sin(f * .pi))
                 if f >= 1 { p.borderAlpha = 1; t.invalidate() }
-            }
+            })
             return
         }
         let a = CAKeyframeAnimation(keyPath: "transform.translation.x")
@@ -729,11 +733,18 @@ final class Overlay {
         guard let cur = current, let v = views[cur.id] else { return }
         let t0 = CACurrentMediaTime()
         let hidden = style.holdHiddenMs / 1000
-        holdTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 60, repeats: true) { _ in
+        holdTimer = Overlay.onCommonModes(Timer(timeInterval: 1.0 / 60, repeats: true) { _ in
             let el = CACurrentMediaTime() - t0
             guard el >= hidden else { return }
             v.pill.holdFraction = CGFloat(el * 1000 / ms)
-        }
+        })
+    }
+
+    /// Schedule on the common modes, so animations keep running while a menu is open or the HUD is dragged.
+    @discardableResult
+    static func onCommonModes(_ t: Timer) -> Timer {
+        RunLoop.main.add(t, forMode: .common)
+        return t
     }
 
     func stopHold() {
@@ -805,11 +816,11 @@ extension Overlay {
         ring.setBoundsOrigin(v.bounds.origin)
         root.addSubview(ring, positioned: .below, relativeTo: v)
         let t0 = CACurrentMediaTime()
-        Timer.scheduledTimer(withTimeInterval: 1.0 / 60, repeats: true) { t in
+        Overlay.onCommonModes(Timer(timeInterval: 1.0 / 60, repeats: true) { t in
             let f = min(1, (CACurrentMediaTime() - t0) / RippleView.seconds)
             ring.progress = CGFloat(1 - pow(1 - f, 3)) // ease-out cubic
             if f >= 1 { t.invalidate(); ring.removeFromSuperview() }
-        }
+        })
     }
 }
 

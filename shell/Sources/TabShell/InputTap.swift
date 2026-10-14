@@ -72,7 +72,9 @@ final class InputTap {
                 resetPress()
             }
             if code == kEsc, escSwallowed { return nil }
-            if let g = d.visibleGhost, g.kind != .done, mods.isEmpty {
+            // Tab already held when the ghost appeared: its autorepeats are the old press, never an accept.
+            let isRepeat = event.getIntegerValueField(.keyboardEventAutorepeat) != 0
+            if let g = d.visibleGhost, g.kind != .done, mods.isEmpty, !(code == kTab && isRepeat) {
                 if code == kTab {
                     tabPress = (g, nowMs(), false)
                     let w = DispatchWorkItem { [weak self] in self?.holdElapsed() }

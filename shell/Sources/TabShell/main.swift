@@ -222,9 +222,10 @@ final class Shell: NSObject, InputTapDelegate {
 
     private func hudClicked(_ item: String) {
         if item == "reveal" { // local only: the hub has nothing to do with it
-            if reveal.isVisible { reveal.hide() } else { reveal.show(lastHud, connected: hubConnected) }
+            if reveal.isVisible { reveal.hide() } else { reveal.show(lastHud, connected: hubConnected, on: hud.panel.screen) }
             return
         }
+        reveal.hide()
         if item == "contrast" {
             overlay.highContrast.toggle()
             hud.setHighContrast(overlay.highContrast)
@@ -240,6 +241,7 @@ final class Shell: NSObject, InputTapDelegate {
     var ownRects: [CGRect] { [hud.screenRect, reveal.screenRect] }
 
     func tapAccept(_ g: Ghost) {
+        reveal.hide() // never act on a ghost the reveal card is covering without showing what happens
         guard overlay.current?.id == g.id else { return }
         log("accept \(g.id)")
         overlay.hide(.accept)
@@ -247,12 +249,16 @@ final class Shell: NSObject, InputTapDelegate {
     }
 
     func tapDismiss(_ g: Ghost) {
+        reveal.hide()
         log("dismiss \(g.id)")
         if overlay.current?.id == g.id { overlay.hide() }
         hub.send(.dismiss(ghostId: g.id))
     }
 
-    func tapBlockedPress(_ g: Ghost) { overlay.shake() }
+    func tapBlockedPress(_ g: Ghost) {
+        reveal.hide()
+        overlay.shake()
+    }
 
     func tapOtherInput(kind: String, report: Bool) {
         reveal.hide() // any key or click outside it closes the reveal

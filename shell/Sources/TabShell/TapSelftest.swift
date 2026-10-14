@@ -10,7 +10,7 @@ private final class FakeShell: InputTapDelegate {
     func tapAccept(_ g: Ghost) { calls.append("accept \(g.id)"); visibleGhost = nil }
     func tapDismiss(_ g: Ghost) { calls.append("dismiss \(g.id)"); visibleGhost = nil }
     func tapBlockedPress(_ g: Ghost) { calls.append("shake \(g.id)") }
-    func tapOtherInput(kind: String, report: Bool) { calls.append("input \(kind)") }
+    func tapOtherInput(kind: String, report: Bool) { calls.append(report ? "input \(kind)" : "hide only") }
     func tapHoldProgress(started: Bool) {}
 }
 
@@ -90,6 +90,22 @@ func runTapSelftest() -> Never {
     let d7 = feed(key(tabK, down: true)); settle(50)
     let u7 = feed(key(tabK, down: false)); settle(20)
     check("lost keyUp: the next fresh press starts over and accepts once", !d7 && !u7 && fake.calls == ["accept l"], "\(fake.calls)")
+
+    reset(ghost("t", .action))
+    _ = feed(key(tabK, down: true)) // the tap gets disabled mid-press and the keyUp is never seen
+    let off = CGEvent(source: nil)!
+    _ = tap.handle(.tapDisabledByTimeout, off)
+    settle(700)
+    let calls9 = fake.calls
+    let d10 = feed(key(tabK, down: true)); settle(50)
+    let u10 = feed(key(tabK, down: false)); settle(20)
+    check("tap disabled mid-press: the press is dropped (no hold dismiss), the next one accepts", calls9.isEmpty && !d10 && !u10 && fake.calls == ["accept t"], "\(calls9) then \(fake.calls)")
+
+    reset(nil)
+    _ = feed(key(tabK, down: true)) // Tab held down before any ghost…
+    fake.visibleGhost = ghost("r", .action) // …then a ghost appears
+    let r11 = feed(key(tabK, down: true, repeat: true)), u11 = feed(key(tabK, down: false)); settle(20)
+    check("Tab held from before the ghost: its autorepeat and keyUp pass, nothing accepted", r11 && u11 && !fake.calls.contains("accept r"), "\(fake.calls)")
 
     reset(ghost("m", .action))
     let d8 = feed(key(tabK, down: true, marker: true)), u8 = feed(key(tabK, down: false, marker: true)); settle(20)

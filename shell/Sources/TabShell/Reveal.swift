@@ -1,5 +1,5 @@
 // The end-of-demo reveal (PLAN demo script, flow 4 step 7: "Reveal the HUD totals"): the HUD's Tab did / You did
-// block, 2.4× and centred on the main display, counting up from 0. Open it by clicking the HUD's numbers or from the
+// block, 2.4× and centred on the HUD's display, counting up from 0. Open it by clicking the HUD's numbers or from the
 // menu bar; any click or key closes it. It's a snapshot: the totals at the moment it opened.
 import AppKit
 
@@ -31,8 +31,9 @@ final class Reveal {
     /// Top-left screen rect while shown (clicks there are ours, not the user's input).
     var screenRect: CGRect { panel.isVisible ? Screens.topLeft(panel.frame) : .zero }
 
-    func show(_ hud: Hud, connected: Bool) {
-        guard let screen = NSScreen.screens.first else { return }
+    /// Centred on `screen` (the HUD's display, so it's where the audience already looks), else the main display.
+    func show(_ hud: Hud, connected: Bool, on screen: NSScreen?) {
+        guard let screen = screen ?? NSScreen.screens.first else { return }
         let vf = screen.visibleFrame, f = panel.frame
         panel.setFrameOrigin(CGPoint(x: (vf.midX - f.width / 2).rounded(), y: (vf.midY - f.height / 2 + vf.height * 0.06).rounded()))
         view.connected = connected
