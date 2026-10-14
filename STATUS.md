@@ -1,34 +1,30 @@
 # STATUS
 
-## Read first: overnight handoff (written by B, ~02:20 PT Wed)
+## Read first: current state and next steps (B, 10:45 PT Wed). A and C: pull and start here
 
-The C human was asleep, so **Agent B built C's part (`web/`) overnight** and ran every flow live on alara's Mac (hub + A's shell + C + debug Chrome). Details are in each section below; proofs in `design/proof/`.
+**Payments changed:** the demo now pays on **Tempo testnet (MPP)**, with x402 behind `PAY_RAIL` as the fallback. See PLAN.md "Change (10:45 PT Wed)" for the spec and the **C / B / A split**. Timebox: flow 1 pays on Tempo from the ghost by **12:00**, else `PAY_RAIL=x402`. Freeze 13:00.
+
+**Where each flow stands** (all on alara's Mac, the demo Mac; the hub, web, demo sites, debug Chrome and TabShell are running there):
 
 | Flow | State |
 | --- | --- |
-| 1 Tickets + resale block | Works live through the pay ghost. **Paying fails: payer wallet has 0 USDC.** Resale blocked with the exact reason. |
-| 2 `git push` → PR | Terminal ghost → switch to Chrome → PR URL opens. **Then GitHub asks for login** (debug Chrome not logged in): description + Create untested. |
-| 3 Release day | **Works live end to end** on the real GitHub release + tracker: repeat, repeat, "Do the remaining 3", all six Done. |
-| 4 Pharmacy | Works live through the pay ghost (all Jev), every step ≥ 0.76 on C's designed pages, back to back. Paying fails: 0 USDC. |
+| 1 Tickets + resale | Works live up to the pay ghost; resale blocked with the exact reason. **No payment has ever settled** (Base Sepolia payer 0 USDC; Tempo not built yet). |
+| 2 `git push` → PR | Terminal ghost → Chrome opens the PR URL. **Stops at GitHub login** (debug Chrome not logged in): description + Create untested. |
+| 3 Release day | **Done.** Teach once → Repeat → Repeat → Do the remaining 3. New optional beat: remembered workflow (`Do all 6 from v1.4.0 · learned …` after a hub restart), PLAN flow 3 step 5. |
+| 4 Pharmacy | Works up to the pay ghost; every step ≥ 0.76 when Jev is responsive. Payment: same as flow 1. |
 
-**Start everything** (each in its own terminal): `cd brain && npm start` · `cd web && npm run demo` · `open -na "Google Chrome" --args --remote-debugging-port=9222 --user-data-dir=/tmp/tab-chrome` · `cd web && npm start` · `shell/scripts/build-shell.sh --run`. Reset between rehearsals and right before the demo: `cd web && npm run reset-demo` (also zeroes the hub and HUD counters).
+**Blockers:**
+1. **No working payment rail yet.** MPP is being built (C + B, now). x402 needs the Base Sepolia payer funded. **Humans: fund it now anyway**, since it's the fallback: `0x4A864e4077fd5d5f95e9A8CC5d1bCe5298F616Df` at https://faucet.circle.com (Base Sepolia, USDC), then `cd web && npm run balance && npm run pay-test`.
+2. **Venue wifi makes Jev slow** (17–300 ms pings; Jev calls up to 5 s). B added a 5 s timeout and a per-screen answer cache (`~/.tab/jev-cache.json`) that replays Jev's earlier answer when a call is slow or fails. **The cache only covers screens Jev has answered before, so rehearse every flow once on the demo network (prefer a phone hotspot) right before presenting.** Flow 3 doesn't use Jev.
+3. **Human-only steps on alara's Mac:** log into GitHub in the debug Chrome (and set GitHub → Appearance → Light); give VS Code Accessibility (real Tab/Esc tests); quit normal Chrome during the demo.
 
-**Humans, first thing:**
-1. Fund the payer `0x4A864e4077fd5d5f95e9A8CC5d1bCe5298F616Df` (Base Sepolia USDC, https://faucet.circle.com), then `cd web && npm run balance` and `npm run pay-test`.
-2. Log into GitHub in the debug Chrome window (`/tmp/tab-chrome` profile).
-3. Grant VS Code Accessibility so agents can press real Tab keys in tests.
-4. Quit normal Chrome during the demo (same bundle id as the debug Chrome).
+**Next steps until the demo works end to end:**
+- **C (now → 12:00):** MPP charging side (PLAN table): `demo/server.ts` `PAY_RAIL` switch with mppx per request; `npm run tempo-wallets` (create + fund 3 testnet wallets, print `.env` lines); `balance` follows the rail; note the testnet token, decimals and **explorer URL format** here. Tell B the moment the demo server answers a Tempo 402. **After 12:00:** capture `web_state_github_compare.json` once GitHub is logged in; rect check at the real two-window layout.
+- **B (now → 12:00):** MPP paying side: `web/src/rail.ts` (x402 moved verbatim + mpp), `main.ts` pay path through the rail, `pay-test` follows the rail. Then `npm run try -- all` on both rails. **After 12:00:** flow 2's second half once GitHub is logged in (description + `Create pull request`, the weakest model step); warm the Jev cache on the demo network.
+- **A (now):** `preflight.sh` checks `PAY_RAIL`, the rail's keys and the payer balance. Then your existing list on alara's Mac: rebuild + preflight, real-key Tab/Esc/hold test (after the VS Code grant), one cropped proof shot per flow in `design/proof/`.
+- **Humans:** the three items under Blockers; then at 12:30 the all-hands look-and-try run of all four flows; 13:00 freeze; rehearse 5× and record the backup video by 14:30.
 
-**Left for C:** ~~design pass~~ done by C (~02:25); ~~make the pharmacy form fit a half-screen window~~ done by C: Request refill ends at 687 px in a 720×790 viewport, 645 px at 960×790 (![](design/proof/c-pharmacy-fits-720x790.png)); pay-test + real payments once funded; capture `web_state_github_compare.json` once logged in and check B's commit-title heuristic; rect check at the real two-window layout. See "Left for C" below.
-**Left for B:** flow 2's second half once GitHub is logged in (description + `Create pull request`, the weakest step at 0.53–0.66 in mocks). Flow 4 is done (every step ≥ 0.76 live, back to back), and `reset-demo` now resets the hub. Overnight log: B checks main every 30 min and writes findings under "Notes for A and C (from B)".
-**For A** (B checked A's commits through `1c87aa0` against B/C overnight; no file overlaps, the protocol is unchanged, and the ghost spec matches what the hub sends):
-- Verified on alara's Mac with the latest build: Accessibility granted, the input tap runs, **the Terminal AX path works** (`--dump`: `axTrusted: true`, `AXWindow > AXSplitGroup > AXScrollArea > AXTextArea`), and a real `git push` to GitHub gave the `Open pull request` ghost live. Screenshots work from VS Code. Your Blocked/Needs-human items may be stale for this Mac. Please update your section.
-- The demo repo now exists (`alaramartin/tab-demo`, local clone `~/Projects/tab-demo`), so `native_state_terminal_push.json` can be recaptured from a real push (your note said to after setup step 6). B's test accepts the current one.
-- Cursor rule (ghost-spec "agree on one"): **B agrees the shell positions the tip from the rect.** B keeps sending the element centre in `cursor`; ignore it.
-- Signing: on this Mac the build script created its own identity (leaf `65eac85f…`), not your `4f25…df22`. Fine per machine, but the Accessibility grant belongs to whichever Mac runs the demo.
-- ~~The pill can sit on top of the first list row~~ **Done (02:3x):** the hub sends `place: "inside"` when a pill below a wide field (≥ 160 pt) would overlap the next element; verified live with your new build (flow 3 proof). Real-key Tab/Esc/hold test is pending the VS Code grant.
-- Your notes for B and C, handled: (1) compare page hydration: C's MutationObserver re-emits; unverified until GitHub login. (2) split commit titles: `prDescription` now joins the links in each commit's message `<p>` and drops author/hash links; tested on your `real_github_compare_commits_uv.json` (first line `Document native Python preference on Windows ARM64 (#22424)`). The demo repo's commits have no `#NN` anyway. (3) release PR column: none of #12–#17 exist as PRs, so every row is plain text with the same field; the pattern test on the real capture passes. (4) C now scrolls with `behavior: "instant"`.
-- **B edited `shell/` at the human's request (~02:25 PT)**, because the HUD covered their work: `HUD.swift` (drag anywhere to move; position and hidden state persist in UserDefaults; `place()` keeps a dragged position instead of snapping back every 2 s; `screenRect` is empty while hidden) and `main.swift` (a ⇥ menu bar item: Show HUD, Reset HUD Position, High Contrast, Quit TabShell). Additive only, nothing in the drawing or protocol changed. A: keep or restyle as you like; if you're mid-edit in these files, rebase on it.
+**Run sheet (before every rehearsal and the demo):** `cd web && npm run reset-demo` (full: tracker, GitHub branch, hub history/counters, saved workflows; use `-- --keep-workflows` only for the recall beat) · `shell/scripts/preflight.sh` · confirm `PAY_RAIL` in `.env` and `npm run balance` > 0 · one warm-up pass of each flow on the demo network.
 
 ## A — Shell
 
