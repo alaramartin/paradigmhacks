@@ -3,12 +3,13 @@
 // perception rules: visible interactive elements first, then visible text, ≤ 200; labels; screen-point rects;
 // CSS paths; select options; checked; and `list` metadata for repeated structures (ul/ol > li, tbody > tr, …).
 //
-// Standalone and dependency-free (Node 22+ global WebSocket). Read-only: it never mutates the page.
+// Standalone and dependency-free (Node 22+ global WebSocket). Read-only on the page (only --navigate/--scroll move it).
 // It is a fixture tool for B and a reference for C, not C's perception code.
 //
 //   node protocol/fixtures/capture/capture.mjs --list                       list open tabs
 //   node protocol/fixtures/capture/capture.mjs <url-substring> [out.json]   capture the matching tab
-//   flags: --port 9222, --focused (force focused: true), --navigate <url> (load first, wait for idle),
+//   flags: --port 9222, --focused (force focused: true), --navigate <url> (load first, wait for idle; with no
+//          matching tab it opens a new tab rather than taking over one of yours), --target <id> (that exact tab),
 //          --scroll <css selector> (scroll that element to the top of the viewport first)
 import { writeFileSync } from "node:fs";
 
@@ -20,6 +21,7 @@ const flag = (n) => {
 const port = flag("--port") ?? process.env.CDP_PORT ?? "9222";
 const navigate = flag("--navigate");
 const scrollTo = flag("--scroll");
+const targetId = flag("--target");
 const forceFocused = args.includes("--focused") && args.splice(args.indexOf("--focused"), 1);
 const listOnly = args.includes("--list");
 const [match, out] = args.filter((a) => !a.startsWith("--"));
@@ -29,7 +31,8 @@ if (listOnly || !match) {
     for (const t of tabs) console.log(`${t.id}  ${t.url}  ${t.title}`);
     if (!match) process.exit(listOnly ? 0 : 1);
 }
-const tab = tabs.find((t) => t.url.includes(match)) ?? (navigate ? tabs[0] : undefined);
+let tab = targetId ? tabs.find((t) => t.id === targetId) : tabs.find((t) => t.url.includes(match));
+if (!tab && navigate && !targetId) tab = await (await fetch(`http://127.0.0.1:${port}/json/new?about:blank`, { method: "PUT" })).json();
 if (!tab) {
     console.error(`no tab whose url contains "${match}"`);
     process.exit(1);

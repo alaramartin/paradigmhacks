@@ -6,7 +6,8 @@ import Carbon.HIToolbox
 let tabEventMarker: Int64 = 0x7AB
 private let kTab: Int64 = 48
 private let kEsc: Int64 = 53
-private let holdDismissMs: Double = 600
+/// Tab held this long dismisses instead of accepting (single-switch users have no Esc). The keycap sweep uses it too.
+let holdDismissMs: Double = 600
 
 protocol InputTapDelegate: AnyObject {
     /// The ghost the overlay currently shows, if any.
@@ -16,8 +17,9 @@ protocol InputTapDelegate: AnyObject {
     func tapAccept(_ g: Ghost)
     func tapDismiss(_ g: Ghost)
     func tapBlockedPress(_ g: Ghost)
-    func tapOtherInput(kind: String)
-    func tapHoldProgress(_ g: Ghost?, started: Bool)
+    /// Any other real input: hide the ghost; tell the hub only if `report` (never for secure typing).
+    func tapOtherInput(kind: String, report: Bool)
+    func tapHoldProgress(started: Bool)
 }
 
 final class InputTap {
@@ -52,6 +54,9 @@ final class InputTap {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
             log("tap: re-enabling after \(type == .tapDisabledByTimeout ? "timeout" : "user input")")
             if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
+            // Keys went by unseen; a held Tab's keyUp may be among them.
+            if tabPress != nil { resetPress() }
+            escSwallowed = false
             return Unmanaged.passUnretained(event)
         }
         if event.getIntegerValueField(.eventSourceUserData) == tabEventMarker { return Unmanaged.passUnretained(event) }
@@ -61,7 +66,11 @@ final class InputTap {
         case .keyDown:
             let code = event.getIntegerValueField(.keyboardEventKeycode)
             let mods = event.flags.intersection([.maskCommand, .maskControl, .maskAlternate, .maskShift])
-            if code == kTab, tabPress != nil { return nil } // autorepeat of a swallowed press
+            if code == kTab, tabPress != nil {
+                if event.getIntegerValueField(.keyboardEventAutorepeat) != 0 { return nil } // autorepeat of a swallowed press
+                // A fresh press while one is "in progress": its keyUp was lost (the tap was disabled). Start over.
+                resetPress()
+            }
             if code == kEsc, escSwallowed { return nil }
             if let g = d.visibleGhost, g.kind != .done, mods.isEmpty {
                 if code == kTab {
@@ -69,7 +78,7 @@ final class InputTap {
                     let w = DispatchWorkItem { [weak self] in self?.holdElapsed() }
                     holdTimer = w
                     DispatchQueue.main.asyncAfter(deadline: .now() + holdDismissMs / 1000, execute: w)
-                    DispatchQueue.main.async { d.tapHoldProgress(g, started: true) }
+                    DispatchQueue.main.async { d.tapHoldProgress(started: true) }
                     return nil
                 }
                 if code == kEsc {
@@ -78,9 +87,9 @@ final class InputTap {
                     return nil
                 }
             }
-            if !IsSecureEventInputEnabled() {
-                DispatchQueue.main.async { d.tapOtherInput(kind: "key") }
-            }
+            // Typing in a secure field (a password) still hides the ghost, but nothing about it leaves this process.
+            let secure = IsSecureEventInputEnabled()
+            DispatchQueue.main.async { d.tapOtherInput(kind: "key", report: !secure) }
             return Unmanaged.passUnretained(event)
 
         case .keyUp:
@@ -91,7 +100,7 @@ final class InputTap {
                 holdTimer = nil
                 let held = nowMs() - p.downAt
                 DispatchQueue.main.async {
-                    d.tapHoldProgress(nil, started: false)
+                    d.tapHoldProgress(started: false)
                     if p.dismissed { return }
                     if held >= holdDismissMs { d.tapDismiss(p.ghost) }
                     else if p.ghost.kind == .blocked { d.tapBlockedPress(p.ghost) }
@@ -108,7 +117,7 @@ final class InputTap {
         case .leftMouseDown:
             let loc = event.location
             if d.ownRects.contains(where: { $0.contains(loc) }) { return Unmanaged.passUnretained(event) }
-            DispatchQueue.main.async { d.tapOtherInput(kind: "click") }
+            DispatchQueue.main.async { d.tapOtherInput(kind: "click", report: true) }
             return Unmanaged.passUnretained(event)
 
         default:
@@ -116,12 +125,20 @@ final class InputTap {
         }
     }
 
+    private func resetPress() {
+        tabPress = nil
+        holdTimer?.cancel()
+        holdTimer = nil
+        let d = delegate
+        DispatchQueue.main.async { d?.tapHoldProgress(started: false) }
+    }
+
     /// Long press (single-switch users have no Esc): dismiss as soon as the hold crosses the threshold.
     private func holdElapsed() {
         guard var p = tabPress, !p.dismissed else { return }
         p.dismissed = true
         tabPress = p
-        delegate?.tapHoldProgress(nil, started: false)
+        delegate?.tapHoldProgress(started: false)
         delegate?.tapDismiss(p.ghost)
     }
 }

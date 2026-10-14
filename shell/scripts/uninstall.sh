@@ -5,8 +5,9 @@
 #   add --artifacts to also delete gitignored build output in the repo (shell/.build, shell/build, brain/node_modules, brain/logs, design/shots)
 #
 # Stops TabShell, the hub on :7800, the debug Chrome (only the one using /tmp/tab-chrome; your normal Chrome is untouched),
-# and the agents' gstack browse server on :9407. It deletes the signing keychain and takes it off the keychain search list,
-# resets TabShell's Accessibility entry and saved HUD position, and deletes ~/.tab and /tmp/tab-chrome.
+# and agent A's gstack browse server (only the pid recorded in A's own state file). It deletes the signing keychain and
+# takes it off the keychain search list, resets TabShell's Accessibility entry and saved HUD position, and deletes ~/.tab,
+# /tmp/tab-chrome and look.mjs's temp folders.
 # It does NOT touch the Screen Recording / Accessibility grants you gave your terminal app. Revoke those in
 # System Settings → Privacy & Security if you want them gone.
 set -uo pipefail
@@ -29,17 +30,29 @@ run() {
 KC="$HOME/Library/Keychains/tab-shell-signing.keychain-db"
 
 # Processes (matched narrowly so nothing else is hit).
+REPO="$(pwd)"
 pgrep -x TabShell >/dev/null && run pkill -x TabShell
-for p in $(pgrep -f "tsx.* src/hub.ts"); do run kill "$p"; done # npm wrapper, tsx, and the node child
-for p in $(pgrep -f "Chrome\.app/Contents/MacOS/Google Chrome --.*user-data-dir=/tmp/tab-chrome"); do run kill "$p"; done # browser process only
-for p in $(lsof -tiTCP:9407 -sTCP:LISTEN 2>/dev/null); do
-    ps -o command= -p "$p" | grep -q "browse/src/server.ts" && run kill "$p"
+# The hub: only node processes running this repo's brain/src/hub.ts (cwd check), so another project's hub.ts is safe.
+for p in $(pgrep -f "tsx.* src/hub.ts"); do
+    [ "$(lsof -a -p "$p" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p')" = "$REPO/brain" ] && run kill "$p"
 done
+for p in $(pgrep -f "Chrome\.app/Contents/MacOS/Google Chrome --.*user-data-dir=/tmp/tab-chrome"); do run kill "$p"; done # browser process only
+# Agent A's gstack browse server: the pid in A's own state file, and only if it's still that server.
+BROWSE_STATE="/tmp/claude-$(id -u)/browse-a-design.json"
+if [ -f "$BROWSE_STATE" ]; then
+    bp="$(sed -n 's/.*"pid": *\([0-9][0-9]*\).*/\1/p' "$BROWSE_STATE")"
+    [ -n "$bp" ] && ps -o command= -p "$bp" 2>/dev/null | grep -q "browse/src/server.ts" && run kill "$bp"
+fi
 
 # Signing keychain and its search-list entry.
 if security list-keychains -d user | grep -q "tab-shell-signing"; then
-    # shellcheck disable=SC2046
-    run security list-keychains -d user -s $(security list-keychains -d user | tr -d '"' | grep -v "tab-shell-signing")
+    # Rebuild the list without ours, one array element per keychain, so paths with spaces stay whole.
+    keep=()
+    while IFS= read -r k; do
+        k="$(echo "$k" | sed 's/^[[:space:]]*"//; s/"[[:space:]]*$//')"
+        [ -n "$k" ] && [[ "$k" != *tab-shell-signing* ]] && keep+=("$k")
+    done < <(security list-keychains -d user)
+    run security list-keychains -d user -s "${keep[@]}"
 fi
 [ -f "$KC" ] && run security delete-keychain "$KC"
 
@@ -53,7 +66,8 @@ defaults read dev.tab.shell >/dev/null 2>&1 && run defaults delete dev.tab.shell
 # Files outside the repo.
 [ -d "$HOME/.tab" ] && run rm -rf "$HOME/.tab"
 [ -d /tmp/tab-chrome ] && run rm -rf /tmp/tab-chrome
-[ -f /tmp/claude-501/browse-a-design.json ] && run rm -f /tmp/claude-501/browse-a-design.json
+[ -f "$BROWSE_STATE" ] && run rm -f "$BROWSE_STATE"
+for d in "${TMPDIR:-/tmp}"/tab-look-*; do [ -d "$d" ] && run rm -rf "$d"; done
 
 if [ "$ARTIFACTS" = 1 ]; then
     for d in shell/.build shell/build brain/node_modules brain/logs design/shots; do

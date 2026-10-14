@@ -21,8 +21,13 @@ ensure_identity() {
     security unlock-keychain -p "$KC_PW" "$KC"
     # codesign only finds identities in keychains on the user search list.
     if ! security list-keychains -d user | grep -q "tab-shell-signing"; then
-        # shellcheck disable=SC2046
-        security list-keychains -d user -s $(security list-keychains -d user | tr -d '"') "$KC"
+        # Keep every existing keychain as one array element, so paths with spaces stay whole.
+        local list=() k
+        while IFS= read -r k; do
+            k="$(echo "$k" | sed 's/^[[:space:]]*"//; s/"[[:space:]]*$//')"
+            [ -n "$k" ] && list+=("$k")
+        done < <(security list-keychains -d user)
+        security list-keychains -d user -s "${list[@]}" "$KC"
     fi
     if security find-certificate -c "$IDENTITY" "$KC" >/dev/null 2>&1; then return; fi
     echo "creating self-signed code-signing identity \"$IDENTITY\""

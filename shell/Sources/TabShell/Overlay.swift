@@ -1,10 +1,28 @@
-// The ghost overlay: one borderless, transparent, click-through window over the main display.
-// The content view is flipped and covers the main screen, so AX/top-left screen points are view points.
+// The ghost overlay: one borderless, transparent, click-through window over the display that holds the ghost.
+// Ghost views are flipped and their bounds start at that display's top-left in protocol points, so protocol
+// (AX/top-left of the primary display) points are view points on any display.
 // Every number here comes from design/ghost-spec.md; change the spec first, then this file.
 import AppKit
 
 func hex(_ v: UInt32, _ a: CGFloat = 1) -> NSColor {
     NSColor(srgbRed: CGFloat((v >> 16) & 0xFF) / 255, green: CGFloat((v >> 8) & 0xFF) / 255, blue: CGFloat(v & 0xFF) / 255, alpha: a)
+}
+
+/// Display geometry in protocol coordinates: top-left of the primary (menu bar) display, y down.
+enum Screens {
+    /// The primary display's frame. `NSScreen.screens` can be empty for a moment while displays reconfigure
+    /// (a projector plugging in), so never force-unwrap it.
+    static var primaryFrame: CGRect { NSScreen.screens.first?.frame ?? CGRect(x: 0, y: 0, width: 1440, height: 900) }
+
+    /// AppKit (bottom-left) global rect → protocol (top-left) rect.
+    static func topLeft(_ r: CGRect) -> CGRect {
+        CGRect(x: r.minX, y: primaryFrame.height - r.maxY, width: r.width, height: r.height)
+    }
+
+    /// The display under protocol point `p`, else the primary.
+    static func screen(at p: CGPoint) -> NSScreen? {
+        NSScreen.screens.first { topLeft($0.frame).contains(p) } ?? NSScreen.screens.first
+    }
 }
 
 struct Style {
@@ -78,6 +96,8 @@ struct Style {
     var iconGap: CGFloat { 6 * k }
     var gap: CGFloat { hc ? 8 : 6 }
     var clamp: CGFloat { 4 }
+    /// Longest label run before it truncates in the middle: a pill wider than this reads as a dialog, not a hint.
+    var maxTextW: CGFloat { 460 * k }
 
     func pillFill(_ kind: GhostKind) -> NSColor {
         switch kind {
@@ -141,7 +161,8 @@ struct PillContent {
     var icon: Icon
 
     init(_ g: Ghost) {
-        var label = g.label.trimmingCharacters(in: .whitespaces)
+        // One line, always: labels can carry error text from the hub (e.g. a multi-line wallet error in "Blocked · …").
+        var label = g.label.split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
         var hadTab = false
         if label.hasSuffix("⇥") { hadTab = true; label = String(label.dropLast()).trimmingCharacters(in: .whitespaces) }
         icon = .none
@@ -175,24 +196,39 @@ final class PillView: NSView {
     private var textAttr: NSAttributedString?
     private var keyW: CGFloat = 0
 
-    init(ghost: Ghost, style: Style) {
+    /// `maxW` caps the pill (the usable screen width); long labels truncate in the middle so both ends stay readable.
+    init(ghost: Ghost, style: Style, maxW: CGFloat = .greatestFiniteMagnitude) {
         kind = ghost.kind
         self.style = style
         content = PillContent(ghost)
         let textColor = style.pillText(ghost.kind)
         var w: CGFloat
         var attr: NSAttributedString?
-        if !content.keyOnly {
-            let a = NSMutableAttributedString(string: content.head, attributes: [.font: style.pillFont, .foregroundColor: textColor])
-            if let t = content.tail {
-                a.append(NSAttributedString(string: " · \(t)", attributes: [.font: style.pillTailFont, .foregroundColor: textColor.withAlphaComponent(0.82)]))
-            }
-            attr = a
-        }
         var kw: CGFloat = 0
         if let key = content.key {
             let tw = (key as NSString).size(withAttributes: [.font: style.keyFont]).width
             kw = max(style.keyMinW, ceil(tw) + 2 * style.keyPadH)
+        }
+        if !content.keyOnly {
+            var chrome = style.padL + (content.icon != .none ? style.iconSize + style.iconGap : 0)
+            chrome += content.key != nil ? style.keyGap + kw + style.keyInset : style.padR
+            let room = max(80, min(style.maxTextW, maxW - chrome))
+            let headAttrs: [NSAttributedString.Key: Any] = [.font: style.pillFont, .foregroundColor: textColor]
+            let tailAttrs: [NSAttributedString.Key: Any] = [.font: style.pillTailFont, .foregroundColor: textColor.withAlphaComponent(0.82)]
+            var head = content.head
+            var tail = content.tail.map { " · \($0)" } ?? ""
+            let headW = (head as NSString).size(withAttributes: headAttrs).width
+            let tailW = (tail as NSString).size(withAttributes: tailAttrs).width
+            if headW + tailW > room {
+                // A short head keeps its width and the tail gives way ("Blocked · <long reason>"); a long head gets
+                // at most 60% and truncates in the middle, so both ends stay readable ("Type "Thanks…rebuilds" into Comment").
+                let headRoom = max(room - tailW, min(headW, room * 0.6))
+                head = PillView.fit(head, headRoom, headAttrs, .byTruncatingMiddle)
+                tail = PillView.fit(tail, room - (head as NSString).size(withAttributes: headAttrs).width, tailAttrs, .byTruncatingTail)
+            }
+            let a = NSMutableAttributedString(string: head, attributes: headAttrs)
+            if !tail.isEmpty { a.append(NSAttributedString(string: tail, attributes: tailAttrs)) }
+            attr = a
         }
         if content.keyOnly {
             w = kw + 2 * style.keyInset
@@ -211,6 +247,29 @@ final class PillView: NSView {
 
     required init?(coder: NSCoder) { fatalError() }
     override var isFlipped: Bool { true }
+
+    /// `s` shortened with an ellipsis until it fits `w` points (binary search on the character count).
+    static func fit(_ s: String, _ w: CGFloat, _ attrs: [NSAttributedString.Key: Any], _ mode: NSLineBreakMode) -> String {
+        func width(_ t: String) -> CGFloat { (t as NSString).size(withAttributes: attrs).width }
+        guard width(s) > w else { return s }
+        let chars = Array(s)
+        // Trim only at the cut, so a leading " · " survives.
+        func trimEnd(_ t: [Character]) -> String { String(t.reversed().drop { $0 == " " }.reversed()) }
+        func trimStart(_ t: [Character]) -> String { String(t.drop { $0 == " " }) }
+        func cut(_ n: Int) -> String {
+            if mode == .byTruncatingMiddle {
+                let head = (n + 1) / 2
+                return trimEnd(Array(chars.prefix(head))) + "…" + trimStart(Array(chars.suffix(n - head)))
+            }
+            return trimEnd(Array(chars.prefix(n))) + "…"
+        }
+        var lo = 0, hi = chars.count
+        while lo < hi {
+            let mid = (lo + hi + 1) / 2
+            if width(cut(mid)) <= w { lo = mid } else { hi = mid - 1 }
+        }
+        return cut(lo)
+    }
 
     /// Place the pill (not the margin) with its top-left at `p`.
     func place(at p: CGPoint) { setFrameOrigin(CGPoint(x: p.x - PillView.margin, y: p.y - PillView.margin)) }
@@ -323,7 +382,7 @@ final class GhostView: NSView {
         self.ghost = ghost
         self.style = style
         self.usable = usable
-        pill = PillView(ghost: ghost, style: style)
+        pill = PillView(ghost: ghost, style: style, maxW: usable.width - 2 * style.clamp)
         super.init(frame: frame)
         wantsLayer = true
         pillRect = layoutPill()
@@ -359,10 +418,17 @@ final class GhostView: NSView {
             } else {
                 let tw = ((ghost.ghostText ?? "") as NSString).size(withAttributes: [.font: ghostTextFont]).width
                 let x = r.x + 8 + ceil(tw) + 6
+                let right = CGPoint(x: r.x + r.w + style.gap + style.boxOutset, y: r.y + (r.h - size.height) / 2)
                 if x + size.width <= r.x + r.w - 4 {
                     p = CGPoint(x: x, y: r.y + (r.h - size.height) / 2)
+                } else if right.x + size.width <= usable.maxX - style.clamp {
+                    p = right
                 } else {
-                    p = CGPoint(x: r.x + r.w + style.gap + style.boxOutset, y: r.y + (r.h - size.height) / 2)
+                    // No room inline or to the right (a narrow field at the screen edge): below the box, so the
+                    // pill never sits on top of the ghost text.
+                    let o = style.boxOutset
+                    p = CGPoint(x: r.x + r.w + o - size.width, y: r.y + r.h + o + style.gap)
+                    if p.y + size.height > usable.maxY - style.clamp { p.y = r.y - o - style.gap - size.height }
                 }
             }
         } else if let b = boxRect(), let r = ghost.rect {
@@ -379,7 +445,12 @@ final class GhostView: NSView {
                 p = CGPoint(x: r.x + r.w - size.width - inset, y: r.y + (r.h - size.height) / 2)
             default:
                 p = CGPoint(x: b.minX, y: b.maxY + style.gap)
-                if p.y + size.height > usable.maxY - style.clamp { p.y = b.minY - style.gap - size.height }
+                if p.y + size.height > usable.maxY - style.clamp { p.y = above.y }
+                // Neither fits (the element fills the screen, e.g. a whole card or editor): dock inside its visible bottom-left.
+                if p.y < usable.minY + style.clamp {
+                    let vis = b.intersection(usable)
+                    if !vis.isNull { p = CGPoint(x: vis.minX + 8, y: vis.maxY - size.height - 8) }
+                }
             }
         } else if let a = ghost.pillAt {
             p = CGPoint(x: a.x, y: a.y - size.height) // pillAt = the pill's bottom-left corner
@@ -395,7 +466,8 @@ final class GhostView: NSView {
     private func cursorTip() -> CGPoint? {
         // No cursor under a docked pill: the badge already points at the element.
         guard ghost.kind == .action, ghost.cursor != nil, ghost.place != "inside", let r = ghost.rect else { return nil }
-        if r.w >= 48 { return CGPoint(x: min(r.x + 0.78 * r.w, r.x + r.w - 14), y: r.y + 0.62 * r.h) }
+        // Tall targets (cards, editors): stay near the top, where the label usually is, not mid-air.
+        if r.w >= 48 { return CGPoint(x: min(r.x + 0.78 * r.w, r.x + r.w - 14), y: r.y + min(0.62 * r.h, 40)) }
         return CGPoint(x: r.x + 0.6 * r.w, y: r.y + 0.6 * r.h)
     }
 
@@ -493,30 +565,53 @@ final class Overlay {
     var highContrast: Bool
     private(set) var current: Ghost?
 
+    /// The covered display's frame and visible frame (below the menu bar, above the Dock), in protocol points.
+    private var screenTL: CGRect = .zero
+    private var usable: CGRect = .zero
+
     init(highContrast: Bool) {
         self.highContrast = highContrast
-        let screen = NSScreen.screens.first!
-        window = NSWindow(contentRect: screen.frame, styleMask: .borderless, backing: .buffered, defer: false)
+        let f = Screens.primaryFrame
+        window = NSWindow(contentRect: f, styleMask: .borderless, backing: .buffered, defer: false)
         window.isOpaque = false
         window.backgroundColor = .clear
         window.hasShadow = false
         window.ignoresMouseEvents = true
-        window.level = .statusBar
+        // One above the HUD (.statusBar): a ghost is never hidden under the HUD panel.
+        window.level = NSWindow.Level(rawValue: NSWindow.Level.statusBar.rawValue + 1)
         window.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
         window.isReleasedWhenClosed = false
-        root = FlippedView(frame: CGRect(origin: .zero, size: screen.frame.size))
+        root = FlippedView(frame: CGRect(origin: .zero, size: f.size))
         root.wantsLayer = true
         window.contentView = root
-        window.setFrame(screen.frame, display: true)
+        cover(NSScreen.screens.first)
         window.orderFrontRegardless()
+        // A projector plugging in, mirroring, or a resolution change moves and resizes displays under us.
+        NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
+            guard let self else { return }
+            self.screenTL = .zero // force a re-frame
+            if let cur = self.current { self.cover(self.screen(for: cur)); self.redraw() } else { self.cover(NSScreen.screens.first) }
+        }
     }
 
     private var style: Style { Style(hc: highContrast) }
 
-    private var usable: CGRect {
-        let s = NSScreen.screens.first!
-        let vf = s.visibleFrame
-        return CGRect(x: vf.minX, y: s.frame.height - vf.maxY, width: vf.width, height: vf.height)
+    /// The display a ghost belongs on: the one under its rect's centre or its pill anchor.
+    private func screen(for g: Ghost) -> NSScreen? {
+        if let r = g.rect { return Screens.screen(at: CGPoint(x: r.x + r.w / 2, y: r.y + r.h / 2)) }
+        if let a = g.pillAt { return Screens.screen(at: CGPoint(x: a.x, y: a.y - 1)) }
+        return NSScreen.screens.first
+    }
+
+    /// Move the window over `s` (no-op if it's already there).
+    private func cover(_ s: NSScreen?) {
+        let f = s?.frame ?? Screens.primaryFrame
+        let tl = Screens.topLeft(f)
+        usable = s.map { Screens.topLeft($0.visibleFrame) } ?? tl
+        guard tl != screenTL else { return }
+        screenTL = tl
+        window.setFrame(f, display: false)
+        root.frame = CGRect(origin: .zero, size: f.size)
     }
 
     /// Show the single live ghost (replaces any other).
@@ -558,9 +653,15 @@ final class Overlay {
     func shake() {
         guard let cur = current, let v = views[cur.id] else { return }
         if style.reduceMotion {
+            // Border alpha 1 → .4 → 1 over the shake's 320 ms, no movement.
             let p = v.pill
-            p.borderAlpha = 0.4
-            DispatchQueue.main.asyncAfter(deadline: .now() + style.shakeMs / 2000) { p.borderAlpha = 1 }
+            let t0 = CACurrentMediaTime()
+            let ms = style.shakeMs
+            Timer.scheduledTimer(withTimeInterval: 1.0 / 60, repeats: true) { t in
+                let f = min(1, (CACurrentMediaTime() - t0) * 1000 / ms)
+                p.borderAlpha = 1 - 0.6 * CGFloat(sin(f * .pi))
+                if f >= 1 { p.borderAlpha = 1; t.invalidate() }
+            }
             return
         }
         let a = CAKeyframeAnimation(keyPath: "transform.translation.x")
@@ -590,7 +691,9 @@ final class Overlay {
 
     private func add(_ g: Ghost, animated: Bool, hc: Bool? = nil) {
         let st = Style(hc: hc ?? highContrast)
+        cover(screen(for: g))
         let v = GhostView(ghost: g, style: st, frame: root.bounds, usable: usable)
+        v.setBoundsOrigin(screenTL.origin) // view points = protocol points on this display
         views[g.id] = v
         root.addSubview(v)
         guard animated else { return }

@@ -72,6 +72,11 @@ final class Shell: NSObject, InputTapDelegate {
             self?.hud.setConnected(true)
             self?.reportFrontmost(NSWorkspace.shared.frontmostApplication)
         }
+        // Hub gone: say so, and drop the ghost, so Tab stops being swallowed for an accept nobody will receive.
+        hub.onDisconnect = { [weak self] in
+            self?.hud.setConnected(false)
+            self?.overlay.hide()
+        }
         terminal.onState = { [weak self] s in self?.hub.send(.state(s)) }
     }
 
@@ -87,7 +92,7 @@ final class Shell: NSObject, InputTapDelegate {
         setUpMenuBar()
         // Re-place the HUD only when displays change; a polling re-place would snap it back mid-drag.
         NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
-            self?.checkHubShown()
+            self?.replaceHud()
         }
     }
 
@@ -148,7 +153,7 @@ final class Shell: NSObject, InputTapDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in self?.startTapWhenTrusted() }
     }
 
-    private func checkHubShown() { if hud.isVisible { hud.place() } }
+    private func replaceHud() { if hud.isVisible { hud.place() } }
 
     // MARK: frontmost
 
@@ -160,9 +165,16 @@ final class Shell: NSObject, InputTapDelegate {
     private func reportFrontmost(_ app: NSRunningApplication?) {
         guard let app, let bid = app.bundleIdentifier, bid != selfBundleId else { return }
         terminal.setFrontmost(app)
-        var title = ""
-        if AXIsProcessTrusted(), let w = AX.focusedWindow(pid: app.processIdentifier) { title = AX.attr(w, kAXTitleAttribute) ?? "" }
-        hub.send(.frontmost(app: bid, window: title))
+        // The window title is an AX round trip to another app; the tap shares the main run loop, so never block it.
+        let pid = app.processIdentifier
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let title = AX.windowTitle(pid: pid)
+            DispatchQueue.main.async {
+                // Drop it if another app came forward meanwhile.
+                guard NSWorkspace.shared.frontmostApplication?.processIdentifier == pid else { return }
+                self?.hub.send(.frontmost(app: bid, window: title))
+            }
+        }
     }
 
     // MARK: hub → A
@@ -227,13 +239,13 @@ final class Shell: NSObject, InputTapDelegate {
 
     func tapBlockedPress(_ g: Ghost) { overlay.shake() }
 
-    func tapOtherInput(kind: String) {
+    func tapOtherInput(kind: String, report: Bool) {
         if let g = overlay.current, g.kind != .done { overlay.hide() }
-        hub.send(.input(kind: kind))
+        if report { hub.send(.input(kind: kind)) }
     }
 
-    func tapHoldProgress(_ g: Ghost?, started: Bool) {
-        if started { overlay.startHold(ms: 600) } else { overlay.stopHold() }
+    func tapHoldProgress(started: Bool) {
+        if started { overlay.startHold(ms: holdDismissMs) } else { overlay.stopHold() }
     }
 }
 
@@ -246,7 +258,7 @@ enum AppSwitcher {
         let pid = app.processIdentifier
         if NSWorkspace.shared.frontmostApplication?.processIdentifier == pid { return done(true, nil) }
         app.activate(options: [.activateAllWindows])
-        AXUIElementSetAttributeValue(AXUIElementCreateApplication(pid), kAXFrontmostAttribute as CFString, kCFBooleanTrue)
+        DispatchQueue.global(qos: .userInitiated).async { AX.setFrontmost(pid: pid) } // AX off the tap's run loop
         confirm(pid, tries: 6) { ok in
             if ok { return done(true, nil) }
             // LaunchServices can't choose between instances, so only fall back to it when there's one.
@@ -366,14 +378,15 @@ func renderSelftest(to out: String) {
     root.dark = args.contains("--dark")
     root.image = flagValue("--bg").flatMap { NSImage(contentsOfFile: $0) }
     // --ghosts file.json: [{"ghost": Ghost, "hc": Bool?}] in view points, instead of the selftest layout.
-    struct Item: Decodable { var ghost: Ghost; var hc: Bool? }
-    let items: [(Ghost, Bool)] = flagValue("--ghosts").map { path in
+    // `hold` (0…1) draws the keycap's hold sweep at that fraction.
+    struct Item: Decodable { var ghost: Ghost; var hc: Bool?; var hold: Double? }
+    let items: [Item] = flagValue("--ghosts").map { path in
         let data = try! Data(contentsOf: URL(fileURLWithPath: path))
-        return try! JSONDecoder().decode([Item].self, from: data).map { ($0.ghost, $0.hc ?? highContrastFlag) }
-    } ?? selftestGhosts(screen: size)
-    for (g, hc) in items {
-        let v = GhostView(ghost: g, style: Style(hc: hc), frame: root.bounds, usable: root.bounds)
-        if g.id.hasSuffix("-repeat") || g.id.hasSuffix("-hold") { v.pill.holdFraction = 0.55 } // show the hold sweep mid-way
+        return try! JSONDecoder().decode([Item].self, from: data)
+    } ?? selftestGhosts(screen: size).map { Item(ghost: $0.0, hc: $0.1, hold: $0.0.id.hasSuffix("-repeat") ? 0.55 : nil) }
+    for it in items {
+        let v = GhostView(ghost: it.ghost, style: Style(hc: it.hc ?? highContrastFlag), frame: root.bounds, usable: root.bounds)
+        v.pill.holdFraction = it.hold.map { CGFloat($0) }
         root.addSubview(v)
     }
     guard let rep = root.bitmapImageRepForCachingDisplay(in: root.bounds) else { fatalError("no bitmap") }

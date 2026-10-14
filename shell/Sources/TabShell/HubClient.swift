@@ -10,6 +10,8 @@ final class HubClient: NSObject, URLSessionWebSocketDelegate {
 
     var onMessage: ((HubToShell) -> Void)?
     var onConnect: (() -> Void)?
+    /// Once per lost connection (not on every failed retry).
+    var onDisconnect: (() -> Void)?
 
     init(url: URL) {
         self.url = url
@@ -65,7 +67,10 @@ final class HubClient: NSObject, URLSessionWebSocketDelegate {
     }
 
     private func drop(_ why: String) {
-        if connected { log("hub: disconnected (\(why))") }
+        if connected {
+            log("hub: disconnected (\(why))")
+            onDisconnect?()
+        }
         connected = false
         task?.cancel(with: .goingAway, reason: nil)
         task = nil

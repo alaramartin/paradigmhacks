@@ -43,6 +43,19 @@ enum AX {
         return ws.first
     }
 
+    /// The focused window's title, or "". Call off the main thread: it waits on the other app.
+    static func windowTitle(pid: pid_t) -> String {
+        guard AXIsProcessTrusted(), let w = focusedWindow(pid: pid) else { return "" }
+        AXUIElementSetMessagingTimeout(w, 0.25)
+        return attr(w, kAXTitleAttribute) ?? ""
+    }
+
+    static func setFrontmost(pid: pid_t) {
+        let app = AXUIElementCreateApplication(pid)
+        AXUIElementSetMessagingTimeout(app, 0.25)
+        AXUIElementSetAttributeValue(app, kAXFrontmostAttribute as CFString, kCFBooleanTrue)
+    }
+
     /// Breadth-first search for the first element with `role`, at most `depth` levels down.
     static func find(_ root: AXUIElement, role want: String, depth: Int = 6) -> (AXUIElement, String)? {
         var q: [(AXUIElement, Int, String)] = [(root, 0, role(root))]
