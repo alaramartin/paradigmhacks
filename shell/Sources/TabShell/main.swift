@@ -54,6 +54,9 @@ final class Shell: NSObject, InputTapDelegate {
     let hub: HubClient
     let terminal = TerminalPoller()
     private var lastHud = Hud()
+    private var statusItem: NSStatusItem?
+    private var showHudItem: NSMenuItem?
+    private var contrastItem: NSMenuItem?
 
     init(hubURL: URL, highContrast: Bool) {
         overlay = Overlay(highContrast: highContrast)
@@ -80,15 +83,63 @@ final class Shell: NSObject, InputTapDelegate {
                                                           name: NSWorkspace.didActivateApplicationNotification, object: nil)
         terminal.setFrontmost(NSWorkspace.shared.frontmostApplication)
         hub.start()
+        setUpMenuBar()
         Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in self?.checkHubShown() }
     }
+
+    // MARK: menu bar item (show/hide and reset the HUD, high contrast, quit)
+
+    private func setUpMenuBar() {
+        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        item.button?.title = "⇥"
+        item.button?.toolTip = "Tab"
+        let menu = NSMenu()
+        let show = NSMenuItem(title: "Show HUD", action: #selector(toggleHud), keyEquivalent: "")
+        show.target = self
+        menu.addItem(show)
+        let reset = NSMenuItem(title: "Reset HUD Position", action: #selector(resetHud), keyEquivalent: "")
+        reset.target = self
+        menu.addItem(reset)
+        let hc = NSMenuItem(title: "High Contrast", action: #selector(toggleContrast), keyEquivalent: "")
+        hc.target = self
+        menu.addItem(hc)
+        menu.addItem(.separator())
+        let quit = NSMenuItem(title: "Quit TabShell", action: #selector(quit), keyEquivalent: "q")
+        quit.target = self
+        menu.addItem(quit)
+        item.menu = menu
+        statusItem = item
+        showHudItem = show
+        contrastItem = hc
+        refreshMenu()
+    }
+
+    private func refreshMenu() {
+        showHudItem?.state = hud.isVisible ? .on : .off
+        contrastItem?.state = overlay.highContrast ? .on : .off
+    }
+
+    @objc private func toggleHud() {
+        hud.setVisible(!hud.isVisible)
+        refreshMenu()
+    }
+
+    @objc private func resetHud() {
+        hud.resetPosition()
+        if !hud.isVisible { hud.setVisible(true) }
+        refreshMenu()
+    }
+
+    @objc private func toggleContrast() { hudClicked("contrast") }
+
+    @objc private func quit() { NSApp.terminate(nil) }
 
     private func startTapWhenTrusted() {
         if tap.start() { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in self?.startTapWhenTrusted() }
     }
 
-    private func checkHubShown() { hud.place() }
+    private func checkHubShown() { if hud.isVisible { hud.place() } }
 
     // MARK: frontmost
 
@@ -142,6 +193,7 @@ final class Shell: NSObject, InputTapDelegate {
             overlay.highContrast.toggle()
             hud.setHighContrast(overlay.highContrast)
             overlay.redraw()
+            refreshMenu()
         }
         hub.send(.hudClick(item: item))
     }

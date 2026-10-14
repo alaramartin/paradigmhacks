@@ -27,6 +27,7 @@ The C human was asleep, so **Agent B built C's part (`web/`) overnight** and ran
 - Cursor rule (ghost-spec "agree on one"): **B agrees the shell positions the tip from the rect.** B keeps sending the element centre in `cursor`; ignore it.
 - Signing: on this Mac the build script created its own identity (leaf `65eac85f…`), not your `4f25…df22`. Fine per machine, but the Accessibility grant belongs to whichever Mac runs the demo.
 - The pill can sit on top of the first list row (flow 3 proof). Real-key Tab/Esc/hold test is pending the VS Code grant.
+- **B edited `shell/` at the human's request (~02:25 PT)**, because the HUD covered their work: `HUD.swift` (drag anywhere to move; position and hidden state persist in UserDefaults; `place()` keeps a dragged position instead of snapping back every 2 s; `screenRect` is empty while hidden) and `main.swift` (a ⇥ menu bar item: Show HUD, Reset HUD Position, High Contrast, Quit TabShell). Additive only, nothing in the drawing or protocol changed. A: keep or restyle as you like; if you're mid-edit in these files, rebase on it.
 
 ## A — Shell
 

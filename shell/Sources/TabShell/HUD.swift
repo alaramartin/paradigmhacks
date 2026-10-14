@@ -28,18 +28,52 @@ final class HUD {
         panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
         view = HUDView(frame: CGRect(origin: .zero, size: size))
         panel.contentView = view
+        view.onMoved = { [weak self] in self?.savePosition() }
         place()
-        panel.orderFrontRegardless()
+        if isVisible { panel.orderFrontRegardless() }
     }
 
+    // Position and visibility persist across launches (menu bar item: Show HUD / Reset HUD position).
+    private static let posKey = "hudOrigin", hiddenKey = "hudHidden"
+
+    var isVisible: Bool { !UserDefaults.standard.bool(forKey: HUD.hiddenKey) }
+
+    func setVisible(_ v: Bool) {
+        UserDefaults.standard.set(!v, forKey: HUD.hiddenKey)
+        if v {
+            place()
+            panel.orderFrontRegardless()
+        } else {
+            panel.orderOut(nil)
+        }
+    }
+
+    /// Where the user dragged it, if that's still on a screen; else the top-right corner.
     func place() {
-        let vf = NSScreen.screens.first!.visibleFrame
         let s = HUDView.size
+        if let o = UserDefaults.standard.array(forKey: HUD.posKey) as? [Double], o.count == 2 {
+            let f = CGRect(x: o[0], y: o[1], width: s.width, height: s.height)
+            if NSScreen.screens.contains(where: { $0.visibleFrame.intersects(f) }) {
+                panel.setFrameOrigin(f.origin)
+                return
+            }
+        }
+        let vf = NSScreen.screens.first!.visibleFrame
         panel.setFrameOrigin(CGPoint(x: vf.maxX - s.width - 12, y: vf.maxY - s.height - 12))
     }
 
-    /// Panel frame in top-left screen points (for the input tap).
+    func resetPosition() {
+        UserDefaults.standard.removeObject(forKey: HUD.posKey)
+        place()
+    }
+
+    private func savePosition() {
+        UserDefaults.standard.set([Double(panel.frame.minX), Double(panel.frame.minY)], forKey: HUD.posKey)
+    }
+
+    /// Panel frame in top-left screen points (for the input tap). Empty while hidden.
     var screenRect: CGRect {
+        guard panel.isVisible else { return .zero }
         let f = panel.frame
         let h = NSScreen.screens.first!.frame.height
         return CGRect(x: f.minX, y: h - f.maxY, width: f.width, height: f.height)
@@ -65,8 +99,11 @@ final class HUDView: NSView {
     var connected = false { didSet { updateDot(); needsDisplay = true } }
     var highContrast = false { didSet { needsDisplay = true } }
     var onClick: ((String) -> Void)?
+    var onMoved: (() -> Void)?
 
     private var paidUntil: Date?
+    private var dragStart: (mouse: NSPoint, origin: NSPoint)?
+    private var dragged = false
     private var ledgerRect: CGRect = .zero
     private var contrastRect: CGRect = .zero
     private var dotAlpha: CGFloat = 1
@@ -227,7 +264,27 @@ final class HUDView: NSView {
         text("High contrast", CGPoint(x: x0 + 32, y: y), .systemFont(ofSize: 11, weight: .medium), highContrast ? primary : secondary)
     }
 
+    // Drag anywhere to move the panel; a click without movement still hits ledger / high contrast.
     override func mouseDown(with e: NSEvent) {
+        guard let w = window else { return }
+        dragStart = (NSEvent.mouseLocation, w.frame.origin)
+        dragged = false
+    }
+
+    override func mouseDragged(with e: NSEvent) {
+        guard let w = window, let d = dragStart else { return }
+        let m = NSEvent.mouseLocation
+        if !dragged, hypot(m.x - d.mouse.x, m.y - d.mouse.y) < 3 { return }
+        dragged = true
+        w.setFrameOrigin(NSPoint(x: d.origin.x + m.x - d.mouse.x, y: d.origin.y + m.y - d.mouse.y))
+    }
+
+    override func mouseUp(with e: NSEvent) {
+        defer { dragStart = nil }
+        if dragged {
+            onMoved?()
+            return
+        }
         let p = convert(e.locationInWindow, from: nil)
         if ledgerRect.contains(p) {
             if hud.lastTx != nil { onClick?("ledger") }
@@ -235,4 +292,6 @@ final class HUDView: NSView {
             onClick?("contrast")
         }
     }
+
+    override func resetCursorRects() { addCursorRect(bounds, cursor: .openHand) }
 }
