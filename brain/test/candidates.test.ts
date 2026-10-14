@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { El, ScreenState } from "../../protocol/types.ts";
-import { candidates, prDescription } from "../src/candidates.ts";
+import { candidates, mentionedOptions, otherPagesText, prDescription } from "../src/candidates.ts";
 
 const r = { x: 0, y: 0, w: 1, h: 1 };
 const C = "com.google.Chrome";
@@ -35,4 +35,15 @@ test("PR description from commit titles, hashes skipped", () => {
     ]);
     assert.equal(prDescription(page), "Round checkout totals to cents, and 1 more change.\n\n## Changes\n- Round checkout totals to cents\n- Add rounding test");
     assert.equal(prDescription({ ...page, url: "http://tickets.localhost:4001/" }), null);
+});
+
+test("a select isn't 'mentioned' by stray digits on other pages", () => {
+    const other = st("http://x/", [{ id: "t", role: "text", label: "1 × General admission · Total $0.15", rect: r, enabled: true }]);
+    const page = st("http://tickets.localhost:4001/e/night-owls", [
+        { id: "q", role: "select", label: "Qty", value: "2", options: ["1", "2", "3", "4"], rect: r, enabled: true },
+        { id: "loc", role: "select", label: "Pickup", value: "Main St", options: ["Main St", "Oak St"], rect: r, enabled: true },
+    ]);
+    assert.deepEqual(mentionedOptions(page.elements[0], otherPagesText(page, [other])), []);
+    const inbox = st("http://inbox/", [{ id: "m", role: "text", label: "Ready at Oak St. today", rect: r, enabled: true }]);
+    assert.deepEqual(mentionedOptions(page.elements[1], otherPagesText(page, [inbox])), ["Oak St"]);
 });

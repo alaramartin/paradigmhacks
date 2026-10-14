@@ -7,6 +7,7 @@
     "demo": "tsx demo/server.ts",
     "pay-test": "tsx scripts/pay-test.ts",
     "capture": "tsx scripts/capture.ts",
+    "reset-demo": "tsx scripts/reset-demo.ts",
     "balance": "tsx scripts/balance.ts",
     "wallets": "tsx scripts/new-wallets.ts",
     "typecheck": "tsc --noEmit"

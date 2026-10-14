@@ -78,7 +78,11 @@ export function otherPagesText(active: ScreenState, others: ScreenState[]): stri
 
 /** For a select: options (other than the current one) that other pages mention. */
 export function mentionedOptions(el: El, otherText: string): string[] {
-    return (el.options ?? []).filter((o) => o !== el.value && otherText.includes(o.toLowerCase()));
+    // Whole words only, and not bare short numbers: "1" is in every page.
+    const esc = (o: string) => o.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return (el.options ?? []).filter(
+        (o) => o !== el.value && !/^\d{1,2}$/.test(o.trim()) && new RegExp(`(^|[^\\w])${esc(o)}($|[^\\w])`).test(otherText),
+    );
 }
 
 export function candidates(active: ScreenState, others: ScreenState[], _history: HistEntry[]): Candidate[] {

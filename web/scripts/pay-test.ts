@@ -2,6 +2,7 @@
 // Needs the demo server running (npm run demo) and a funded payer.
 import { config } from "dotenv";
 import { wrapFetchWithPaymentFromConfig, decodePaymentResponseHeader } from "@x402/fetch";
+import { decodePaymentRequiredHeader } from "@x402/core/http";
 import { ExactEvmScheme } from "@x402/evm";
 import { privateKeyToAccount } from "viem/accounts";
 
@@ -18,4 +19,6 @@ if (pr) {
     const s = decodePaymentResponseHeader(pr);
     console.log(`settled: ${s.success} · tx ${s.transaction}\nhttps://sepolia.basescan.org/tx/${s.transaction}`);
 }
+const again = res.headers.get("PAYMENT-REQUIRED");
+if (again) console.log(`not paid: ${decodePaymentRequiredHeader(again).error}`);
 console.log(JSON.stringify(await res.json()).slice(0, 300));

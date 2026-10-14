@@ -71,6 +71,7 @@ class Tab {
             send(this.state);
         } else if (m.kind === "user_event") {
             if (m.ev === "click" && m.target) this.lastClick = (m.target as El).rect;
+            if (m.ev === "navigate") cancelPayments(this); // a new page load drops any request we were holding
             this.lastActive = Date.now();
             send({ type: "user_event", source: "web", app: CHROME, url: this.state?.url ?? "", kind: m.ev, target: m.target, value: m.value, ts: Date.now() });
         }
@@ -84,7 +85,10 @@ async function attach(id: string): Promise<void> {
     const client = await CDP({ port: CDP_PORT, target: id });
     const tab = new Tab(id, client);
     tabs.set(id, tab);
-    client.on("disconnect", () => tabs.delete(id));
+    client.on("disconnect", () => {
+        cancelPayments(tab);
+        tabs.delete(id);
+    });
     client.Runtime.on("bindingCalled", (e) => e.name === "__tabEmit" && tab.onEmit(e.payload));
     client.Fetch.on("requestPaused", (e) => void onPaused(tab, e).catch((err) => log("paused error:", err)));
     await client.Runtime.enable();
@@ -267,7 +271,13 @@ async function pay(paymentId: string): Promise<void> {
         await p.tab.client.Fetch.fulfillRequest({ requestId: p.requestId, responseCode: res.status, responseHeaders, body: body.toString("base64") });
         const settle = res.headers.get("payment-response");
         const tx = settle ? decodePaymentResponseHeader(settle) : null;
-        if (!res.ok || !tx?.success) return fail(tx?.errorReason ?? `HTTP ${res.status}`);
+        if (!res.ok || !tx?.success) {
+            // A second 402 carries the reason (e.g. insufficient funds) in its PAYMENT-REQUIRED header.
+            const again = res.headers.get("payment-required");
+            let reason = tx?.errorReason;
+            if (!reason && again) reason = (() => { try { return decodePaymentRequiredHeader(again).error; } catch { return undefined; } })();
+            return fail(reason?.includes("insufficient_balance") ? "not enough USDC in the wallet" : (reason ?? `HTTP ${res.status}`).replace(/_/g, " "));
+        }
         const explorerUrl = `https://sepolia.basescan.org/tx/${tx.transaction}`;
         record({ domain: p.req.payeeDomain, payTo: p.req.payTo, amountUsd: p.req.amountUsd, url: p.url, txHash: tx.transaction, ok: true });
         log(`paid $${p.req.amountUsd} → ${explorerUrl}`);
@@ -276,6 +286,16 @@ async function pay(paymentId: string): Promise<void> {
         await p.tab.client.Fetch.continueResponse({ requestId: p.requestId }).catch(() => {});
         fail((e as Error).message);
     }
+}
+
+/** The tab navigated: its held requests are gone. Tell the hub so it stops offering them. */
+function cancelPayments(tab: Tab): void {
+    for (const [id, p] of pending)
+        if (p.tab === tab) {
+            pending.delete(id);
+            send({ type: "payment_result", paymentId: id, ok: false, error: "cancelled" });
+            log(`402 cancelled by navigation: ${p.req.payeeDomain}`);
+        }
 }
 
 async function dismissPayment(paymentId: string): Promise<void> {

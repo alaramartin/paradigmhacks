@@ -164,3 +164,15 @@ test("no placeholder corner: payment without anchorRect anchors to the last clic
     brain.fromWeb({ type: "payment_result", paymentId: "p2", ok: true, txHash: "0x1", explorerUrl: "https://sepolia.basescan.org/tx/0x1" });
     assert.deepEqual(ghosts().at(-1).rect, SAVE.rect, "done ghost at the same place");
 });
+
+test("a cancelled payment (page navigated away) clears quietly", () => {
+    const { brain, ghosts, shell } = harness();
+    brain.fromShell({ type: "frontmost", app: CHROME, window: "Tickets" });
+    brain.fromWeb({ type: "payment_required", paymentId: "p9", url: "u", method: "POST", payeeDomain: "resale.localhost", payTo: "0x", amountUsd: "0.51", network: "n", asset: "a", verdict: { ok: false, reason: "page says $0.30, payment asks $0.51" } } as PaymentRequired);
+    assert.equal(ghosts().at(-1).kind, "blocked");
+    brain.fromWeb({ type: "payment_result", paymentId: "p9", ok: false, error: "cancelled" });
+    assert.equal(shell.at(-2)?.type, "ghost_hide");
+    const n = ghosts().length;
+    void brain.predictNow();
+    assert.equal(ghosts().length, n, "the blocked ghost doesn't come back");
+});
