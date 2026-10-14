@@ -253,3 +253,14 @@ test("a click while a payment settles doesn't re-offer it (A's 11:35 report); HU
     assert.equal(ghosts().at(-1)!.label, "Paid $0.30 ✓");
     assert.equal(brain.hud.mode, "idle");
 });
+
+test("an in-flight payment cancelled by navigation takes down the Paying pill (A's 11:20 note)", () => {
+    const { brain, ghosts, shell } = harness();
+    brain.fromShell({ type: "frontmost", app: CHROME, window: "Tickets" });
+    brain.fromWeb({ type: "payment_required", paymentId: "p7", url: "u", method: "POST", payeeDomain: "tickets.localhost", payTo: "0x", amountUsd: "0.30", network: "n", asset: "a", verdict: { ok: true }, anchorRect: { x: 1, y: 1, w: 9, h: 9 } } as PaymentRequired);
+    brain.fromShell({ type: "accept", ghostId: ghosts().at(-1)!.id });
+    const n = shell.length;
+    brain.fromWeb({ type: "payment_result", paymentId: "p7", ok: false, error: "cancelled" });
+    assert.ok(shell.slice(n).some((m) => m.type === "ghost_hide"), "ghost_hide sent");
+    assert.equal(brain.hud.mode, "idle");
+});

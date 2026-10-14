@@ -129,12 +129,15 @@ export class JevDecider implements Decider {
         const cached = hit && cands.find((c) => c.desc === hit.desc);
         if (!cached) return live;
         const fromCache = { ...cached.action, confidence: hit.confidence };
-        const slow = new Promise<"slow">((r) => setTimeout(() => r("slow"), CACHE_AFTER_MS));
+        let timer: NodeJS.Timeout | undefined;
+        const slow = new Promise<"slow">((r) => (timer = setTimeout(() => r("slow"), CACHE_AFTER_MS)));
         try {
             const first = await Promise.race([live, slow]);
             if (first !== "slow") return first;
         } catch {
             /* Jev failed: use the cache */
+        } finally {
+            clearTimeout(timer);
         }
         live.catch(() => {}); // keep refreshing the cache in the background
         console.log(`[jev] slow/failed, using the cached answer for this screen: ${cached.action.label}`);

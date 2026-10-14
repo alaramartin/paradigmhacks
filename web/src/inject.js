@@ -168,7 +168,10 @@
         for (const el of document.querySelectorAll(INTERACTIVE)) {
             if (out.length >= MAX) break;
             const r = el.getBoundingClientRect();
-            if (!visible(el, r)) continue;
+            // List items (e.g. GitHub's commit list on the PR page) count up to 3 screens below the fold, like list text:
+            // the brain reads them (commit titles for the PR description) but never targets an off-screen one.
+            const nearList = r.top < innerHeight * 4 && r.bottom > 0 && !!listOf(el);
+            if (!visible(el, r, nearList)) continue;
             const d = describe(el);
             if (d) {
                 out.push(d);

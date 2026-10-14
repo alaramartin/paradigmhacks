@@ -518,11 +518,17 @@ export class Brain {
     private onPaymentResult(r: { paymentId: string; ok: boolean; txHash?: string; explorerUrl?: string; error?: string }): void {
         const p = this.payment;
         if (p && p.paymentId !== r.paymentId) return; // about a payment we've already moved past
-        if (this.paying === r.paymentId) this.paying = null;
+        const wasPaying = this.paying === r.paymentId;
+        if (wasPaying) this.paying = null;
         this.payment = null;
         if (!r.ok && r.error === "cancelled") {
             // The page went away (navigation, tab closed): nothing to pay or block anymore.
             if (this.shown?.paymentId === r.paymentId) this.hide();
+            else if (wasPaying) this.o.sendShell({ type: "ghost_hide" }); // take down the shell's "Paying …" pill
+            if (wasPaying) {
+                this.hud.mode = "idle";
+                this.sendHud();
+            }
             return;
         }
         const id = `g${++this.ghostSeq}`;
