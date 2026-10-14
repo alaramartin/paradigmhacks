@@ -42,6 +42,7 @@ if (cmd === "open") {
     const c = await tab(a1);
     try {
         if (cmd === "shot") {
+            await c.Page.bringToFront();
             if (a3) {
                 const [w, h] = a3.split("x").map(Number);
                 await c.Emulation.setDeviceMetricsOverride({ width: w, height: h, deviceScaleFactor: 1, mobile: false });

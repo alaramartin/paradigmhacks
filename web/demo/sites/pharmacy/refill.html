@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Refill a prescription · Oak St Pharmacy</title>
+<link rel="preconnect" href="https://api.fontshare.com">
+<link rel="preconnect" href="https://cdn.fontshare.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=gambarino@400&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500&display=swap" rel="stylesheet">
+<style>
+  /* Oak St Pharmacy. Direction: The split stage (tasteskill), Gambarino / General Sans, oxblood on grey.
+     The form itself is an app screen: big targets, one column, nothing moves after first paint. */
+  :root {
+    --bg: #e2e2e2; --surface: #d6d6d6; --field: #ececec; --ink: #7d0c14; --muted: #7a4a4e; --accent: #7d0c14; --accent-ink: #f1f1f1;
+    --step-small: clamp(0.8125rem, 0.79rem + 0.1vw, 0.875rem);
+    --step-body: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
+    --step-lead: clamp(1.25rem, 1.1rem + 0.7vw, 1.625rem);
+    --step-head: clamp(2rem, 1.3rem + 3.2vw, 4rem);
+    --display: "Gambarino", Georgia, serif; --text: "General Sans", "Helvetica Neue", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  [hidden] { display: none !important; }
+  html { background: var(--bg); color: var(--ink); font: var(--step-body)/1.5 var(--text); -webkit-font-smoothing: antialiased; }
+  body { display: grid; grid-template-columns: 40% 60%; min-height: 100svh; }
+  :focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+
+  .stage { position: sticky; top: 0; height: 100svh; background: #2b2b2b; overflow: hidden; }
+  .stage img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 60%; filter: grayscale(1) contrast(1.05); }
+  .stage figcaption { position: absolute; left: 0; bottom: 0; right: 0; padding: 10px 20px; background: rgba(20,20,20,.72); color: #e2e2e2; font-size: var(--step-small); }
+
+  .col { padding: clamp(28px, 4vw, 64px) clamp(24px, 4vw, 64px) 48px; max-width: 46rem; }
+  .top { display: flex; justify-content: space-between; align-items: baseline; font-weight: 500; }
+  .top a { color: inherit; }
+  h1 { font: 400 var(--step-head)/0.92 var(--display); letter-spacing: -0.02em; margin-top: clamp(24px, 5svh, 56px); }
+  .lede { margin-top: 12px; max-width: 40ch; }
+
+  form { margin-top: 28px; display: grid; gap: 22px; }
+  .f { display: grid; gap: 8px; }
+  .f > label, .f > p { font-weight: 500; }
+  input[type=text], select { height: 56px; width: 100%; max-width: 360px; border: 0; border-radius: 0; background: var(--field); color: var(--ink); padding: 0 16px; font: 500 var(--step-lead) var(--text); }
+  input[type=text]::placeholder { color: #a88a8c; font-weight: 400; }
+  select { appearance: none; background: var(--field) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%237d0c14' stroke-width='2'/%3E%3C/svg%3E") no-repeat right 16px center; cursor: pointer; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip { height: 34px; padding: 0 12px; border: 0; background: var(--field); color: var(--ink); font: 500 var(--step-small) var(--text); cursor: pointer; }
+  .chip[aria-pressed=true] { background: var(--ink); color: var(--accent-ink); }
+  .chip:hover { background: var(--surface); }
+  .chip[aria-pressed=true]:hover { background: var(--ink); }
+  .check { display: flex; gap: 8px; align-items: center; font-size: var(--step-small); cursor: pointer; width: max-content; }
+  .check input { width: 16px; height: 16px; accent-color: var(--ink); margin: 0; }
+  .due { display: flex; justify-content: space-between; align-items: baseline; max-width: 360px; background: var(--surface); padding: 14px 16px; font-variant-numeric: tabular-nums; }
+  .due span:last-child { font: 400 var(--step-lead) var(--display); }
+  .btn { height: 60px; max-width: 360px; width: 100%; border: 0; border-radius: 0; background: var(--accent); color: var(--accent-ink); font: 500 var(--step-lead) var(--text); cursor: pointer; }
+  .btn:hover { background: #5e0910; }
+  .btn:active { background: #4a070c; }
+  .btn[disabled] { background: var(--muted); cursor: progress; }
+  .status { min-height: 1.5em; font-size: var(--step-small); color: var(--muted); }
+  .done { margin-top: 28px; background: var(--ink); color: var(--accent-ink); padding: 28px; max-width: 460px; }
+  .done h2 { font: 400 var(--step-head)/0.95 var(--display); letter-spacing: -0.02em; }
+  .done p { margin-top: 10px; }
+  footer { margin-top: 64px; font-size: var(--step-small); color: var(--muted); max-width: 60ch; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    h1, .lede { animation: rise .7s cubic-bezier(.2,.7,.2,1) both; } .lede { animation-delay: .07s; }
+    .done { animation: rise .5s cubic-bezier(.2,.7,.2,1) both; }
+    @keyframes rise { from { opacity: 0; transform: translateY(16px); } }
+  }
+  @media (max-width: 800px) { body { grid-template-columns: 1fr; } .stage { position: relative; height: 120px; } .stage figcaption { display: none; } }
+</style>
+</head>
+<body>
+<figure class="stage">
+  <img src="/assets/pharmacy-jar.jpg" width="1400" height="1744" alt="A blue and white maiolica pharmacy jar lettered Basilicon, Italy, about 1740">
+  <figcaption>Pharmacy jar, probably Savona, c. 1740. Art Institute of Chicago, public domain (CC0).</figcaption>
+</figure>
+<div class="col">
+  <header class="top"><a href="/refill">Oak St Pharmacy</a><span>Open until 9 pm</span></header>
+  <h1>Refill a prescription</h1>
+  <p class="lede">Tell us the number on your label and when you'll come in. We'll have it bagged.</p>
+
+  <form id="refill" novalidate>
+    <div class="f">
+      <label for="rx">Rx number</label>
+      <input id="rx" name="rx" type="text" inputmode="numeric" placeholder="0000-000" autocomplete="off">
+    </div>
+    <div class="f">
+      <label for="location">Pickup location</label>
+      <select id="location" name="location"><option>Main St</option><option>Oak St</option><option>Elm Ave</option></select>
+    </div>
+    <div class="f">
+      <p id="time-label">Pickup time, today</p>
+      <div class="chips" role="group" aria-labelledby="time-label">
+        <button class="chip" type="button" aria-pressed="false">4:00 pm</button>
+        <button class="chip" type="button" aria-pressed="false">5:30 pm</button>
+        <button class="chip" type="button" aria-pressed="false">7:00 pm</button>
+      </div>
+    </div>
+    <label class="check"><input id="notify" type="checkbox"> Text me when ready</label>
+    <p class="due"><span>Total due today</span><span>$0.05</span></p>
+    <button class="btn" id="request" type="submit">Request refill</button>
+    <p class="status" id="status" role="status"></p>
+  </form>
+  <section class="done" id="done" hidden aria-live="polite">
+    <h2>Refill requested ✓</h2>
+    <p id="done-detail"></p>
+  </section>
+  <footer>Oak St Pharmacy, 118 Oak St. Copays are paid in USDC. Questions: call the pharmacy counter.</footer>
+</div>
+<script>
+  const chips = [...document.querySelectorAll(".chip")];
+  chips.forEach((c) => c.addEventListener("click", () => chips.forEach((x) => x.setAttribute("aria-pressed", String(x === c)))));
+  const form = document.getElementById("refill"), status = document.getElementById("status"), btn = document.getElementById("request");
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const rx = document.getElementById("rx").value.trim();
+    const time = chips.find((c) => c.getAttribute("aria-pressed") === "true")?.textContent;
+    if (!rx) { status.textContent = "Add the Rx number from your label."; return; }
+    if (!time) { status.textContent = "Pick a time to come in."; return; }
+    btn.disabled = true;
+    status.textContent = "Waiting for the copay…";
+    try {
+      const body = { rx, location: document.getElementById("location").value, time, notify: document.getElementById("notify").checked };
+      const r = await fetch("/api/refill", { method: "POST", headers: { "content-type": "application/json", accept: "application/json" }, body: JSON.stringify(body) });
+      if (r.status === 402) throw new Error("The copay wasn't paid. Nothing was requested.");
+      if (!r.ok) throw new Error("We couldn't take that request (" + r.status + ").");
+      const d = await r.json();
+      document.getElementById("done-detail").textContent = `Rx ${d.rx} at ${d.location}, ready at ${d.time}.${d.notify ? " We'll text you." : ""} Reference ${d.ref}.`;
+      document.getElementById("done").hidden = false;
+      form.hidden = true;
+    } catch (err) {
+      status.textContent = err.message;
+      btn.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>
