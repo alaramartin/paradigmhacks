@@ -237,8 +237,8 @@ func selftestGhosts(screen: CGSize) -> [(Ghost, Bool)] {
         out.append((Ghost(id: "\(tag)-blocked", kind: .blocked, label: "Blocked · page says $0.30, payment asks $0.51", rect: r), hc))
         r = Rect(x: 0, y: next(), w: 140, h: h); r.x = x0
         out.append((Ghost(id: "\(tag)-done", kind: .done, label: "Paid $0.30 ✓", rect: r), hc))
-        r = Rect(x: 0, y: next(), w: 90, h: 30); r.x = x0
-        out.append((Ghost(id: "\(tag)-repeat", kind: .action, label: "Repeat for ENG-150 · #13 ⇥", rect: r, cursor: Point(x: r.x + r.w / 2, y: r.y + r.h / 2)), hc))
+        r = Rect(x: 0, y: next(), w: hc ? 440 : 340, h: hc ? 46 : 32); r.x = x0
+        out.append((Ghost(id: "\(tag)-repeat", kind: .action, label: "Repeat for ENG-150 · #13 ⇥", rect: r, place: "inside"), hc))
         r = Rect(x: 0, y: next(), w: 90, h: 30); r.x = x0
         out.append((Ghost(id: "\(tag)-batch", kind: .action, label: "Do the remaining 3 ⇥", rect: r), hc))
         out.append((Ghost(id: "\(tag)-term", kind: .action, label: "Open pull request ⇥", pillAt: { let py = next() + 40; return Point(x: x0, y: py) }()), hc))

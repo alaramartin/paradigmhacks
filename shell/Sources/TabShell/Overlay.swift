@@ -225,7 +225,8 @@ final class PillView: NSView {
         NSGraphicsContext.restoreGraphicsState()
 
         // Inner border: stroke a path inset by half the width so it stays inside the capsule.
-        let (bc, bw) = style.pillBorder(kind)
+        // A key-only pill (text ghosts) skips it in HC: the yellow key is the edge, a second ring reads as brackets.
+        let (bc, bw) = (style.hc && content.keyOnly) ? (NSColor.clear, 0) : style.pillBorder(kind)
         let ib = r.insetBy(dx: bw / 2, dy: bw / 2)
         let border = NSBezierPath(roundedRect: ib, xRadius: ib.height / 2, yRadius: ib.height / 2)
         border.lineWidth = bw
@@ -252,6 +253,14 @@ final class PillView: NSView {
         let path = NSBezierPath(roundedRect: kr, xRadius: style.keyRadius, yRadius: style.keyRadius)
         style.keyFill(kind).setFill()
         path.fill()
+        // Key edge: a 1 pt darker band along the bottom so it reads as a physical key (none while pressed).
+        if !pressed {
+            NSGraphicsContext.saveGraphicsState()
+            path.addClip()
+            NSColor.black.withAlphaComponent(style.hc ? 0.22 : 0.18).setFill()
+            CGRect(x: kr.minX, y: kr.maxY - 1.5 * (style.hc ? 1.5 : 1), width: kr.width, height: 1.5 * (style.hc ? 1.5 : 1)).fill()
+            NSGraphicsContext.restoreGraphicsState()
+        }
         if pressed {
             (style.hc ? NSColor.black.withAlphaComponent(0.25) : NSColor.white.withAlphaComponent(0.45)).setFill()
             path.fill()
@@ -354,9 +363,20 @@ final class GhostView: NSView {
                     p = CGPoint(x: r.x + r.w + style.gap + style.boxOutset, y: r.y + (r.h - size.height) / 2)
                 }
             }
-        } else if let b = boxRect() {
-            p = CGPoint(x: b.minX, y: b.maxY + style.gap)
-            if p.y + size.height > usable.maxY - style.clamp { p.y = b.minY - style.gap - size.height }
+        } else if let b = boxRect(), let r = ghost.rect {
+            switch ghost.place {
+            case "above":
+                p = CGPoint(x: b.minX, y: b.minY - style.gap - size.height)
+            case "right":
+                p = CGPoint(x: b.maxX + style.gap, y: b.midY - size.height / 2)
+            case "inside":
+                // Docked at the element's right end like a badge, equal space right and top/bottom.
+                let inset = max(4, (r.h - size.height) / 2)
+                p = CGPoint(x: r.x + r.w - size.width - inset, y: r.y + (r.h - size.height) / 2)
+            default:
+                p = CGPoint(x: b.minX, y: b.maxY + style.gap)
+                if p.y + size.height > usable.maxY - style.clamp { p.y = b.minY - style.gap - size.height }
+            }
         } else if let a = ghost.pillAt {
             p = CGPoint(x: a.x, y: a.y - size.height) // pillAt = the pill's bottom-left corner
         } else {

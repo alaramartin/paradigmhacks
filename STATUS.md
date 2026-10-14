@@ -46,7 +46,7 @@ _Two Macs: the demo runs on **alara's Mac** (B verified there). A works on Ayush
 - **Fixture capture tool** `protocol/fixtures/capture/capture.mjs`: read-only CDP and dependency-free, using PLAN's perception rules. Use it for B's fixtures and as a reference for C (`--list`, `--navigate`, `--scroll`, `--focused`).
 - **The list heuristic works on GitHub's real rendered markdown table** (`protocol/fixtures/reference/real_github_release_table_uv.json`): rows are `tbody > tr` items, fields are `td:nth-of-type(N)` or `td:nth-of-type(N) > a`.
 ### In progress
-- Look-and-try polish of the ghost and HUD on the real screen. Fixing B's report that the pill below the box covers the first list row (flow 3).
+- Look-and-try polish on the real screen (the display here is locked, so it's offscreen renders for now). Flow 3 pill-covers-row is fixed shell-side with `Ghost.place`; B needs to send it.
 - Recapture `native_state_terminal_push.json` from a real push to `alaramartin/tab-demo` (needs alara's Mac).
 ### Blocked
 - (none on the demo Mac)
@@ -57,6 +57,7 @@ _Two Macs: the demo runs on **alara's Mac** (B verified there). A works on Ayush
 - **C — GitHub compare page is a React partial.** It first renders "Loading", then hydrates. Re-emit state after hydration (a MutationObserver catches it), or the commit titles never reach B.
 - **B — commit titles that reference a PR are split into several links** (`"Fix … ("`, `"#22424"`, `")"`, all in one `li`, field `div > p > a:nth-of-type(N)`). Read the whole `<p>`, or keep `#NN` out of the demo commit titles.
 - **Humans/C — release table PR column:** GitHub autolinks `#12` only if PR #12 exists. Use real PR numbers for all six rows or for none, otherwise the PR cell's `field` differs between rows (`td:nth-of-type(3)` vs `td:nth-of-type(3) > a`) and the repeat lookup breaks.
+- **B — `Ghost.place` (new, optional; see `protocol/CHANGES.md`):** send `"inside"` for the flow 3 Repeat ghost on the tracker search box, so the pill docks in the box's right end instead of covering the first row. `"above"` and `"right"` also work; the default stays `below`.
 - **C — hidden pages don't smooth-scroll.** When the display sleeps, `visibilityState` is `hidden` and GitHub's smooth `scrollIntoView` never moves. Use `behavior: "instant"` for any scrolling you do.
 
 ## B — Hub + Brain

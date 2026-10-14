@@ -66,6 +66,7 @@ struct Ghost: Codable, Equatable {
     var pillAt: Point?
     var ghostText: String?
     var ttlMs: Double?
+    var place: String? // "below" (default) | "above" | "right" | "inside"
 }
 
 struct TabDid: Codable, Equatable {
