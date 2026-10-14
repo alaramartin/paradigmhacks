@@ -2,6 +2,7 @@
 //   TabShell                       run (connects to ws://127.0.0.1:7800)
 //   TabShell --selftest            draw every ghost kind at fixed rects, normal and high contrast
 //   TabShell --dump                print one Terminal snapshot as JSON and exit
+//   TabShell --tap-selftest        check the Tab/Esc/hold rules on synthetic events (no permissions needed)
 //   TabShell --render out.png      render the selftest ghosts offscreen to a PNG (no permissions needed); --bg img.png, --dark,
 //                                  --size WxH (points), --ghosts file.json ([{ghost, hc}] instead of the selftest layout)
 //   flags: --high-contrast, --hub ws://host:port
@@ -436,6 +437,8 @@ func renderHUD(to out: String) {
 }
 
 // MARK: - main
+
+if args.contains("--tap-selftest") { runTapSelftest() }
 
 if let bid = flagValue("--which") {
     for a in NSRunningApplication.runningApplications(withBundleIdentifier: bid) {

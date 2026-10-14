@@ -50,7 +50,7 @@ final class InputTap {
         return true
     }
 
-    fileprivate func handle(_ type: CGEventType, _ event: CGEvent) -> Unmanaged<CGEvent>? {
+    func handle(_ type: CGEventType, _ event: CGEvent) -> Unmanaged<CGEvent>? {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
             log("tap: re-enabling after \(type == .tapDisabledByTimeout ? "timeout" : "user input")")
             if let tap { CGEvent.tapEnable(tap: tap, enable: true) }
