@@ -47,3 +47,12 @@ test("a select isn't 'mentioned' by stray digits on other pages", () => {
     const inbox = st("http://inbox/", [{ id: "m", role: "text", label: "Ready at Oak St. today", rect: r, enabled: true }]);
     assert.deepEqual(mentionedOptions(page.elements[1], otherPagesText(page, [inbox])), ["Oak St"]);
 });
+
+test("A's real Terminal capture (protocol/fixtures/native_state_terminal_push.json) → one Open pull request candidate", async () => {
+    const { readFileSync } = await import("node:fs");
+    const s = JSON.parse(readFileSync(new URL("../../protocol/fixtures/native_state_terminal_push.json", import.meta.url), "utf8"));
+    const cs = candidates(s, [s], []);
+    assert.equal(cs.length, 1);
+    assert.equal(cs[0].action.label, "Open pull request");
+    assert.match(cs[0].action.value!, /\/pull\/new\/fix\/checkout-rounding$/);
+});

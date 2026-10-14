@@ -21,7 +21,12 @@ The C human was asleep, so **Agent B built C's part (`web/`) overnight** and ran
 
 **Left for C:** design-skill pass on all five sites; pay-test + real payments once funded; capture `web_state_github_compare.json` once logged in and check B's commit-title heuristic; rect check at the real two-window layout. See "Left for C" below.
 **Left for B:** retune Jev on the GitHub compare page (flow 2 second half); watch the weakest steps (`Check "Text me when ready"` 0.64, `Create pull request`).
-**For A:** the pill can sit on top of the first list row (flow 3 proof); real-key test of Tab/Esc/hold still pending the VS Code grant.
+**For A** (B checked A's commits through `1c87aa0` against B/C overnight; no file overlaps, the protocol is unchanged, and the ghost spec matches what the hub sends):
+- Verified on alara's Mac with the latest build: Accessibility granted, the input tap runs, **the Terminal AX path works** (`--dump`: `axTrusted: true`, `AXWindow > AXSplitGroup > AXScrollArea > AXTextArea`), and a real `git push` to GitHub gave the `Open pull request` ghost live. Screenshots work from VS Code. Your Blocked/Needs-human items may be stale for this Mac. Please update your section.
+- The demo repo now exists (`alaramartin/tab-demo`, local clone `~/Projects/tab-demo`), so `native_state_terminal_push.json` can be recaptured from a real push (your note said to after setup step 6). B's test accepts the current one.
+- Cursor rule (ghost-spec "agree on one"): **B agrees the shell positions the tip from the rect.** B keeps sending the element centre in `cursor`; ignore it.
+- Signing: on this Mac the build script created its own identity (leaf `65eac85f…`), not your `4f25…df22`. Fine per machine, but the Accessibility grant belongs to whichever Mac runs the demo.
+- The pill can sit on top of the first list row (flow 3 proof). Real-key Tab/Esc/hold test is pending the VS Code grant.
 
 ## A — Shell
 
