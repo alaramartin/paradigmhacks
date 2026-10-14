@@ -76,11 +76,10 @@ final class InputTap {
                 resetPress()
             }
             if code == kEsc, escSwallowed { return nil }
-            // While a payment settles, Tab stays Tab's: swallowed and unreported, so a second pedal press neither moves
-            // the page's focus nor makes the hub hide the accepted payment and offer it again. Other input isn't
-            // reported either (below), for the same reason.
-            let settling = d.visibleGhost == nil && d.paymentSettling
-            if code == kTab, mods.isEmpty, settling {
+            // While a payment settles, Tab stays Tab's: swallowed, so a second pedal press doesn't move the page's focus.
+            // It still counts as input (once per press); the hub keeps the in-flight payment from being re-offered.
+            if code == kTab, mods.isEmpty, d.visibleGhost == nil, d.paymentSettling {
+                if event.getIntegerValueField(.keyboardEventAutorepeat) == 0 { DispatchQueue.main.async { d.tapOtherInput(kind: "key", report: true) } }
                 tabSwallowedPaying = true
                 return nil
             }
@@ -103,7 +102,7 @@ final class InputTap {
             }
             // Typing in a secure field (a password) still hides the ghost, but nothing about it leaves this process.
             let secure = IsSecureEventInputEnabled()
-            DispatchQueue.main.async { d.tapOtherInput(kind: "key", report: !secure && !settling) }
+            DispatchQueue.main.async { d.tapOtherInput(kind: "key", report: !secure) }
             return Unmanaged.passUnretained(event)
 
         case .keyUp:
@@ -135,8 +134,7 @@ final class InputTap {
         case .leftMouseDown:
             let loc = event.location
             if d.ownRects.contains(where: { $0.contains(loc) }) { return Unmanaged.passUnretained(event) }
-            let settling = d.visibleGhost == nil && d.paymentSettling
-            DispatchQueue.main.async { d.tapOtherInput(kind: "click", report: !settling) }
+            DispatchQueue.main.async { d.tapOtherInput(kind: "click", report: true) }
             return Unmanaged.passUnretained(event)
 
         default:
