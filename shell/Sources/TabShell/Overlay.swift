@@ -492,6 +492,9 @@ final class GhostView: NSView {
             return p == right ? area * 1.2 : area
         }
         let fitting = cands.filter { onScreen.contains(CGRect(origin: $0, size: size)) }
+        if ProcessInfo.processInfo.environment["TAB_DEBUG_PLACE"] != nil {
+            log("place \(ghost.id): " + cands.map { "\(Int($0.x)),\(Int($0.y)) fits=\(fitting.contains($0)) cost=\(Int(covered($0)))" }.joined(separator: " | "))
+        }
         return fitting.min { covered($0) < covered($1) } ?? cands[0] // min keeps the first of equals: below wins ties
     }
 
