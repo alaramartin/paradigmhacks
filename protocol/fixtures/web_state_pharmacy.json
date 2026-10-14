@@ -7,7 +7,7 @@
   "focused": true,
   "elements": [
     {
-      "id": "6ae01",
+      "id": "buvi1",
       "role": "link",
       "label": "Oak St Pharmacy",
       "rect": {
@@ -20,7 +20,7 @@
       "path": "body > div > header > a"
     },
     {
-      "id": "6ae02",
+      "id": "buvi2",
       "role": "textfield",
       "label": "Rx number",
       "rect": {
@@ -39,7 +39,7 @@
       }
     },
     {
-      "id": "6ae03",
+      "id": "buvi3",
       "role": "select",
       "label": "Pickup location",
       "rect": {
@@ -63,7 +63,7 @@
       }
     },
     {
-      "id": "6ae04",
+      "id": "buvi4",
       "role": "button",
       "label": "4:00 pm",
       "rect": {
@@ -81,7 +81,7 @@
       }
     },
     {
-      "id": "6ae05",
+      "id": "buvi5",
       "role": "button",
       "label": "5:30 pm",
       "rect": {
@@ -99,7 +99,7 @@
       }
     },
     {
-      "id": "6ae06",
+      "id": "buvi6",
       "role": "button",
       "label": "7:00 pm",
       "rect": {
@@ -117,7 +117,7 @@
       }
     },
     {
-      "id": "6ae07",
+      "id": "buvi7",
       "role": "checkbox",
       "label": "Text me when ready",
       "rect": {
@@ -131,7 +131,7 @@
       "path": "#notify"
     },
     {
-      "id": "6ae08",
+      "id": "buvi8",
       "role": "button",
       "label": "Request refill",
       "rect": {
@@ -144,7 +144,7 @@
       "path": "#request"
     },
     {
-      "id": "6ae09",
+      "id": "buvi9",
       "role": "text",
       "label": "Pharmacy jar, probably Savona, c. 1740. Art Institute of Chicago, public domain…",
       "rect": {
@@ -157,7 +157,7 @@
       "path": "body > figure > figcaption"
     },
     {
-      "id": "6ae010",
+      "id": "buvi10",
       "role": "text",
       "label": "Open until 9 pm",
       "rect": {
@@ -170,7 +170,7 @@
       "path": "body > div > header > span"
     },
     {
-      "id": "6ae011",
+      "id": "buvi11",
       "role": "text",
       "label": "Refill a prescription",
       "rect": {
@@ -183,7 +183,7 @@
       "path": "body > div > h1"
     },
     {
-      "id": "6ae012",
+      "id": "buvi12",
       "role": "text",
       "label": "Tell us the number on your label and when you'll come in. We'll have it bagged.",
       "rect": {
@@ -196,7 +196,7 @@
       "path": "body > div > p"
     },
     {
-      "id": "6ae013",
+      "id": "buvi13",
       "role": "text",
       "label": "Rx number",
       "rect": {
@@ -214,7 +214,7 @@
       }
     },
     {
-      "id": "6ae014",
+      "id": "buvi14",
       "role": "text",
       "label": "Pickup location",
       "rect": {
@@ -232,7 +232,7 @@
       }
     },
     {
-      "id": "6ae015",
+      "id": "buvi15",
       "role": "text",
       "label": "Pickup time, today",
       "rect": {
@@ -250,7 +250,7 @@
       }
     },
     {
-      "id": "6ae016",
+      "id": "buvi16",
       "role": "text",
       "label": "Text me when ready",
       "rect": {
@@ -263,7 +263,7 @@
       "path": "#refill > label"
     },
     {
-      "id": "6ae017",
+      "id": "buvi17",
       "role": "text",
       "label": "Total due today",
       "rect": {
@@ -276,7 +276,7 @@
       "path": "#refill > p:nth-of-type(1) > span:nth-of-type(1)"
     },
     {
-      "id": "6ae018",
+      "id": "buvi18",
       "role": "text",
       "label": "$0.05",
       "rect": {
@@ -290,5 +290,5 @@
     }
   ],
   "seq": 1,
-  "ts": 1791968978979
+  "ts": 1791969297695
 }

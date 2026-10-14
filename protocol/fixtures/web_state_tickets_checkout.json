@@ -7,7 +7,7 @@
   "focused": true,
   "elements": [
     {
-      "id": "ddp64",
+      "id": "x6ov1",
       "role": "button",
       "label": "Buy tickets",
       "rect": {
@@ -20,7 +20,7 @@
       "path": "#buy"
     },
     {
-      "id": "ddp61",
+      "id": "x6ov2",
       "role": "link",
       "label": "Hall 9",
       "rect": {
@@ -33,7 +33,7 @@
       "path": "body > header > a"
     },
     {
-      "id": "ddp62",
+      "id": "x6ov3",
       "role": "text",
       "label": "Night Owls",
       "rect": {
@@ -46,7 +46,7 @@
       "path": "body > main > div > h1"
     },
     {
-      "id": "ddp63",
+      "id": "x6ov4",
       "role": "text",
       "label": "Friday 9 pm, Hall 9, Dock Road",
       "rect": {
@@ -59,7 +59,7 @@
       "path": "body > main > div > p:nth-of-type(1)"
     },
     {
-      "id": "ddp65",
+      "id": "x6ov5",
       "role": "text",
       "label": "General admission × 2",
       "rect": {
@@ -77,7 +77,7 @@
       }
     },
     {
-      "id": "ddp66",
+      "id": "x6ov6",
       "role": "text",
       "label": "$0.15 each",
       "rect": {
@@ -95,7 +95,7 @@
       }
     },
     {
-      "id": "ddp67",
+      "id": "x6ov7",
       "role": "text",
       "label": "Booking fee",
       "rect": {
@@ -113,7 +113,7 @@
       }
     },
     {
-      "id": "ddp68",
+      "id": "x6ov8",
       "role": "text",
       "label": "$0.00",
       "rect": {
@@ -131,7 +131,7 @@
       }
     },
     {
-      "id": "ddp69",
+      "id": "x6ov9",
       "role": "text",
       "label": "Total",
       "rect": {
@@ -144,7 +144,7 @@
       "path": "body > main > section > p:nth-of-type(3) > span:nth-of-type(1)"
     },
     {
-      "id": "ddp610",
+      "id": "x6ov10",
       "role": "text",
       "label": "$0.30",
       "rect": {
@@ -158,5 +158,5 @@
     }
   ],
   "seq": 1,
-  "ts": 1791968972364
+  "ts": 1791969291190
 }

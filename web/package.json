@@ -12,6 +12,7 @@
     "chrome": "tsx scripts/chrome.ts",
     "look": "tsx scripts/look.ts",
     "capture": "tsx scripts/capture.ts",
+    "try": "tsx scripts/try.ts",
     "test": "tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit"
   },

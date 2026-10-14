@@ -7,7 +7,7 @@
   "focused": true,
   "elements": [
     {
-      "id": "knxj1",
+      "id": "qm921",
       "role": "link",
       "label": "Hall 9",
       "rect": {
@@ -20,7 +20,7 @@
       "path": "body > main > section:nth-of-type(1) > header > a:nth-of-type(1)"
     },
     {
-      "id": "knxj2",
+      "id": "qm922",
       "role": "link",
       "label": "Box office",
       "rect": {
@@ -33,7 +33,7 @@
       "path": "body > main > section:nth-of-type(1) > header > a:nth-of-type(2)"
     },
     {
-      "id": "knxj3",
+      "id": "qm923",
       "role": "select",
       "label": "Qty 1 2 3 4",
       "rect": {
@@ -53,7 +53,7 @@
       "path": "#qty"
     },
     {
-      "id": "knxj4",
+      "id": "qm924",
       "role": "button",
       "label": "Checkout",
       "rect": {
@@ -66,7 +66,7 @@
       "path": "#checkout"
     },
     {
-      "id": "knxj5",
+      "id": "qm925",
       "role": "text",
       "label": "night",
       "rect": {
@@ -79,7 +79,7 @@
       "path": "body > main > section:nth-of-type(1) > h1 > span:nth-of-type(1)"
     },
     {
-      "id": "knxj6",
+      "id": "qm926",
       "role": "text",
       "label": "owls",
       "rect": {
@@ -92,7 +92,7 @@
       "path": "body > main > section:nth-of-type(1) > h1 > span:nth-of-type(2)"
     },
     {
-      "id": "knxj11",
+      "id": "qm927",
       "role": "text",
       "label": "Friday 9 pm, Hall 9",
       "rect": {
@@ -105,7 +105,7 @@
       "path": "body > main > section:nth-of-type(1) > p:nth-of-type(1)"
     },
     {
-      "id": "knxj7",
+      "id": "qm928",
       "role": "text",
       "label": "General admission $0.15",
       "rect": {
@@ -118,7 +118,7 @@
       "path": "#tickets > p:nth-of-type(1)"
     },
     {
-      "id": "knxj8",
+      "id": "qm929",
       "role": "text",
       "label": "$0.15",
       "rect": {
@@ -131,7 +131,7 @@
       "path": "#tickets > p:nth-of-type(1) > b"
     },
     {
-      "id": "knxj9",
+      "id": "qm9210",
       "role": "text",
       "label": "Qty 1 2 3 4",
       "rect": {
@@ -144,7 +144,7 @@
       "path": "#tickets > label"
     },
     {
-      "id": "knxj10",
+      "id": "qm9211",
       "role": "text",
       "label": "Standing, four per order. Paid in USDC.",
       "rect": {
@@ -157,7 +157,7 @@
       "path": "#tickets > p:nth-of-type(2)"
     },
     {
-      "id": "knxj12",
+      "id": "qm9212",
       "role": "text",
       "label": "Doors at eight. Night Owls play from quarter past nine until the curfew at elev…",
       "rect": {
@@ -171,5 +171,5 @@
     }
   ],
   "seq": 1,
-  "ts": 1791968982368
+  "ts": 1791969301065
 }

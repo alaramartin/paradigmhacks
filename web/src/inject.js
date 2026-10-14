@@ -32,12 +32,14 @@
     const cssEscape = (s) => (window.CSS && CSS.escape ? CSS.escape(s) : s);
     const goodId = (id) => id && !/\d{3,}|^[0-9]|:/.test(id) && document.querySelectorAll("#" + cssEscape(id)).length === 1;
 
+    // Repeatable tags always carry their position, so a path is the same whether one or six items show.
+    const REPEATABLE = new Set(["LI", "TR", "TD", "TH", "DT", "DD", "OPTION", "ARTICLE"]);
     function step(el) {
         const tag = el.tagName.toLowerCase();
         const parent = el.parentElement;
         if (!parent) return tag;
         const same = Array.from(parent.children).filter((c) => c.tagName === el.tagName);
-        return same.length > 1 ? `${tag}:nth-of-type(${same.indexOf(el) + 1})` : tag;
+        return same.length > 1 || REPEATABLE.has(el.tagName) ? `${tag}:nth-of-type(${same.indexOf(el) + 1})` : tag;
     }
 
     function cssPath(el, root) {

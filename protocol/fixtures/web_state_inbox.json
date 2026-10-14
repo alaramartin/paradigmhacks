@@ -7,7 +7,7 @@
   "focused": true,
   "elements": [
     {
-      "id": "uvvf1",
+      "id": "feiy1",
       "role": "link",
       "label": "Oak St Pharmacy 4:12 pm Your prescription is ready to refill Rx 4471-209 is rea…",
       "rect": {
@@ -25,7 +25,7 @@
       }
     },
     {
-      "id": "uvvf2",
+      "id": "feiy2",
       "role": "link",
       "label": "Hall 9 1:30 pm Your tickets for Night Owls Doors at 8. Show your ticket at door…",
       "rect": {
@@ -43,7 +43,7 @@
       }
     },
     {
-      "id": "uvvf3",
+      "id": "feiy3",
       "role": "link",
       "label": "Maya Chen 11:05 am Release 1.4 notes Can you close out the tracker tickets toda…",
       "rect": {
@@ -61,7 +61,7 @@
       }
     },
     {
-      "id": "uvvf4",
+      "id": "feiy4",
       "role": "link",
       "label": "Dock Road Ferries Mon Winter timetable The last ferry now leaves at 11:40 pm.",
       "rect": {
@@ -79,7 +79,7 @@
       }
     },
     {
-      "id": "uvvf5",
+      "id": "feiy5",
       "role": "link",
       "label": "City Library Sun Your hold is in Pick it up within seven days.",
       "rect": {
@@ -97,7 +97,7 @@
       }
     },
     {
-      "id": "uvvf6",
+      "id": "feiy6",
       "role": "text",
       "label": "Your prescription is ready to refill",
       "rect": {
@@ -110,7 +110,7 @@
       "path": "body > main > h1"
     },
     {
-      "id": "uvvf7",
+      "id": "feiy7",
       "role": "text",
       "label": "PHARMACY",
       "rect": {
@@ -123,7 +123,7 @@
       "path": "body > main > span"
     },
     {
-      "id": "uvvf8",
+      "id": "feiy8",
       "role": "text",
       "label": "Oak St Pharmacy refills@pharmacy.localhost",
       "rect": {
@@ -136,7 +136,7 @@
       "path": "body > main > div:nth-of-type(1) > p"
     },
     {
-      "id": "uvvf9",
+      "id": "feiy9",
       "role": "text",
       "label": "refills@pharmacy.localhost",
       "rect": {
@@ -149,7 +149,7 @@
       "path": "body > main > div:nth-of-type(1) > p > span"
     },
     {
-      "id": "uvvf10",
+      "id": "feiy10",
       "role": "text",
       "label": "Today, 4:12 pm",
       "rect": {
@@ -162,7 +162,7 @@
       "path": "body > main > div:nth-of-type(1) > time"
     },
     {
-      "id": "uvvf11",
+      "id": "feiy11",
       "role": "text",
       "label": "Hi Sam,",
       "rect": {
@@ -179,7 +179,7 @@
       }
     },
     {
-      "id": "uvvf12",
+      "id": "feiy12",
       "role": "text",
       "label": "Rx 4471-209 is ready to refill at Oak St. Pick up after 5 pm.",
       "rect": {
@@ -192,7 +192,7 @@
       "path": "body > main > div:nth-of-type(2) > p:nth-of-type(2)"
     },
     {
-      "id": "uvvf13",
+      "id": "feiy13",
       "role": "text",
       "label": "4471-209",
       "rect": {
@@ -205,7 +205,7 @@
       "path": "body > main > div:nth-of-type(2) > p:nth-of-type(2) > strong"
     },
     {
-      "id": "uvvf14",
+      "id": "feiy14",
       "role": "text",
       "label": "Prescription",
       "rect": {
@@ -222,7 +222,7 @@
       }
     },
     {
-      "id": "uvvf15",
+      "id": "feiy15",
       "role": "text",
       "label": "4471-209",
       "rect": {
@@ -239,7 +239,7 @@
       }
     },
     {
-      "id": "uvvf16",
+      "id": "feiy16",
       "role": "text",
       "label": "Pharmacy",
       "rect": {
@@ -256,7 +256,7 @@
       }
     },
     {
-      "id": "uvvf17",
+      "id": "feiy17",
       "role": "text",
       "label": "Oak St",
       "rect": {
@@ -273,7 +273,7 @@
       }
     },
     {
-      "id": "uvvf18",
+      "id": "feiy18",
       "role": "text",
       "label": "Ready",
       "rect": {
@@ -290,7 +290,7 @@
       }
     },
     {
-      "id": "uvvf19",
+      "id": "feiy19",
       "role": "text",
       "label": "after 5 pm today",
       "rect": {
@@ -307,7 +307,7 @@
       }
     },
     {
-      "id": "uvvf20",
+      "id": "feiy20",
       "role": "text",
       "label": "Copay",
       "rect": {
@@ -324,7 +324,7 @@
       }
     },
     {
-      "id": "uvvf21",
+      "id": "feiy21",
       "role": "text",
       "label": "$0.05",
       "rect": {
@@ -341,7 +341,7 @@
       }
     },
     {
-      "id": "uvvf22",
+      "id": "feiy22",
       "role": "text",
       "label": "Request the refill online at pharmacy.localhost/refill and we'll text you when …",
       "rect": {
@@ -358,7 +358,7 @@
       }
     },
     {
-      "id": "uvvf23",
+      "id": "feiy23",
       "role": "text",
       "label": "Oak St Pharmacy · 118 Oak St · open until 9 pm",
       "rect": {
@@ -372,5 +372,5 @@
     }
   ],
   "seq": 1,
-  "ts": 1791968988985
+  "ts": 1791969307780
 }

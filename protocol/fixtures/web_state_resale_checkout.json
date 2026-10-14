@@ -7,7 +7,7 @@
   "focused": true,
   "elements": [
     {
-      "id": "xo0a1",
+      "id": "mo8e1",
       "role": "button",
       "label": "Buy tickets",
       "rect": {
@@ -20,7 +20,7 @@
       "path": "#buy"
     },
     {
-      "id": "xo0a2",
+      "id": "mo8e2",
       "role": "link",
       "label": "SeatSwap",
       "rect": {
@@ -33,7 +33,7 @@
       "path": "body > header > a"
     },
     {
-      "id": "xo0a3",
+      "id": "mo8e3",
       "role": "text",
       "label": "Night Owls",
       "rect": {
@@ -46,7 +46,7 @@
       "path": "body > main > div > h1"
     },
     {
-      "id": "xo0a4",
+      "id": "mo8e4",
       "role": "text",
       "label": "Hall 9 · Fri 9 pm · resold by a verified fan",
       "rect": {
@@ -59,7 +59,7 @@
       "path": "body > main > div > p"
     },
     {
-      "id": "xo0a5",
+      "id": "mo8e5",
       "role": "text",
       "label": "General admission × 2",
       "rect": {
@@ -72,7 +72,7 @@
       "path": "#line"
     },
     {
-      "id": "xo0a6",
+      "id": "mo8e6",
       "role": "text",
       "label": "$0.15 each",
       "rect": {
@@ -85,7 +85,7 @@
       "path": "body > main > section > p:nth-of-type(1) > span:nth-of-type(2)"
     },
     {
-      "id": "xo0a7",
+      "id": "mo8e7",
       "role": "text",
       "label": "Total",
       "rect": {
@@ -98,7 +98,7 @@
       "path": "body > main > section > p:nth-of-type(2) > span:nth-of-type(1)"
     },
     {
-      "id": "xo0a8",
+      "id": "mo8e8",
       "role": "text",
       "label": "$0.30",
       "rect": {
@@ -111,7 +111,7 @@
       "path": "#total"
     },
     {
-      "id": "xo0a9",
+      "id": "mo8e9",
       "role": "text",
       "label": "Fees calculated at payment. All resale is final.",
       "rect": {
@@ -125,5 +125,5 @@
     }
   ],
   "seq": 1,
-  "ts": 1791968985637
+  "ts": 1791969304428
 }
