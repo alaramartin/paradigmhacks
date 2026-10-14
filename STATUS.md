@@ -46,6 +46,7 @@ _Two Macs: the demo runs on **alara's Mac** (B verified there). A works on Ayush
 - Terminal reader: the AX path is **verified on alara's Mac by B** (`AXWindow > AXSplitGroup > AXScrollArea > AXTextArea`). The session-log fallback is verified here on a real `git push --progress` recorded with `script -q` (`TAB_TERM_SOURCE=log` or `--term-log`).
 - **Fixture capture tool** `protocol/fixtures/capture/capture.mjs`: read-only CDP and dependency-free, using PLAN's perception rules. Use it for B's fixtures and as a reference for C (`--list`, `--navigate`, `--scroll`, `--focused`).
 - **The list heuristic works on GitHub's real rendered markdown table** (`protocol/fixtures/reference/real_github_release_table_uv.json`): rows are `tbody > tr` items, fields are `td:nth-of-type(N)` or `td:nth-of-type(N) > a`.
+- **`switch_app` picks the debug Chrome** when your normal Chrome also runs (they share a bundle id). It prefers the instance started with `--remote-debugging-port` (argv via `sysctl`, no permission needed) and confirms by pid. Check with `TabShell --which com.google.Chrome`. This fixes C's "may raise the wrong one" demo note; quitting normal Chrome is still the safest setup.
 ### In progress
 - Look-and-try polish on the real screen (the display here is locked, so it's offscreen renders for now). Flow 3 pill-covers-row is fixed shell-side with `Ghost.place`; B needs to send it.
 - Recapture `native_state_terminal_push.json` from a real push to `alaramartin/tab-demo` (needs alara's Mac).

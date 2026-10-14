@@ -31,7 +31,7 @@ KC="$HOME/Library/Keychains/tab-shell-signing.keychain-db"
 # Processes (matched narrowly so nothing else is hit).
 pgrep -x TabShell >/dev/null && run pkill -x TabShell
 for p in $(pgrep -f "tsx.* src/hub.ts"); do run kill "$p"; done # npm wrapper, tsx, and the node child
-for p in $(pgrep -f "Contents/MacOS/Google Chrome .*user-data-dir=/tmp/tab-chrome"); do run kill "$p"; done # browser process only
+for p in $(pgrep -f "Chrome\.app/Contents/MacOS/Google Chrome --.*user-data-dir=/tmp/tab-chrome"); do run kill "$p"; done # browser process only
 for p in $(lsof -tiTCP:9407 -sTCP:LISTEN 2>/dev/null); do
     ps -o command= -p "$p" | grep -q "browse/src/server.ts" && run kill "$p"
 done

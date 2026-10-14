@@ -230,34 +230,68 @@ final class Shell: NSObject, InputTapDelegate {
 
 enum AppSwitcher {
     /// Activate by bundle id. A background (LSUIElement) app can't always activate others under cooperative activation,
-    /// so try NSRunningApplication, then AX frontmost, then LaunchServices; confirm with the frontmost app.
+    /// so try NSRunningApplication, then AX frontmost, then LaunchServices; confirm by pid.
     static func activate(_ bid: String, done: @escaping (Bool, String?) -> Void) {
-        if NSWorkspace.shared.frontmostApplication?.bundleIdentifier == bid { return done(true, nil) }
-        guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: bid).first else {
-            return open(bid, done: done)
-        }
+        let instances = NSRunningApplication.runningApplications(withBundleIdentifier: bid)
+        guard let app = pick(instances) else { return open(bid, done: done) }
+        let pid = app.processIdentifier
+        if NSWorkspace.shared.frontmostApplication?.processIdentifier == pid { return done(true, nil) }
         app.activate(options: [.activateAllWindows])
-        let axApp = AXUIElementCreateApplication(app.processIdentifier)
-        AXUIElementSetAttributeValue(axApp, kAXFrontmostAttribute as CFString, kCFBooleanTrue)
-        confirm(bid, tries: 6) { ok in ok ? done(true, nil) : open(bid, done: done) }
+        AXUIElementSetAttributeValue(AXUIElementCreateApplication(pid), kAXFrontmostAttribute as CFString, kCFBooleanTrue)
+        confirm(pid, tries: 6) { ok in
+            if ok { return done(true, nil) }
+            // LaunchServices can't choose between instances, so only fall back to it when there's one.
+            if instances.count == 1 { open(bid, done: done) } else { done(false, "\(bid) (pid \(pid)) did not come to the front") }
+        }
+    }
+
+    /// With several instances of one app (the user's Chrome and the debug Chrome share a bundle id),
+    /// prefer the one started with --remote-debugging-port: that's the one C drives.
+    static func pick(_ instances: [NSRunningApplication]) -> NSRunningApplication? {
+        if instances.count > 1, let debug = instances.first(where: { arguments(of: $0.processIdentifier).contains { $0.hasPrefix("--remote-debugging-port") } }) {
+            return debug
+        }
+        return instances.first
+    }
+
+    /// argv of another process (same user) via sysctl KERN_PROCARGS2: argc, exec path, padding, then argv.
+    static func arguments(of pid: pid_t) -> [String] {
+        var mib: [Int32] = [CTL_KERN, KERN_PROCARGS2, pid]
+        var size = 0
+        guard sysctl(&mib, 3, nil, &size, nil, 0) == 0, size > MemoryLayout<Int32>.size else { return [] }
+        var buf = [UInt8](repeating: 0, count: size)
+        guard sysctl(&mib, 3, &buf, &size, nil, 0) == 0 else { return [] }
+        let argc = Int(buf.withUnsafeBytes { $0.load(as: Int32.self) })
+        var i = MemoryLayout<Int32>.size
+        while i < size, buf[i] != 0 { i += 1 } // exec path
+        while i < size, buf[i] == 0 { i += 1 } // padding
+        var args: [String] = []
+        while args.count < argc, i < size {
+            let s = i
+            while i < size, buf[i] != 0 { i += 1 }
+            args.append(String(decoding: buf[s..<i], as: UTF8.self))
+            i += 1
+        }
+        return args
     }
 
     private static func open(_ bid: String, done: @escaping (Bool, String?) -> Void) {
         guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bid) else { return done(false, "no app \(bid)") }
         let cfg = NSWorkspace.OpenConfiguration()
         cfg.activates = true
-        NSWorkspace.shared.openApplication(at: url, configuration: cfg) { _, err in
+        NSWorkspace.shared.openApplication(at: url, configuration: cfg) { app, err in
             DispatchQueue.main.async {
                 if let err { return done(false, err.localizedDescription) }
-                confirm(bid, tries: 10) { ok in done(ok, ok ? nil : "\(bid) did not come to the front") }
+                guard let pid = app?.processIdentifier else { return done(false, "\(bid) did not launch") }
+                confirm(pid, tries: 10) { ok in done(ok, ok ? nil : "\(bid) did not come to the front") }
             }
         }
     }
 
-    private static func confirm(_ bid: String, tries: Int, _ cb: @escaping (Bool) -> Void) {
-        if NSWorkspace.shared.frontmostApplication?.bundleIdentifier == bid { return cb(true) }
+    private static func confirm(_ pid: pid_t, tries: Int, _ cb: @escaping (Bool) -> Void) {
+        if NSWorkspace.shared.frontmostApplication?.processIdentifier == pid { return cb(true) }
         if tries == 0 { return cb(false) }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { confirm(bid, tries: tries - 1, cb) }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { confirm(pid, tries: tries - 1, cb) }
     }
 }
 
@@ -364,6 +398,15 @@ func renderHUD(to out: String) {
 }
 
 // MARK: - main
+
+if let bid = flagValue("--which") {
+    for a in NSRunningApplication.runningApplications(withBundleIdentifier: bid) {
+        let dbg = AppSwitcher.arguments(of: a.processIdentifier).contains { $0.hasPrefix("--remote-debugging-port") }
+        print("pid \(a.processIdentifier)\(dbg ? " (debug)" : "")")
+    }
+    print("switch_app picks pid \(AppSwitcher.pick(NSRunningApplication.runningApplications(withBundleIdentifier: bid))?.processIdentifier ?? -1)")
+    exit(0)
+}
 
 let app = NSApplication.shared
 app.setActivationPolicy(.accessory)
