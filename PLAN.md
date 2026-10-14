@@ -518,6 +518,23 @@ All paid actions on the demo sites are `fetch` POSTs from page JS. No paid docum
 
 **Done when.** `PAY_RAIL=mpp`: `pay-test` settles on Tempo testnet and prints an explorer link that opens; in the debug Chrome flow 1 pays $0.30 from the ghost, resale shows `Blocked · page says $0.30, payment asks $0.51`, flow 4 pays the $0.05 copay, and the HUD ledger link opens the Tempo explorer. `PAY_RAIL=x402`: the same flows behave as before (once funded). `npm run try -- all` passes on both rails, apart from anything needing a human key press. STATUS (C section) says which rail is live, how to switch, and which wallets to fund.
 
+## Stretch goal (12:00 PT Wed): cross-app memory into a native app, BRANCH ONLY
+
+> **⚠️ Lives on branch `stretch/calendar-native` and stays there. Do NOT merge it into `main` (no merge, rebase, cherry-pick or squash of its commits) without explicit permission from a human in chat.** `main` is the demo. Agents: never push stretch work to `main`; commit only to `stretch/calendar-native`, and say so in STATUS.md.
+
+**Start only after** the 12:30 all-hands run of the demo passes on `main`, and only with spare time before the freeze. It is not part of the 2-minute demo unless a human decides otherwise.
+
+**The beat.** After flow 1's tickets are paid, the ghost offers `Add Night Owls · Fri 9pm to Calendar ⇥`. Tab switches to Calendar and fills in the event (title, date, time) from the ticket page. It's cross-app memory: the "anywhere on the Mac" vision, a browser page feeding a native app. Later, more native apps follow the same path.
+
+**What exists already.** A reads Terminal's text via Accessibility and switches apps (`switch_app`), and flow 2 already goes Terminal → Chrome. Missing: perceiving and acting *inside* a native app.
+
+**Split (all on `stretch/calendar-native`):**
+- **A:** generalise the Terminal reader into an AX reader for one allow-listed app (Calendar: its new-event fields and buttons → native `state` with `El`s and screen rects), and execute native `click` / `type` via AX (`AXPress`, `AXValue`), replying `exec_result`. Needs Calendar's Accessibility tree on the demo Mac (macOS version matters).
+- **B:** candidates for native screens (fields + buttons, values copied from other pages: show name, date, time from the ticket page), plus a cross-app suggestion after a paid order (`Add <show> · <when> to Calendar`, a `sequence` with `switch_app` then the native steps). Route native click/type to A.
+- **C:** none expected (the ticket page already shows "Night Owls · live at Hall 9 · Fri 9pm").
+
+**Protocol.** No change expected: native `state`, `El` and `exec` already exist; A gains native `click`/`type` handling. Any protocol change goes to `protocol/CHANGES.md` **on the branch only**.
+
 ## Milestones (Pacific time, Wednesday)
 
 | By          | Milestone                                                                     | A                                                                                       | B                                                         | C                                                                                     |

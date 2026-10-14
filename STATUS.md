@@ -26,6 +26,8 @@
 - **A (now):** ~~`preflight.sh` checks `PAY_RAIL`, the rail's keys and the payer balance~~ **done (A, 10:50), see A → Done.** Then your existing list on alara's Mac: rebuild + preflight, real-key Tab/Esc/hold test (after the VS Code grant), one cropped proof shot per flow in `design/proof/`.
 - **Humans:** the three items under Blockers; then at 12:30 the all-hands look-and-try run of all four flows; 13:00 freeze; rehearse 5× and record the backup video by 14:30.
 
+**Stretch goal (PLAN.md "Stretch goal (12:00 PT Wed)"): Calendar beat on branch `stretch/calendar-native` only. Never merge it into `main` without explicit human permission. Start only after the 12:30 run passes.**
+
 **Run sheet (before every rehearsal and the demo):** `cd web && npm run reset-demo` (full: tracker, GitHub branch, hub history/counters, saved workflows; use `-- --keep-workflows` only for the recall beat) · `shell/scripts/preflight.sh` · confirm `PAY_RAIL` in `.env` and `npm run balance` > 0 · **once on the demo network (hotspot): quit TabShell, `cd web && npm run warm` (~5 min: every flow through the real hub incl. a real PR on tab-demo, then a full reset; prints how many screens Jev's cache holds), relaunch TabShell.**
 
 ## A — Shell
