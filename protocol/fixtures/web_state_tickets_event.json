@@ -1,0 +1,175 @@
+{
+  "type": "state",
+  "source": "web",
+  "app": "com.google.Chrome",
+  "window": "Night Owls · Hall 9 · Friday 9 pm",
+  "url": "http://tickets.localhost:4001/e/night-owls",
+  "focused": true,
+  "elements": [
+    {
+      "id": "knxj1",
+      "role": "link",
+      "label": "Hall 9",
+      "rect": {
+        "x": 39,
+        "y": 39,
+        "w": 58,
+        "h": 36
+      },
+      "enabled": true,
+      "path": "body > main > section:nth-of-type(1) > header > a:nth-of-type(1)"
+    },
+    {
+      "id": "knxj2",
+      "role": "link",
+      "label": "Box office",
+      "rect": {
+        "x": 849,
+        "y": 45,
+        "w": 77,
+        "h": 28
+      },
+      "enabled": true,
+      "path": "body > main > section:nth-of-type(1) > header > a:nth-of-type(2)"
+    },
+    {
+      "id": "knxj3",
+      "role": "select",
+      "label": "Qty 1 2 3 4",
+      "rect": {
+        "x": 63,
+        "y": 873,
+        "w": 96,
+        "h": 52
+      },
+      "enabled": true,
+      "options": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
+      "value": "1",
+      "path": "#qty"
+    },
+    {
+      "id": "knxj4",
+      "role": "button",
+      "label": "Checkout",
+      "rect": {
+        "x": 175,
+        "y": 873,
+        "w": 159,
+        "h": 52
+      },
+      "enabled": true,
+      "path": "#checkout"
+    },
+    {
+      "id": "knxj5",
+      "role": "text",
+      "label": "night",
+      "rect": {
+        "x": 39,
+        "y": 145,
+        "w": 887,
+        "h": 121
+      },
+      "enabled": true,
+      "path": "body > main > section:nth-of-type(1) > h1 > span:nth-of-type(1)"
+    },
+    {
+      "id": "knxj6",
+      "role": "text",
+      "label": "owls",
+      "rect": {
+        "x": 39,
+        "y": 266,
+        "w": 887,
+        "h": 121
+      },
+      "enabled": true,
+      "path": "body > main > section:nth-of-type(1) > h1 > span:nth-of-type(2)"
+    },
+    {
+      "id": "knxj11",
+      "role": "text",
+      "label": "Friday 9 pm, Hall 9",
+      "rect": {
+        "x": 39,
+        "y": 407,
+        "w": 408,
+        "h": 128
+      },
+      "enabled": true,
+      "path": "body > main > section:nth-of-type(1) > p:nth-of-type(1)"
+    },
+    {
+      "id": "knxj7",
+      "role": "text",
+      "label": "General admission $0.15",
+      "rect": {
+        "x": 63,
+        "y": 796,
+        "w": 271,
+        "h": 36
+      },
+      "enabled": true,
+      "path": "#tickets > p:nth-of-type(1)"
+    },
+    {
+      "id": "knxj8",
+      "role": "text",
+      "label": "$0.15",
+      "rect": {
+        "x": 262,
+        "y": 800,
+        "w": 59,
+        "h": 28
+      },
+      "enabled": true,
+      "path": "#tickets > p:nth-of-type(1) > b"
+    },
+    {
+      "id": "knxj9",
+      "role": "text",
+      "label": "Qty 1 2 3 4",
+      "rect": {
+        "x": 63,
+        "y": 846,
+        "w": 96,
+        "h": 78
+      },
+      "enabled": true,
+      "path": "#tickets > label"
+    },
+    {
+      "id": "knxj10",
+      "role": "text",
+      "label": "Standing, four per order. Paid in USDC.",
+      "rect": {
+        "x": 63,
+        "y": 939,
+        "w": 271,
+        "h": 20
+      },
+      "enabled": true,
+      "path": "#tickets > p:nth-of-type(2)"
+    },
+    {
+      "id": "knxj12",
+      "role": "text",
+      "label": "Doors at eight. Night Owls play from quarter past nine until the curfew at elev…",
+      "rect": {
+        "x": 600,
+        "y": 898,
+        "w": 326,
+        "h": 83
+      },
+      "enabled": true,
+      "path": "body > main > section:nth-of-type(1) > p:nth-of-type(2)"
+    }
+  ],
+  "seq": 1,
+  "ts": 1791968982368
+}

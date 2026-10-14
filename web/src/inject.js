@@ -203,6 +203,7 @@
     };
     window.__tabState = () => sendState(true);
     window.__tabDescribe = (el) => describe(el);
+    window.__tabCollect = () => ({ url: location.href, title: document.title, focused: document.hasFocus(), elements: collect() });
 
     new MutationObserver(() => schedule()).observe(document, { subtree: true, childList: true, attributes: true, characterData: true });
     addEventListener("scroll", () => schedule(), true);

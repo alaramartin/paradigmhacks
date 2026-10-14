@@ -1,0 +1,162 @@
+{
+  "type": "state",
+  "source": "web",
+  "app": "com.google.Chrome",
+  "window": "Checkout · Night Owls · Hall 9",
+  "url": "http://tickets.localhost:4001/checkout?qty=2",
+  "focused": true,
+  "elements": [
+    {
+      "id": "ddp64",
+      "role": "button",
+      "label": "Buy tickets",
+      "rect": {
+        "x": 569,
+        "y": 342,
+        "w": 344,
+        "h": 52
+      },
+      "enabled": true,
+      "path": "#buy"
+    },
+    {
+      "id": "ddp61",
+      "role": "link",
+      "label": "Hall 9",
+      "rect": {
+        "x": 39,
+        "y": 30,
+        "w": 58,
+        "h": 36
+      },
+      "enabled": true,
+      "path": "body > header > a"
+    },
+    {
+      "id": "ddp62",
+      "role": "text",
+      "label": "Night Owls",
+      "rect": {
+        "x": 39,
+        "y": 134,
+        "w": 464,
+        "h": 62
+      },
+      "enabled": true,
+      "path": "body > main > div > h1"
+    },
+    {
+      "id": "ddp63",
+      "role": "text",
+      "label": "Friday 9 pm, Hall 9, Dock Road",
+      "rect": {
+        "x": 39,
+        "y": 212,
+        "w": 464,
+        "h": 36
+      },
+      "enabled": true,
+      "path": "body > main > div > p:nth-of-type(1)"
+    },
+    {
+      "id": "ddp65",
+      "role": "text",
+      "label": "General admission × 2",
+      "rect": {
+        "x": 569,
+        "y": 162,
+        "w": 170,
+        "h": 28
+      },
+      "enabled": true,
+      "path": "#line",
+      "list": {
+        "key": "body > main > section",
+        "index": 0,
+        "field": "span:nth-of-type(1)"
+      }
+    },
+    {
+      "id": "ddp66",
+      "role": "text",
+      "label": "$0.15 each",
+      "rect": {
+        "x": 829,
+        "y": 162,
+        "w": 84,
+        "h": 28
+      },
+      "enabled": true,
+      "path": "body > main > section > p:nth-of-type(1) > span:nth-of-type(2)",
+      "list": {
+        "key": "body > main > section",
+        "index": 0,
+        "field": "span:nth-of-type(2)"
+      }
+    },
+    {
+      "id": "ddp67",
+      "role": "text",
+      "label": "Booking fee",
+      "rect": {
+        "x": 569,
+        "y": 204,
+        "w": 92,
+        "h": 28
+      },
+      "enabled": true,
+      "path": "body > main > section > p:nth-of-type(2) > span:nth-of-type(1)",
+      "list": {
+        "key": "body > main > section",
+        "index": 1,
+        "field": "span:nth-of-type(1)"
+      }
+    },
+    {
+      "id": "ddp68",
+      "role": "text",
+      "label": "$0.00",
+      "rect": {
+        "x": 864,
+        "y": 204,
+        "w": 49,
+        "h": 28
+      },
+      "enabled": true,
+      "path": "body > main > section > p:nth-of-type(2) > span:nth-of-type(2)",
+      "list": {
+        "key": "body > main > section",
+        "index": 1,
+        "field": "span:nth-of-type(2)"
+      }
+    },
+    {
+      "id": "ddp69",
+      "role": "text",
+      "label": "Total",
+      "rect": {
+        "x": 569,
+        "y": 280,
+        "w": 53,
+        "h": 36
+      },
+      "enabled": true,
+      "path": "body > main > section > p:nth-of-type(3) > span:nth-of-type(1)"
+    },
+    {
+      "id": "ddp610",
+      "role": "text",
+      "label": "$0.30",
+      "rect": {
+        "x": 735,
+        "y": 256,
+        "w": 179,
+        "h": 60
+      },
+      "enabled": true,
+      "path": "#total"
+    }
+  ],
+  "seq": 1,
+  "ts": 1791968972364
+}

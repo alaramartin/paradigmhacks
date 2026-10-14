@@ -1,0 +1,294 @@
+{
+  "type": "state",
+  "source": "web",
+  "app": "com.google.Chrome",
+  "window": "Refill a prescription · Oak St Pharmacy",
+  "url": "http://pharmacy.localhost:4005/refill",
+  "focused": true,
+  "elements": [
+    {
+      "id": "6ae01",
+      "role": "link",
+      "label": "Oak St Pharmacy",
+      "rect": {
+        "x": 432,
+        "y": 48,
+        "w": 147,
+        "h": 28
+      },
+      "enabled": true,
+      "path": "body > div > header > a"
+    },
+    {
+      "id": "6ae02",
+      "role": "textfield",
+      "label": "Rx number",
+      "rect": {
+        "x": 432,
+        "y": 307,
+        "w": 360,
+        "h": 56
+      },
+      "enabled": true,
+      "value": "",
+      "path": "#rx",
+      "list": {
+        "key": "#refill",
+        "index": 0,
+        "field": "input"
+      }
+    },
+    {
+      "id": "6ae03",
+      "role": "select",
+      "label": "Pickup location",
+      "rect": {
+        "x": 432,
+        "y": 421,
+        "w": 360,
+        "h": 56
+      },
+      "enabled": true,
+      "options": [
+        "Main St",
+        "Oak St",
+        "Elm Ave"
+      ],
+      "value": "Main St",
+      "path": "#location",
+      "list": {
+        "key": "#refill",
+        "index": 1,
+        "field": "select"
+      }
+    },
+    {
+      "id": "6ae04",
+      "role": "button",
+      "label": "4:00 pm",
+      "rect": {
+        "x": 432,
+        "y": 534,
+        "w": 82,
+        "h": 34
+      },
+      "enabled": true,
+      "checked": false,
+      "path": "#refill > div:nth-of-type(3) > div > button:nth-of-type(1)",
+      "list": {
+        "key": "#refill > div:nth-of-type(3) > div",
+        "index": 0
+      }
+    },
+    {
+      "id": "6ae05",
+      "role": "button",
+      "label": "5:30 pm",
+      "rect": {
+        "x": 523,
+        "y": 534,
+        "w": 82,
+        "h": 34
+      },
+      "enabled": true,
+      "checked": false,
+      "path": "#refill > div:nth-of-type(3) > div > button:nth-of-type(2)",
+      "list": {
+        "key": "#refill > div:nth-of-type(3) > div",
+        "index": 1
+      }
+    },
+    {
+      "id": "6ae06",
+      "role": "button",
+      "label": "7:00 pm",
+      "rect": {
+        "x": 612,
+        "y": 534,
+        "w": 81,
+        "h": 34
+      },
+      "enabled": true,
+      "checked": false,
+      "path": "#refill > div:nth-of-type(3) > div > button:nth-of-type(3)",
+      "list": {
+        "key": "#refill > div:nth-of-type(3) > div",
+        "index": 2
+      }
+    },
+    {
+      "id": "6ae07",
+      "role": "checkbox",
+      "label": "Text me when ready",
+      "rect": {
+        "x": 432,
+        "y": 594,
+        "w": 16,
+        "h": 16
+      },
+      "enabled": true,
+      "checked": false,
+      "path": "#notify"
+    },
+    {
+      "id": "6ae08",
+      "role": "button",
+      "label": "Request refill",
+      "rect": {
+        "x": 432,
+        "y": 726,
+        "w": 360,
+        "h": 60
+      },
+      "enabled": true,
+      "path": "#request"
+    },
+    {
+      "id": "6ae09",
+      "role": "text",
+      "label": "Pharmacy jar, probably Savona, c. 1740. Art Institute of Chicago, public domain…",
+      "rect": {
+        "x": 10,
+        "y": 944,
+        "w": 384,
+        "h": 67
+      },
+      "enabled": true,
+      "path": "body > figure > figcaption"
+    },
+    {
+      "id": "6ae010",
+      "role": "text",
+      "label": "Open until 9 pm",
+      "rect": {
+        "x": 797,
+        "y": 48,
+        "w": 134,
+        "h": 28
+      },
+      "enabled": true,
+      "path": "body > div > header > span"
+    },
+    {
+      "id": "6ae011",
+      "role": "text",
+      "label": "Refill a prescription",
+      "rect": {
+        "x": 432,
+        "y": 126,
+        "w": 499,
+        "h": 50
+      },
+      "enabled": true,
+      "path": "body > div > h1"
+    },
+    {
+      "id": "6ae012",
+      "role": "text",
+      "label": "Tell us the number on your label and when you'll come in. We'll have it bagged.",
+      "rect": {
+        "x": 432,
+        "y": 188,
+        "w": 428,
+        "h": 55
+      },
+      "enabled": true,
+      "path": "body > div > p"
+    },
+    {
+      "id": "6ae013",
+      "role": "text",
+      "label": "Rx number",
+      "rect": {
+        "x": 432,
+        "y": 271,
+        "w": 499,
+        "h": 28
+      },
+      "enabled": true,
+      "path": "#refill > div:nth-of-type(1) > label",
+      "list": {
+        "key": "#refill",
+        "index": 0,
+        "field": "label"
+      }
+    },
+    {
+      "id": "6ae014",
+      "role": "text",
+      "label": "Pickup location",
+      "rect": {
+        "x": 432,
+        "y": 385,
+        "w": 499,
+        "h": 28
+      },
+      "enabled": true,
+      "path": "#refill > div:nth-of-type(2) > label",
+      "list": {
+        "key": "#refill",
+        "index": 1,
+        "field": "label"
+      }
+    },
+    {
+      "id": "6ae015",
+      "role": "text",
+      "label": "Pickup time, today",
+      "rect": {
+        "x": 432,
+        "y": 499,
+        "w": 499,
+        "h": 28
+      },
+      "enabled": true,
+      "path": "#time-label",
+      "list": {
+        "key": "#refill",
+        "index": 2,
+        "field": "p"
+      }
+    },
+    {
+      "id": "6ae016",
+      "role": "text",
+      "label": "Text me when ready",
+      "rect": {
+        "x": 432,
+        "y": 590,
+        "w": 163,
+        "h": 23
+      },
+      "enabled": true,
+      "path": "#refill > label"
+    },
+    {
+      "id": "6ae017",
+      "role": "text",
+      "label": "Total due today",
+      "rect": {
+        "x": 448,
+        "y": 659,
+        "w": 127,
+        "h": 28
+      },
+      "enabled": true,
+      "path": "#refill > p:nth-of-type(1) > span:nth-of-type(1)"
+    },
+    {
+      "id": "6ae018",
+      "role": "text",
+      "label": "$0.05",
+      "rect": {
+        "x": 715,
+        "y": 650,
+        "w": 62,
+        "h": 40
+      },
+      "enabled": true,
+      "path": "#refill > p:nth-of-type(1) > span:nth-of-type(2)"
+    }
+  ],
+  "seq": 1,
+  "ts": 1791968978979
+}

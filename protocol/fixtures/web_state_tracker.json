@@ -1,0 +1,251 @@
+{
+  "type": "state",
+  "source": "web",
+  "app": "com.google.Chrome",
+  "window": "Release 1.4 · Relay",
+  "url": "http://tracker.localhost:4003/",
+  "focused": true,
+  "elements": [
+    {
+      "id": "3aee1",
+      "role": "textfield",
+      "label": "Search tickets",
+      "rect": {
+        "x": 268,
+        "y": 171,
+        "w": 420,
+        "h": 38
+      },
+      "enabled": true,
+      "value": "",
+      "path": "#search"
+    },
+    {
+      "id": "3aee2",
+      "role": "link",
+      "label": "ENG-142 Checkout total rounds half-cents down IN REVIEW M Maya",
+      "rect": {
+        "x": 269,
+        "y": 222,
+        "w": 661,
+        "h": 48
+      },
+      "enabled": true,
+      "path": "#results > li:nth-of-type(1) > a",
+      "list": {
+        "key": "#results",
+        "index": 0,
+        "field": "a"
+      }
+    },
+    {
+      "id": "3aee3",
+      "role": "link",
+      "label": "ENG-150 Retry webhook delivery on 5xx IN REVIEW T Theo",
+      "rect": {
+        "x": 269,
+        "y": 271,
+        "w": 661,
+        "h": 48
+      },
+      "enabled": true,
+      "path": "#results > li:nth-of-type(2) > a",
+      "list": {
+        "key": "#results",
+        "index": 1,
+        "field": "a"
+      }
+    },
+    {
+      "id": "3aee4",
+      "role": "link",
+      "label": "ENG-151 Show seat map on mobile IN REVIEW M Maya",
+      "rect": {
+        "x": 269,
+        "y": 320,
+        "w": 661,
+        "h": 48
+      },
+      "enabled": true,
+      "path": "#results > li:nth-of-type(3) > a",
+      "list": {
+        "key": "#results",
+        "index": 2,
+        "field": "a"
+      }
+    },
+    {
+      "id": "3aee5",
+      "role": "link",
+      "label": "ENG-155 Rate-limit promo code lookups IN REVIEW S Sam",
+      "rect": {
+        "x": 269,
+        "y": 369,
+        "w": 661,
+        "h": 48
+      },
+      "enabled": true,
+      "path": "#results > li:nth-of-type(4) > a",
+      "list": {
+        "key": "#results",
+        "index": 3,
+        "field": "a"
+      }
+    },
+    {
+      "id": "3aee6",
+      "role": "link",
+      "label": "ENG-157 Fix timezone on event reminders IN REVIEW I Ines",
+      "rect": {
+        "x": 269,
+        "y": 418,
+        "w": 661,
+        "h": 48
+      },
+      "enabled": true,
+      "path": "#results > li:nth-of-type(5) > a",
+      "list": {
+        "key": "#results",
+        "index": 4,
+        "field": "a"
+      }
+    },
+    {
+      "id": "3aee7",
+      "role": "link",
+      "label": "ENG-160 Cache venue images at the edge IN REVIEW T Theo",
+      "rect": {
+        "x": 269,
+        "y": 467,
+        "w": 661,
+        "h": 48
+      },
+      "enabled": true,
+      "path": "#results > li:nth-of-type(6) > a",
+      "list": {
+        "key": "#results",
+        "index": 5,
+        "field": "a"
+      }
+    },
+    {
+      "id": "3aee8",
+      "role": "link",
+      "label": "Release 1.4 6",
+      "rect": {
+        "x": 22,
+        "y": 107,
+        "w": 195,
+        "h": 34
+      },
+      "enabled": true,
+      "path": "body > aside > nav:nth-of-type(1) > a:nth-of-type(1)"
+    },
+    {
+      "id": "3aee9",
+      "role": "link",
+      "label": "Backlog 23",
+      "rect": {
+        "x": 22,
+        "y": 141,
+        "w": 195,
+        "h": 34
+      },
+      "enabled": true,
+      "path": "body > aside > nav:nth-of-type(1) > a:nth-of-type(2)"
+    },
+    {
+      "id": "3aee10",
+      "role": "link",
+      "label": "My issues 4",
+      "rect": {
+        "x": 22,
+        "y": 175,
+        "w": 195,
+        "h": 34
+      },
+      "enabled": true,
+      "path": "body > aside > nav:nth-of-type(1) > a:nth-of-type(3)"
+    },
+    {
+      "id": "3aee11",
+      "role": "link",
+      "label": "Payments",
+      "rect": {
+        "x": 22,
+        "y": 256,
+        "w": 195,
+        "h": 34
+      },
+      "enabled": true,
+      "path": "body > aside > nav:nth-of-type(2) > a:nth-of-type(1)"
+    },
+    {
+      "id": "3aee12",
+      "role": "link",
+      "label": "Web",
+      "rect": {
+        "x": 22,
+        "y": 290,
+        "w": 195,
+        "h": 34
+      },
+      "enabled": true,
+      "path": "body > aside > nav:nth-of-type(2) > a:nth-of-type(2)"
+    },
+    {
+      "id": "3aee13",
+      "role": "text",
+      "label": "Checkout team / Cycles",
+      "rect": {
+        "x": 268,
+        "y": 50,
+        "w": 663,
+        "h": 21
+      },
+      "enabled": true,
+      "path": "body > main > p:nth-of-type(1)"
+    },
+    {
+      "id": "3aee14",
+      "role": "text",
+      "label": "Release 1.4",
+      "rect": {
+        "x": 268,
+        "y": 77,
+        "w": 663,
+        "h": 36
+      },
+      "enabled": true,
+      "path": "body > main > h1"
+    },
+    {
+      "id": "3aee15",
+      "role": "text",
+      "label": "Shipped in v1.4.0. Mark each ticket Done and link its pull request.",
+      "rect": {
+        "x": 268,
+        "y": 119,
+        "w": 597,
+        "h": 24
+      },
+      "enabled": true,
+      "path": "body > main > p:nth-of-type(2)"
+    },
+    {
+      "id": "3aee16",
+      "role": "text",
+      "label": "0 of 6 done",
+      "rect": {
+        "x": 698,
+        "y": 179,
+        "w": 68,
+        "h": 21
+      },
+      "enabled": true,
+      "path": "#count"
+    }
+  ],
+  "seq": 1,
+  "ts": 1791968975699
+}

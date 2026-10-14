@@ -1,0 +1,376 @@
+{
+  "type": "state",
+  "source": "web",
+  "app": "com.google.Chrome",
+  "window": "Inbox · Post",
+  "url": "http://inbox.localhost:4004/",
+  "focused": true,
+  "elements": [
+    {
+      "id": "uvvf1",
+      "role": "link",
+      "label": "Oak St Pharmacy 4:12 pm Your prescription is ready to refill Rx 4471-209 is rea…",
+      "rect": {
+        "x": 10,
+        "y": 62,
+        "w": 279,
+        "h": 95
+      },
+      "enabled": true,
+      "path": "body > section > ul > li:nth-of-type(1) > a",
+      "list": {
+        "key": "body > section > ul",
+        "index": 0,
+        "field": "a"
+      }
+    },
+    {
+      "id": "uvvf2",
+      "role": "link",
+      "label": "Hall 9 1:30 pm Your tickets for Night Owls Doors at 8. Show your ticket at door…",
+      "rect": {
+        "x": 10,
+        "y": 157,
+        "w": 279,
+        "h": 95
+      },
+      "enabled": true,
+      "path": "body > section > ul > li:nth-of-type(2) > a",
+      "list": {
+        "key": "body > section > ul",
+        "index": 1,
+        "field": "a"
+      }
+    },
+    {
+      "id": "uvvf3",
+      "role": "link",
+      "label": "Maya Chen 11:05 am Release 1.4 notes Can you close out the tracker tickets toda…",
+      "rect": {
+        "x": 10,
+        "y": 251,
+        "w": 279,
+        "h": 95
+      },
+      "enabled": true,
+      "path": "body > section > ul > li:nth-of-type(3) > a",
+      "list": {
+        "key": "body > section > ul",
+        "index": 2,
+        "field": "a"
+      }
+    },
+    {
+      "id": "uvvf4",
+      "role": "link",
+      "label": "Dock Road Ferries Mon Winter timetable The last ferry now leaves at 11:40 pm.",
+      "rect": {
+        "x": 10,
+        "y": 346,
+        "w": 279,
+        "h": 95
+      },
+      "enabled": true,
+      "path": "body > section > ul > li:nth-of-type(4) > a",
+      "list": {
+        "key": "body > section > ul",
+        "index": 0,
+        "field": "a"
+      }
+    },
+    {
+      "id": "uvvf5",
+      "role": "link",
+      "label": "City Library Sun Your hold is in Pick it up within seven days.",
+      "rect": {
+        "x": 10,
+        "y": 440,
+        "w": 279,
+        "h": 95
+      },
+      "enabled": true,
+      "path": "body > section > ul > li:nth-of-type(5) > a",
+      "list": {
+        "key": "body > section > ul",
+        "index": 1,
+        "field": "a"
+      }
+    },
+    {
+      "id": "uvvf6",
+      "role": "text",
+      "label": "Your prescription is ready to refill",
+      "rect": {
+        "x": 328,
+        "y": 46,
+        "w": 603,
+        "h": 33
+      },
+      "enabled": true,
+      "path": "body > main > h1"
+    },
+    {
+      "id": "uvvf7",
+      "role": "text",
+      "label": "PHARMACY",
+      "rect": {
+        "x": 328,
+        "y": 91,
+        "w": 84,
+        "h": 22
+      },
+      "enabled": true,
+      "path": "body > main > span"
+    },
+    {
+      "id": "uvvf8",
+      "role": "text",
+      "label": "Oak St Pharmacy refills@pharmacy.localhost",
+      "rect": {
+        "x": 376,
+        "y": 137,
+        "w": 159,
+        "h": 43
+      },
+      "enabled": true,
+      "path": "body > main > div:nth-of-type(1) > p"
+    },
+    {
+      "id": "uvvf9",
+      "role": "text",
+      "label": "refills@pharmacy.localhost",
+      "rect": {
+        "x": 376,
+        "y": 159,
+        "w": 159,
+        "h": 21
+      },
+      "enabled": true,
+      "path": "body > main > div:nth-of-type(1) > p > span"
+    },
+    {
+      "id": "uvvf10",
+      "role": "text",
+      "label": "Today, 4:12 pm",
+      "rect": {
+        "x": 845,
+        "y": 148,
+        "w": 87,
+        "h": 21
+      },
+      "enabled": true,
+      "path": "body > main > div:nth-of-type(1) > time"
+    },
+    {
+      "id": "uvvf11",
+      "role": "text",
+      "label": "Hi Sam,",
+      "rect": {
+        "x": 328,
+        "y": 225,
+        "w": 597,
+        "h": 24
+      },
+      "enabled": true,
+      "path": "body > main > div:nth-of-type(2) > p:nth-of-type(1)",
+      "list": {
+        "key": "body > main > div:nth-of-type(2)",
+        "index": 0
+      }
+    },
+    {
+      "id": "uvvf12",
+      "role": "text",
+      "label": "Rx 4471-209 is ready to refill at Oak St. Pick up after 5 pm.",
+      "rect": {
+        "x": 328,
+        "y": 263,
+        "w": 597,
+        "h": 27
+      },
+      "enabled": true,
+      "path": "body > main > div:nth-of-type(2) > p:nth-of-type(2)"
+    },
+    {
+      "id": "uvvf13",
+      "role": "text",
+      "label": "4471-209",
+      "rect": {
+        "x": 354,
+        "y": 265,
+        "w": 78,
+        "h": 22
+      },
+      "enabled": true,
+      "path": "body > main > div:nth-of-type(2) > p:nth-of-type(2) > strong"
+    },
+    {
+      "id": "uvvf14",
+      "role": "text",
+      "label": "Prescription",
+      "rect": {
+        "x": 349,
+        "y": 323,
+        "w": 110,
+        "h": 22
+      },
+      "enabled": true,
+      "path": "body > main > div:nth-of-type(2) > dl > dt:nth-of-type(1)",
+      "list": {
+        "key": "body > main > div:nth-of-type(2) > dl",
+        "index": 0
+      }
+    },
+    {
+      "id": "uvvf15",
+      "role": "text",
+      "label": "4471-209",
+      "rect": {
+        "x": 471,
+        "y": 323,
+        "w": 256,
+        "h": 22
+      },
+      "enabled": true,
+      "path": "body > main > div:nth-of-type(2) > dl > dd:nth-of-type(1)",
+      "list": {
+        "key": "body > main > div:nth-of-type(2) > dl",
+        "index": 0
+      }
+    },
+    {
+      "id": "uvvf16",
+      "role": "text",
+      "label": "Pharmacy",
+      "rect": {
+        "x": 349,
+        "y": 353,
+        "w": 110,
+        "h": 22
+      },
+      "enabled": true,
+      "path": "body > main > div:nth-of-type(2) > dl > dt:nth-of-type(2)",
+      "list": {
+        "key": "body > main > div:nth-of-type(2) > dl",
+        "index": 1
+      }
+    },
+    {
+      "id": "uvvf17",
+      "role": "text",
+      "label": "Oak St",
+      "rect": {
+        "x": 471,
+        "y": 353,
+        "w": 256,
+        "h": 22
+      },
+      "enabled": true,
+      "path": "body > main > div:nth-of-type(2) > dl > dd:nth-of-type(2)",
+      "list": {
+        "key": "body > main > div:nth-of-type(2) > dl",
+        "index": 1
+      }
+    },
+    {
+      "id": "uvvf18",
+      "role": "text",
+      "label": "Ready",
+      "rect": {
+        "x": 349,
+        "y": 384,
+        "w": 110,
+        "h": 22
+      },
+      "enabled": true,
+      "path": "body > main > div:nth-of-type(2) > dl > dt:nth-of-type(3)",
+      "list": {
+        "key": "body > main > div:nth-of-type(2) > dl",
+        "index": 2
+      }
+    },
+    {
+      "id": "uvvf19",
+      "role": "text",
+      "label": "after 5 pm today",
+      "rect": {
+        "x": 471,
+        "y": 384,
+        "w": 256,
+        "h": 22
+      },
+      "enabled": true,
+      "path": "body > main > div:nth-of-type(2) > dl > dd:nth-of-type(3)",
+      "list": {
+        "key": "body > main > div:nth-of-type(2) > dl",
+        "index": 2
+      }
+    },
+    {
+      "id": "uvvf20",
+      "role": "text",
+      "label": "Copay",
+      "rect": {
+        "x": 349,
+        "y": 414,
+        "w": 110,
+        "h": 22
+      },
+      "enabled": true,
+      "path": "body > main > div:nth-of-type(2) > dl > dt:nth-of-type(4)",
+      "list": {
+        "key": "body > main > div:nth-of-type(2) > dl",
+        "index": 3
+      }
+    },
+    {
+      "id": "uvvf21",
+      "role": "text",
+      "label": "$0.05",
+      "rect": {
+        "x": 471,
+        "y": 414,
+        "w": 256,
+        "h": 22
+      },
+      "enabled": true,
+      "path": "body > main > div:nth-of-type(2) > dl > dd:nth-of-type(4)",
+      "list": {
+        "key": "body > main > div:nth-of-type(2) > dl",
+        "index": 3
+      }
+    },
+    {
+      "id": "uvvf22",
+      "role": "text",
+      "label": "Request the refill online at pharmacy.localhost/refill and we'll text you when …",
+      "rect": {
+        "x": 328,
+        "y": 470,
+        "w": 597,
+        "h": 48
+      },
+      "enabled": true,
+      "path": "body > main > div:nth-of-type(2) > p:nth-of-type(3)",
+      "list": {
+        "key": "body > main > div:nth-of-type(2)",
+        "index": 1
+      }
+    },
+    {
+      "id": "uvvf23",
+      "role": "text",
+      "label": "Oak St Pharmacy · 118 Oak St · open until 9 pm",
+      "rect": {
+        "x": 328,
+        "y": 532,
+        "w": 597,
+        "h": 22
+      },
+      "enabled": true,
+      "path": "body > main > div:nth-of-type(2) > p:nth-of-type(4)"
+    }
+  ],
+  "seq": 1,
+  "ts": 1791968988985
+}

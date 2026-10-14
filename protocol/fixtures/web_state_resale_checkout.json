@@ -1,0 +1,129 @@
+{
+  "type": "state",
+  "source": "web",
+  "app": "com.google.Chrome",
+  "window": "Checkout · SeatSwap resale",
+  "url": "http://resale.localhost:4002/checkout?qty=2",
+  "focused": true,
+  "elements": [
+    {
+      "id": "xo0a1",
+      "role": "button",
+      "label": "Buy tickets",
+      "rect": {
+        "x": 558,
+        "y": 270,
+        "w": 348,
+        "h": 48
+      },
+      "enabled": true,
+      "path": "#buy"
+    },
+    {
+      "id": "xo0a2",
+      "role": "link",
+      "label": "SeatSwap",
+      "rect": {
+        "x": 48,
+        "y": 38,
+        "w": 115,
+        "h": 38
+      },
+      "enabled": true,
+      "path": "body > header > a"
+    },
+    {
+      "id": "xo0a3",
+      "role": "text",
+      "label": "Night Owls",
+      "rect": {
+        "x": 48,
+        "y": 124,
+        "w": 445,
+        "h": 52
+      },
+      "enabled": true,
+      "path": "body > main > div > h1"
+    },
+    {
+      "id": "xo0a4",
+      "role": "text",
+      "label": "Hall 9 · Fri 9 pm · resold by a verified fan",
+      "rect": {
+        "x": 48,
+        "y": 187,
+        "w": 445,
+        "h": 29
+      },
+      "enabled": true,
+      "path": "body > main > div > p"
+    },
+    {
+      "id": "xo0a5",
+      "role": "text",
+      "label": "General admission × 2",
+      "rect": {
+        "x": 558,
+        "y": 150,
+        "w": 199,
+        "h": 29
+      },
+      "enabled": true,
+      "path": "#line"
+    },
+    {
+      "id": "xo0a6",
+      "role": "text",
+      "label": "$0.15 each",
+      "rect": {
+        "x": 807,
+        "y": 150,
+        "w": 98,
+        "h": 29
+      },
+      "enabled": true,
+      "path": "body > main > section > p:nth-of-type(1) > span:nth-of-type(2)"
+    },
+    {
+      "id": "xo0a7",
+      "role": "text",
+      "label": "Total",
+      "rect": {
+        "x": 558,
+        "y": 221,
+        "w": 44,
+        "h": 29
+      },
+      "enabled": true,
+      "path": "body > main > section > p:nth-of-type(2) > span:nth-of-type(1)"
+    },
+    {
+      "id": "xo0a8",
+      "role": "text",
+      "label": "$0.30",
+      "rect": {
+        "x": 773,
+        "y": 198,
+        "w": 132,
+        "h": 52
+      },
+      "enabled": true,
+      "path": "#total"
+    },
+    {
+      "id": "xo0a9",
+      "role": "text",
+      "label": "Fees calculated at payment. All resale is final.",
+      "rect": {
+        "x": 558,
+        "y": 362,
+        "w": 348,
+        "h": 21
+      },
+      "enabled": true,
+      "path": "body > main > section > p:nth-of-type(4)"
+    }
+  ],
+  "seq": 1,
+  "ts": 1791968985637
+}
