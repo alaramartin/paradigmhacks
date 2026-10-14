@@ -14,9 +14,9 @@
 | 4 Pharmacy | Works up to the pay ghost; every step ≥ 0.76 when Jev is responsive. Payment: same as flow 1. |
 
 **Blockers:**
-1. **No working payment rail yet.** MPP is being built (C + B, now). x402 needs the Base Sepolia payer funded. **Humans: fund it now anyway**, since it's the fallback: `0x4A864e4077fd5d5f95e9A8CC5d1bCe5298F616Df` at https://faucet.circle.com (Base Sepolia, USDC), then `cd web && npm run balance && npm run pay-test`.
+1. ~~No working payment rail~~ **x402 fallback works (10:55 PT):** Base Sepolia payer funded (20 USDC); `npm run pay-test` settled 2 tickets ($0.30): https://sepolia.basescan.org/tx/0xe0c22af0be3d69770d48dd5371184b8de8dd436021c841792ee1c4681b64cac6. On the venue wifi it took 9.6 s, and the first try failed with `fetch failed` (the demo server couldn't reach the x402.org facilitator). MPP (the demo rail) is being built (C + B).
 2. **Venue wifi makes Jev slow** (17–300 ms pings; Jev calls up to 5 s). B added a 5 s timeout and a per-screen answer cache (`~/.tab/jev-cache.json`) that replays Jev's earlier answer when a call is slow or fails. **The cache only covers screens Jev has answered before, so rehearse every flow once on the demo network (prefer a phone hotspot) right before presenting.** Flow 3 doesn't use Jev.
-3. **Human-only steps on alara's Mac:** log into GitHub in the debug Chrome (and set GitHub → Appearance → Light); give VS Code Accessibility (real Tab/Esc tests); quit normal Chrome during the demo.
+3. **Human-only steps on alara's Mac:** GitHub login in the debug Chrome is in progress (slow wifi); then set GitHub → Appearance → Light. ~~VS Code Accessibility~~ done: agents can press real keys (`osascript` keystrokes work). Quit normal Chrome during the demo.
 
 **Next steps until the demo works end to end:**
 - **C (now → 12:00):** MPP charging side (PLAN table): `demo/server.ts` `PAY_RAIL` switch with mppx per request; `npm run tempo-wallets` (create + fund 3 testnet wallets, print `.env` lines); `balance` follows the rail; note the testnet token, decimals and **explorer URL format** here. Tell B the moment the demo server answers a Tempo 402. **After 12:00:** capture `web_state_github_compare.json` once GitHub is logged in; rect check at the real two-window layout.
