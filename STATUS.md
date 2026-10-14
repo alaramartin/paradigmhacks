@@ -10,6 +10,7 @@
 ## B — Hub + Brain
 
 ### Done
+_Headless only (unit + integration tests, hub smoke test). Per the look-and-try rule these aren't proven on screen until A and C are up; B will run all four flows live and add proof screenshots then._
 - `protocol/types.ts`: PLAN types verbatim + typed message unions (`ShellToHub`, `HubToShell`, `WebToHub`, `HubToWeb`, `ExecResult`). Added optional `Action.url` (see CHANGES.md).
 - Hub on ws://127.0.0.1:7800 (`cd brain && npm i && npm start`). Routes, predicts, ghosts, payments, HUD, ledger click → open_url. Records every incoming message to `brain/logs/session-*.jsonl`.
 - `npm run send` (tools/send.ts) for A and C:
