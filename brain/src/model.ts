@@ -1,12 +1,19 @@
 // One model client behind decide(). Jev (default) or, if added later, Claude.
 import Anthropic from "@anthropic-ai/sdk";
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { dirname, join } from "node:path";
 import type { Action, El, ScreenState } from "../../protocol/types.ts";
 import type { HistEntry } from "./history.ts";
 import { candidates, mentionedOptions, otherPagesText, type Candidate } from "./candidates.ts";
 import { EXAMPLES, OUTPUT_SCHEMA, SYSTEM } from "./prompt.ts";
 import { stateKey } from "./state.ts";
 
-const HARD_TIMEOUT_MS = 3000;
+// Jev is usually ~0.1 s but slowed to 1–3 s on demo morning; give it room, and lean on the answer cache below.
+const HARD_TIMEOUT_MS = Number(process.env.MODEL_TIMEOUT_MS ?? 5000);
+/** With a cached answer for this screen, wait at most this long for Jev before using the cached one. */
+const CACHE_AFTER_MS = Number(process.env.JEV_CACHE_AFTER_MS ?? 1200);
 
 export interface ModelInput {
     active: ScreenState;
@@ -98,11 +105,43 @@ export function validate(
 export class JevDecider implements Decider {
     name = "jev:jev-latest";
     private url = `${(process.env.JEV_BASE_URL || "https://api.typesafe.ai").replace(/\/$/, "")}/v1/systemone`;
-    constructor(private key: string) {}
+    readonly cache: AnswerCache;
+    constructor(
+        private key: string,
+        opts: { cacheFile?: string | null } = {},
+    ) {
+        this.cache = new AnswerCache(opts.cacheFile ?? null);
+    }
 
+    /**
+     * Ask Jev; remember confident answers by screen. If Jev is slow (no answer within CACHE_AFTER_MS) or fails and this
+     * screen was answered before, replay that answer; a late live answer still refreshes the cache.
+     */
     async decide(m: ModelInput, signal?: AbortSignal): Promise<Action | null> {
         const cands = candidates(m.active, m.others, m.history);
         if (cands.length === 0) return null;
+        const key = screenKey(m.active);
+        const live = this.ask(m, cands, signal).then((r) => {
+            if (r && r.action.confidence >= 0.6) this.cache.put(key, r.desc, r.action.confidence);
+            return r?.action ?? null;
+        });
+        const hit = this.cache.get(key);
+        const cached = hit && cands.find((c) => c.desc === hit.desc);
+        if (!cached) return live;
+        const fromCache = { ...cached.action, confidence: hit.confidence };
+        const slow = new Promise<"slow">((r) => setTimeout(() => r("slow"), CACHE_AFTER_MS));
+        try {
+            const first = await Promise.race([live, slow]);
+            if (first !== "slow") return first;
+        } catch {
+            /* Jev failed: use the cache */
+        }
+        live.catch(() => {}); // keep refreshing the cache in the background
+        console.log(`[jev] slow/failed, using the cached answer for this screen: ${cached.action.label}`);
+        return fromCache;
+    }
+
+    private async ask(m: ModelInput, cands: Candidate[], signal?: AbortSignal): Promise<{ action: Action; desc: string } | null> {
 
         // One option per element; values for selects and fields are separate questions in the same call.
         const groups = new Map<string, Candidate[]>();
@@ -141,11 +180,47 @@ export class JevDecider implements Decider {
         if (next.choice === "none") return null;
         const g = gs[Number(next.choice.slice(1))];
         if (!g) return null;
-        if (g.length === 1) return { ...g[0].action, confidence: next.confidence };
+        if (g.length === 1) return { action: { ...g[0].action, confidence: next.confidence }, desc: g[0].desc };
         const v = out.answers[`value_${next.choice}`];
         const c = v && g[Number(v.choice.slice(1))];
         if (!c) return null;
-        return { ...c.action, confidence: Math.min(next.confidence, v.confidence) };
+        return { action: { ...c.action, confidence: Math.min(next.confidence, v.confidence) }, desc: c.desc };
+    }
+}
+
+/** What's on screen, without element ids (they change on every page load): page + each control's role, label, value. */
+export function screenKey(s: ScreenState): string {
+    const controls = s.elements
+        .filter((e) => e.role !== "text")
+        .map((e) => `${e.role}|${e.label}|${e.value ?? ""}|${e.checked ?? ""}|${e.enabled}`)
+        .join("\n");
+    return createHash("sha1").update(`${s.app}\n${s.url ?? ""}\n${controls}`).digest("hex");
+}
+
+/** Jev's confident answers by screen, saved across runs (rehearsals warm it). `file` null = memory only. */
+export class AnswerCache {
+    private map = new Map<string, { desc: string; confidence: number; ts: number }>();
+    constructor(private file: string | null) {
+        if (!file || !existsSync(file)) return;
+        try {
+            this.map = new Map(Object.entries(JSON.parse(readFileSync(file, "utf8"))));
+        } catch {
+            /* unreadable: start empty */
+        }
+    }
+    get(key: string) {
+        return this.map.get(key);
+    }
+    put(key: string, desc: string, confidence: number): void {
+        this.map.set(key, { desc, confidence, ts: Date.now() });
+        if (!this.file) return;
+        mkdirSync(dirname(this.file), { recursive: true });
+        const tmp = `${this.file}.${process.pid}.tmp`;
+        writeFileSync(tmp, JSON.stringify(Object.fromEntries(this.map)));
+        renameSync(tmp, this.file);
+    }
+    get size(): number {
+        return this.map.size;
     }
 }
 
@@ -186,7 +261,7 @@ function jevState(m: ModelInput) {
 
 /** Jev if JEV_API_KEY is set; otherwise Claude if Anthropic credentials are set (an LLM may be added later); else no model. */
 export function makeDecider(): Decider | null {
-    if (process.env.JEV_API_KEY) return new JevDecider(process.env.JEV_API_KEY);
+    if (process.env.JEV_API_KEY) return new JevDecider(process.env.JEV_API_KEY, { cacheFile: process.env.TAB_JEV_CACHE || join(homedir(), ".tab", "jev-cache.json") });
     if (process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN) return new ClaudeDecider(process.env.LLM_MODEL || "claude-opus-5-5");
     return null;
 }
