@@ -9,9 +9,9 @@ The C human was asleep, so **Agent B built C's part (`web/`) overnight** and ran
 | 1 Tickets + resale block | Works live through the pay ghost. **Paying fails: payer wallet has 0 USDC.** Resale blocked with the exact reason. |
 | 2 `git push` → PR | Terminal ghost → switch to Chrome → PR URL opens. **Then GitHub asks for login** (debug Chrome not logged in): description + Create untested. |
 | 3 Release day | **Works live end to end** on the real GitHub release + tracker: repeat, repeat, "Do the remaining 3", all six Done. |
-| 4 Pharmacy | Works live through the pay ghost (all Jev). Paying fails: 0 USDC. |
+| 4 Pharmacy | Works live through the pay ghost (all Jev), every step ≥ 0.76 on C's designed pages, back to back. Paying fails: 0 USDC. |
 
-**Start everything** (each in its own terminal): `cd brain && npm start` · `cd web && npm run demo` · `open -na "Google Chrome" --args --remote-debugging-port=9222 --user-data-dir=/tmp/tab-chrome` · `cd web && npm start` · `shell/scripts/build-shell.sh --run`. Reset between rehearsals: `cd web && npm run reset-demo`.
+**Start everything** (each in its own terminal): `cd brain && npm start` · `cd web && npm run demo` · `open -na "Google Chrome" --args --remote-debugging-port=9222 --user-data-dir=/tmp/tab-chrome` · `cd web && npm start` · `shell/scripts/build-shell.sh --run`. Reset between rehearsals and right before the demo: `cd web && npm run reset-demo` (also zeroes the hub and HUD counters).
 
 **Humans, first thing:**
 1. Fund the payer `0x4A864e4077fd5d5f95e9A8CC5d1bCe5298F616Df` (Base Sepolia USDC, https://faucet.circle.com), then `cd web && npm run balance` and `npm run pay-test`.
@@ -20,7 +20,7 @@ The C human was asleep, so **Agent B built C's part (`web/`) overnight** and ran
 4. Quit normal Chrome during the demo (same bundle id as the debug Chrome).
 
 **Left for C:** ~~design pass~~ done by C (~02:25); ~~make the pharmacy form fit a half-screen window~~ done by C: Request refill ends at 687 px in a 720×790 viewport, 645 px at 960×790 (![](design/proof/c-pharmacy-fits-720x790.png)); pay-test + real payments once funded; capture `web_state_github_compare.json` once logged in and check B's commit-title heuristic; rect check at the real two-window layout. See "Left for C" below.
-**Left for B:** retune Jev on the GitHub compare page (flow 2 second half); watch the weakest steps (`Check "Text me when ready"` 0.64, `Create pull request`).
+**Left for B:** flow 2's second half once GitHub is logged in (description + `Create pull request`, the weakest step at 0.53–0.66 in mocks). Flow 4 is done (every step ≥ 0.76 live, back to back), and `reset-demo` now resets the hub. Overnight log: B checks main every 30 min and writes findings under "Notes for A and C (from B)".
 **For A** (B checked A's commits through `1c87aa0` against B/C overnight; no file overlaps, the protocol is unchanged, and the ghost spec matches what the hub sends):
 - Verified on alara's Mac with the latest build: Accessibility granted, the input tap runs, **the Terminal AX path works** (`--dump`: `axTrusted: true`, `AXWindow > AXSplitGroup > AXScrollArea > AXTextArea`), and a real `git push` to GitHub gave the `Open pull request` ghost live. Screenshots work from VS Code. Your Blocked/Needs-human items may be stale for this Mac. Please update your section.
 - The demo repo now exists (`alaramartin/tab-demo`, local clone `~/Projects/tab-demo`), so `native_state_terminal_push.json` can be recaptured from a real push (your note said to after setup step 6). B's test accepts the current one.
