@@ -154,7 +154,7 @@ final class Shell: NSObject, InputTapDelegate {
     func tapAccept(_ g: Ghost) {
         guard overlay.current?.id == g.id else { return }
         log("accept \(g.id)")
-        overlay.hide(accepted: true)
+        overlay.hide(.accept)
         hub.send(.accept(ghostId: g.id))
     }
 
@@ -215,31 +215,37 @@ func selftestGhosts(screen: CGSize) -> [(Ghost, Bool)] {
     func set(_ x0: Double, _ hc: Bool, _ tag: String) -> [(Ghost, Bool)] {
         let w = 200.0, h = 36.0
         var y = 70.0
+        var x0 = x0
         let k = hc ? 1.3 : 1.0
-        func next(_ dy: Double = 84) -> Double { defer { y += dy * k }; return y }
+        // Wrap to a new column before running off the bottom of the screen.
+        func next(_ dy: Double = 84) -> Double {
+            if y + dy * k > Double(screen.height) - 60 { y = 70; x0 += hc ? 470 : 380 }
+            defer { y += dy * k }
+            return y
+        }
         var out: [(Ghost, Bool)] = []
-        var r = Rect(x: x0, y: next(), w: 120, h: h)
+        var r = Rect(x: 0, y: next(), w: 120, h: h); r.x = x0
         out.append((Ghost(id: "\(tag)-action", kind: .action, label: "Click Checkout ⇥", rect: r, cursor: Point(x: r.x + r.w / 2, y: r.y + r.h / 2)), hc))
-        r = Rect(x: x0, y: next(), w: w + 60, h: h)
+        r = Rect(x: 0, y: next(), w: w + 60, h: h); r.x = x0
         out.append((Ghost(id: "\(tag)-text", kind: .text, label: "⇥", rect: r, ghostText: "4471-209"), hc))
-        r = Rect(x: x0, y: next(140), w: w + 160, h: 90)
+        r = Rect(x: 0, y: next(140), w: w + 160, h: 90); r.x = x0
         out.append((Ghost(id: "\(tag)-textarea", kind: .text, label: "⇥", rect: r,
                           ghostText: "Fix checkout rounding. Totals were rounded per line item instead of once at the end, so 2 × $0.15 could show $0.31."), hc))
-        r = Rect(x: x0, y: next(), w: 140, h: h)
+        r = Rect(x: 0, y: next(), w: 140, h: h); r.x = x0
         out.append((Ghost(id: "\(tag)-pay", kind: .pay, label: "Pay $0.30 · tickets.localhost ⇥", rect: r), hc))
-        r = Rect(x: x0, y: next(), w: 140, h: h)
+        r = Rect(x: 0, y: next(), w: 140, h: h); r.x = x0
         out.append((Ghost(id: "\(tag)-blocked", kind: .blocked, label: "Blocked · page says $0.30, payment asks $0.51", rect: r), hc))
-        r = Rect(x: x0, y: next(), w: 140, h: h)
+        r = Rect(x: 0, y: next(), w: 140, h: h); r.x = x0
         out.append((Ghost(id: "\(tag)-done", kind: .done, label: "Paid $0.30 ✓", rect: r), hc))
-        r = Rect(x: x0, y: next(), w: 90, h: 30)
+        r = Rect(x: 0, y: next(), w: 90, h: 30); r.x = x0
         out.append((Ghost(id: "\(tag)-repeat", kind: .action, label: "Repeat for ENG-150 · #13 ⇥", rect: r, cursor: Point(x: r.x + r.w / 2, y: r.y + r.h / 2)), hc))
-        r = Rect(x: x0, y: next(), w: 90, h: 30)
+        r = Rect(x: 0, y: next(), w: 90, h: 30); r.x = x0
         out.append((Ghost(id: "\(tag)-batch", kind: .action, label: "Do the remaining 3 ⇥", rect: r), hc))
-        out.append((Ghost(id: "\(tag)-term", kind: .action, label: "Open pull request ⇥", pillAt: Point(x: x0, y: next() + 40)), hc))
+        out.append((Ghost(id: "\(tag)-term", kind: .action, label: "Open pull request ⇥", pillAt: { let py = next() + 40; return Point(x: x0, y: py) }()), hc))
         return out
     }
     let half = Double(screen.width) / 2
-    return set(60, false, "n") + set(half + 60, true, "hc")
+    return set(60, false, "n") + set(half - 120, true, "hc")
 }
 
 // MARK: - --render
@@ -263,7 +269,9 @@ func renderSelftest(to out: String) {
     root.dark = args.contains("--dark")
     root.image = flagValue("--bg").flatMap { NSImage(contentsOfFile: $0) }
     for (g, hc) in selftestGhosts(screen: size) {
-        root.addSubview(GhostView(ghost: g, style: Style(hc: hc), frame: root.bounds, usable: root.bounds))
+        let v = GhostView(ghost: g, style: Style(hc: hc), frame: root.bounds, usable: root.bounds)
+        if g.id.hasSuffix("-repeat") { v.pill.holdFraction = 0.55 } // show the hold sweep mid-way
+        root.addSubview(v)
     }
     guard let rep = root.bitmapImageRepForCachingDisplay(in: root.bounds) else { fatalError("no bitmap") }
     root.cacheDisplay(in: root.bounds, to: rep)
@@ -271,10 +279,46 @@ func renderSelftest(to out: String) {
     print("wrote \(out) \(Int(size.width))×\(Int(size.height)) pt")
 }
 
+func renderHUD(to out: String) {
+    let states: [(String, Bool, Hud)] = [
+        ("offline", false, Hud()),
+        ("idle", true, Hud(mode: "idle", modelCalls: 0, shown: 0, accepted: 0, tabDid: TabDid(clicks: 0, keys: 0), youDid: 0)),
+        ("predicting", true, Hud(mode: "predicting", lastSource: "model", lastLatencyMs: 212, modelCalls: 3, shown: 3, accepted: 2,
+                                 tabDid: TabDid(clicks: 3, keys: 0), youDid: 5)),
+        ("shown", true, Hud(mode: "shown", lastSource: "pattern", lastLatencyMs: 2.7, modelCalls: 3, shown: 4, accepted: 3,
+                            tabDid: TabDid(clicks: 9, keys: 14), youDid: 9)),
+        ("running", true, Hud(mode: "running", lastSource: "pattern", lastLatencyMs: 1.9, modelCalls: 3, shown: 5, accepted: 4,
+                              tabDid: TabDid(clicks: 14, keys: 21), youDid: 10)),
+        ("paid", true, Hud(mode: "shown", lastSource: "model", lastLatencyMs: 188, modelCalls: 4, shown: 6, accepted: 5,
+                           tabDid: TabDid(clicks: 6, keys: 0), youDid: 7,
+                           lastTx: LastTx(hash: "0x8f3a91c2d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f",
+                                          explorerUrl: "https://sepolia.basescan.org/tx/0x8f3a", amountUsd: "0.30"))),
+    ]
+    let s = HUDView.size
+    let gap: CGFloat = 16
+    let root = BackgroundView(frame: CGRect(x: 0, y: 0, width: CGFloat(states.count) * (s.width + gap) + gap, height: s.height + 2 * gap))
+    root.dark = false
+    for (i, (_, connected, h)) in states.enumerated() {
+        let v = HUDView(frame: CGRect(x: gap + CGFloat(i) * (s.width + gap), y: gap, width: s.width, height: s.height))
+        v.connected = connected
+        v.hud = h
+        v.highContrast = i == states.count - 1
+        root.addSubview(v)
+    }
+    guard let rep = root.bitmapImageRepForCachingDisplay(in: root.bounds) else { fatalError("no bitmap") }
+    root.cacheDisplay(in: root.bounds, to: rep)
+    try! rep.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: out))
+    print("wrote \(out)")
+}
+
 // MARK: - main
 
 let app = NSApplication.shared
 app.setActivationPolicy(.accessory)
+if let out = flagValue("--render-hud") {
+    renderHUD(to: out)
+    exit(0)
+}
 if let out = flagValue("--render") {
     renderSelftest(to: out)
     exit(0)

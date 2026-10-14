@@ -1,106 +1,337 @@
 // The ghost overlay: one borderless, transparent, click-through window over the main display.
 // The content view is flipped and covers the main screen, so AX/top-left screen points are view points.
+// Every number here comes from design/ghost-spec.md; change the spec first, then this file.
 import AppKit
 
-/// Every visual number lives here. `design/ghost-spec.md` is the source of truth for these values.
+func hex(_ v: UInt32, _ a: CGFloat = 1) -> NSColor {
+    NSColor(srgbRed: CGFloat((v >> 16) & 0xFF) / 255, green: CGFloat((v >> 8) & 0xFF) / 255, blue: CGFloat(v & 0xFF) / 255, alpha: a)
+}
+
 struct Style {
     var hc: Bool
+    var reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
 
-    // Highlight box
-    var boxOutset: CGFloat { hc ? 4 : 3 }
-    var boxRadius: CGFloat { 7 }
-    var boxStroke: CGFloat { hc ? 4 : 2 }
-    var boxFillAlpha: CGFloat { hc ? 0.0 : 0.06 }
+    // Palette
+    static let graphite: UInt32 = 0x8E8E93
+    static let slate: UInt32 = 0x636366
+    static let pay: UInt32 = 0x0052FF
+    static let payHC: UInt32 = 0x0040D6
+    static let blockFill: UInt32 = 0xD70015
+    static let blockStroke: UInt32 = 0xFF3B30
+    static let doneFill: UInt32 = 0x248A3D
+    static let doneStroke: UInt32 = 0x34C759
+    static let yellow: UInt32 = 0xFFD60A
+
+    private var k: CGFloat { hc ? 1.5 : 1 }
+
+    // Box
+    var boxOutset: CGFloat { hc ? 5 : 3 }
+    var boxRadius: CGFloat { hc ? 9 : 7 }
+    func boxStroke(_ kind: GhostKind) -> CGFloat { hc ? 4 : (kind == .blocked ? 3 : 2.5) }
+    var hcRing: CGFloat { 1.5 }
+
+    func boxColor(_ kind: GhostKind) -> NSColor {
+        switch kind {
+        case .action: return hc ? hex(Style.yellow) : hex(Style.graphite, 0.90)
+        case .text: return hc ? hex(Style.yellow) : hex(Style.graphite, 0.70)
+        case .pay: return hc ? hex(Style.yellow) : hex(Style.pay, 0.90)
+        case .blocked: return hex(Style.blockStroke)
+        case .done: return hc ? hex(Style.doneStroke) : hex(Style.doneStroke, 0.95)
+        }
+    }
+
+    func haloColor(_ kind: GhostKind) -> NSColor? {
+        if hc { return nil }
+        switch kind {
+        case .action: return hex(Style.graphite, 0.16)
+        case .text: return hex(Style.graphite, 0.12)
+        case .pay: return hex(Style.pay, 0.16)
+        case .blocked: return hex(Style.blockStroke, 0.20)
+        case .done: return hex(Style.doneStroke, 0.18)
+        }
+    }
+
+    func boxFill(_ kind: GhostKind) -> NSColor? {
+        switch kind {
+        case .action: return hc ? nil : hex(Style.graphite, 0.08)
+        case .text: return nil
+        case .pay: return hc ? nil : hex(Style.pay, 0.07)
+        case .blocked: return hex(Style.blockStroke, hc ? 0.12 : 0.10)
+        case .done: return hc ? nil : hex(Style.doneStroke, 0.08)
+        }
+    }
 
     // Pill
-    var pillScale: CGFloat { hc ? 1.5 : 1 }
-    var pillFont: NSFont { .systemFont(ofSize: 13 * pillScale, weight: .semibold) }
-    var pillPadH: CGFloat { 10 * pillScale }
-    var pillPadV: CGFloat { 5 * pillScale }
-    var pillGap: CGFloat { 6 }
+    var pillFont: NSFont { .systemFont(ofSize: 14 * k, weight: .semibold) }
+    var pillTailFont: NSFont { .systemFont(ofSize: 14 * k, weight: .regular) }
+    var pillH: CGFloat { 28 * k }
+    var padL: CGFloat { 12 * k }
+    var padR: CGFloat { 12 * k }
+    var keyInset: CGFloat { 3 * k }
+    var keyH: CGFloat { pillH - 2 * keyInset }
+    var keyMinW: CGFloat { 1.5 * keyH }
+    var keyPadH: CGFloat { 6 * k }
+    var keyRadius: CGFloat { 5 * k }
+    var keyFont: NSFont { .systemFont(ofSize: 12 * k, weight: .semibold) }
+    var keyGap: CGFloat { 8 * k }
+    var iconSize: CGFloat { 13 * k }
+    var iconGap: CGFloat { 6 * k }
+    var gap: CGFloat { hc ? 8 : 6 }
+    var clamp: CGFloat { 4 }
 
-    // Ghost text
-    var ghostTextAlpha: CGFloat { hc ? 1.0 : 0.55 }
+    func pillFill(_ kind: GhostKind) -> NSColor {
+        switch kind {
+        case .action, .text: return hc ? .black : hex(Style.slate, 0.96)
+        case .pay: return hc ? hex(Style.payHC) : hex(Style.pay)
+        case .blocked: return hex(Style.blockFill)
+        case .done: return hex(Style.doneFill)
+        }
+    }
+
+    func pillText(_ kind: GhostKind) -> NSColor {
+        (hc && (kind == .action || kind == .text)) ? hex(Style.yellow) : .white
+    }
+
+    /// (color, width) of the inner border: a hairline in normal mode, 2 pt in HC.
+    func pillBorder(_ kind: GhostKind) -> (NSColor, CGFloat) {
+        if !hc { return (NSColor.white.withAlphaComponent(0.22), 1) }
+        switch kind {
+        case .action, .text, .pay: return (hex(Style.yellow), 2)
+        case .blocked, .done: return (.white, 2)
+        }
+    }
+
+    func keyFill(_ kind: GhostKind) -> NSColor {
+        if hc { return kind == .blocked ? .white : hex(Style.yellow) }
+        return NSColor.white.withAlphaComponent(kind == .pay || kind == .blocked ? 0.22 : 0.20)
+    }
+
+    var keyText: NSColor { hc ? .black : .white }
+    /// Hold-progress sweep fill and the label colour over it.
+    var holdFill: NSColor { hc ? .black : .white }
+    var holdText: NSColor { hc ? hex(Style.yellow) : hex(Style.slate) }
+
+    var shadow: NSShadow? {
+        if hc { return nil }
+        let s = NSShadow()
+        s.shadowColor = NSColor.black.withAlphaComponent(0.22)
+        s.shadowBlurRadius = 8
+        s.shadowOffset = NSSize(width: 0, height: -2)
+        return s
+    }
 
     // Motion (ms)
-    var appearMs: Double { 120 }
-    var dismissMs: Double { 90 }
-    var acceptFlashMs: Double { 80 }
+    var appearMs: Double { 140 }
+    var appearRise: CGFloat { reduceMotion ? 0 : 4 }
+    var pressMs: Double { 60 }
+    var acceptFadeMs: Double { 120 }
+    var dismissMs: Double { 100 }
+    var doneFadeMs: Double { 220 }
+    var shakeMs: Double { 320 }
+    var holdHiddenMs: Double { 150 }
+}
 
-    static let gray = NSColor(srgbRed: 0x8E / 255, green: 0x8E / 255, blue: 0x93 / 255, alpha: 1)
-    static let yellow = NSColor(srgbRed: 0xFF / 255, green: 0xD6 / 255, blue: 0x0A / 255, alpha: 1)
-    static let red = NSColor(srgbRed: 0xFF / 255, green: 0x3B / 255, blue: 0x30 / 255, alpha: 1)
-    static let green = NSColor(srgbRed: 0x30 / 255, green: 0xB0 / 255, blue: 0x50 / 255, alpha: 1)
-    static let ink = NSColor(srgbRed: 0x1C / 255, green: 0x1C / 255, blue: 0x1E / 255, alpha: 1)
+/// What the pill says, parsed from the protocol label.
+struct PillContent {
+    enum Icon { case none, block, check }
+    var head: String
+    var tail: String? // drawn as " · tail"
+    var key: String? // "tab" | "esc"
+    var icon: Icon
 
-    func stroke(_ k: GhostKind) -> NSColor {
-        switch k {
-        case .blocked: return Style.red
-        case .done: return Style.green
-        default: return hc ? Style.yellow : Style.gray.withAlphaComponent(0.7)
+    init(_ g: Ghost) {
+        var label = g.label.trimmingCharacters(in: .whitespaces)
+        var hadTab = false
+        if label.hasSuffix("⇥") { hadTab = true; label = String(label.dropLast()).trimmingCharacters(in: .whitespaces) }
+        icon = .none
+        if g.kind == .done, label.hasSuffix("✓") { label = String(label.dropLast()).trimmingCharacters(in: .whitespaces) }
+        if g.kind == .done { icon = .check }
+        if g.kind == .blocked { icon = .block }
+        key = g.kind == .blocked ? "esc" : g.kind == .done ? nil : (hadTab ? "tab" : nil)
+        if let r = label.range(of: " · ") {
+            head = String(label[..<r.lowerBound])
+            tail = String(label[r.upperBound...])
+        } else {
+            head = label
+            tail = nil
         }
     }
 
-    func pillFill(_ k: GhostKind) -> NSColor {
-        switch k {
-        case .blocked: return Style.red
-        case .done: return Style.green
-        case .pay: return Style.ink.withAlphaComponent(0.92)
-        default: return hc ? Style.ink : Style.gray.withAlphaComponent(0.92)
+    var keyOnly: Bool { head.isEmpty && tail == nil && icon == .none && key != nil }
+}
+
+/// The pill: capsule, optional icon, two-weight label, keycap. Its frame includes a margin for the shadow.
+final class PillView: NSView {
+    static let margin: CGFloat = 12
+    let kind: GhostKind
+    let style: Style
+    let content: PillContent
+    let size: CGSize
+    var pressed = false { didSet { needsDisplay = true } }
+    var holdFraction: CGFloat? { didSet { needsDisplay = true } }
+    var borderAlpha: CGFloat = 1 { didSet { needsDisplay = true } }
+
+    private var textAttr: NSAttributedString?
+    private var keyW: CGFloat = 0
+
+    init(ghost: Ghost, style: Style) {
+        kind = ghost.kind
+        self.style = style
+        content = PillContent(ghost)
+        let textColor = style.pillText(ghost.kind)
+        var w: CGFloat
+        var attr: NSAttributedString?
+        if !content.keyOnly {
+            let a = NSMutableAttributedString(string: content.head, attributes: [.font: style.pillFont, .foregroundColor: textColor])
+            if let t = content.tail {
+                a.append(NSAttributedString(string: " · \(t)", attributes: [.font: style.pillTailFont, .foregroundColor: textColor.withAlphaComponent(0.82)]))
+            }
+            attr = a
+        }
+        var kw: CGFloat = 0
+        if let key = content.key {
+            let tw = (key as NSString).size(withAttributes: [.font: style.keyFont]).width
+            kw = max(style.keyMinW, ceil(tw) + 2 * style.keyPadH)
+        }
+        if content.keyOnly {
+            w = kw + 2 * style.keyInset
+        } else {
+            w = style.padL
+            if content.icon != .none { w += style.iconSize + style.iconGap }
+            w += ceil(attr?.size().width ?? 0)
+            w += content.key != nil ? style.keyGap + kw + style.keyInset : style.padR
+        }
+        size = CGSize(width: w, height: style.pillH)
+        textAttr = attr
+        keyW = kw
+        super.init(frame: CGRect(origin: .zero, size: CGSize(width: w + 2 * PillView.margin, height: style.pillH + 2 * PillView.margin)))
+        wantsLayer = true
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+    override var isFlipped: Bool { true }
+
+    /// Place the pill (not the margin) with its top-left at `p`.
+    func place(at p: CGPoint) { setFrameOrigin(CGPoint(x: p.x - PillView.margin, y: p.y - PillView.margin)) }
+
+    override func draw(_ dirty: NSRect) {
+        let r = CGRect(x: PillView.margin, y: PillView.margin, width: size.width, height: size.height)
+        let capsule = NSBezierPath(roundedRect: r, xRadius: r.height / 2, yRadius: r.height / 2)
+
+        NSGraphicsContext.saveGraphicsState()
+        style.shadow?.set()
+        style.pillFill(kind).setFill()
+        capsule.fill()
+        NSGraphicsContext.restoreGraphicsState()
+
+        // Inner border: stroke a path inset by half the width so it stays inside the capsule.
+        let (bc, bw) = style.pillBorder(kind)
+        let ib = r.insetBy(dx: bw / 2, dy: bw / 2)
+        let border = NSBezierPath(roundedRect: ib, xRadius: ib.height / 2, yRadius: ib.height / 2)
+        border.lineWidth = bw
+        bc.withAlphaComponent(bc.alphaComponent * borderAlpha).setStroke()
+        border.stroke()
+
+        var x = r.minX + (content.keyOnly ? style.keyInset : style.padL)
+        let textColor = style.pillText(kind)
+        if content.icon != .none {
+            drawIcon(content.icon, in: CGRect(x: x, y: r.midY - style.iconSize / 2, width: style.iconSize, height: style.iconSize), color: textColor)
+            x += style.iconSize + style.iconGap
+        }
+        if let t = textAttr {
+            let ts = t.size()
+            t.draw(at: CGPoint(x: x, y: r.midY - ts.height / 2))
+        }
+        if let key = content.key {
+            let kr = CGRect(x: r.maxX - style.keyInset - keyW, y: r.minY + style.keyInset, width: keyW, height: style.keyH)
+            drawKey(key, in: kr)
         }
     }
 
-    func pillText(_ k: GhostKind) -> NSColor {
-        switch k {
-        case .pay: return hc ? Style.yellow : .white
-        default: return .white
+    private func drawKey(_ key: String, in kr: CGRect) {
+        let path = NSBezierPath(roundedRect: kr, xRadius: style.keyRadius, yRadius: style.keyRadius)
+        style.keyFill(kind).setFill()
+        path.fill()
+        if pressed {
+            (style.hc ? NSColor.black.withAlphaComponent(0.25) : NSColor.white.withAlphaComponent(0.45)).setFill()
+            path.fill()
         }
+        let ts = (key as NSString).size(withAttributes: [.font: style.keyFont])
+        let tp = CGPoint(x: kr.midX - ts.width / 2, y: kr.midY - ts.height / 2)
+        let f = min(1, max(0, holdFraction ?? 0))
+        let split = kr.minX + kr.width * f
+        // Unfilled part.
+        NSGraphicsContext.saveGraphicsState()
+        CGRect(x: split, y: kr.minY, width: kr.maxX - split, height: kr.height).clip()
+        (key as NSString).draw(at: tp, withAttributes: [.font: style.keyFont, .foregroundColor: style.keyText])
+        NSGraphicsContext.restoreGraphicsState()
+        guard f > 0 else { return }
+        // Filled part: the sweep, and the label in the contrasting colour over it.
+        NSGraphicsContext.saveGraphicsState()
+        path.addClip()
+        CGRect(x: kr.minX, y: kr.minY, width: split - kr.minX, height: kr.height).clip()
+        style.holdFill.setFill()
+        kr.fill()
+        (key as NSString).draw(at: tp, withAttributes: [.font: style.keyFont, .foregroundColor: style.holdText])
+        NSGraphicsContext.restoreGraphicsState()
     }
 
-    func pillBorder(_ k: GhostKind) -> NSColor? {
-        if hc && (k == .action || k == .text || k == .pay) { return Style.yellow }
-        return nil
+    private func drawIcon(_ icon: PillContent.Icon, in r: CGRect, color: NSColor) {
+        // 12-unit viewBox, y down.
+        let s = r.width / 12
+        func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: r.minX + x * s, y: r.minY + y * s) }
+        let path = NSBezierPath()
+        switch icon {
+        case .block:
+            path.appendOval(in: CGRect(x: r.minX + (6 - 4.9) * s, y: r.minY + (6 - 4.9) * s, width: 9.8 * s, height: 9.8 * s))
+            path.move(to: p(2.6, 9.4))
+            path.line(to: p(9.4, 2.6))
+            path.lineWidth = 1.6 * s
+        case .check:
+            path.move(to: p(2.2, 6.4))
+            path.line(to: p(4.9, 9))
+            path.line(to: p(9.8, 3.2))
+            path.lineWidth = 1.8 * s
+        case .none: return
+        }
+        path.lineCapStyle = .round
+        path.lineJoinStyle = .round
+        color.setStroke()
+        path.stroke()
     }
 }
 
-/// Draws one ghost into a full-screen flipped view.
+/// One ghost: box, field cover + ghost text, cursor (drawn here) and the pill (a subview).
 final class GhostView: NSView {
     let ghost: Ghost
     let style: Style
+    let pill: PillView
     private(set) var pillRect: CGRect = .zero
-    /// 0...1 while Tab is held (long press = dismiss); nil when not held.
-    var holdProgress: CGFloat? { didSet { setNeedsDisplay(pillRect.insetBy(dx: -4, dy: -4)) } }
-    /// Drawn once on accept, just before the fade.
-    var accepted = false { didSet { needsDisplay = true } }
-    private let screenBounds: CGRect // top-left coords
-    private let usable: CGRect // below the menu bar
+    private let usable: CGRect // top-left coords, below the menu bar
 
     init(ghost: Ghost, style: Style, frame: CGRect, usable: CGRect) {
         self.ghost = ghost
         self.style = style
-        self.screenBounds = CGRect(origin: .zero, size: frame.size)
         self.usable = usable
+        pill = PillView(ghost: ghost, style: style)
         super.init(frame: frame)
         wantsLayer = true
         pillRect = layoutPill()
+        pill.place(at: pillRect.origin)
+        addSubview(pill)
     }
 
     required init?(coder: NSCoder) { fatalError() }
-
     override var isFlipped: Bool { true }
 
-    private var pillAttrs: [NSAttributedString.Key: Any] {
-        [.font: style.pillFont, .foregroundColor: style.pillText(ghost.kind)]
-    }
-
-    private var ghostTextFont: NSFont {
-        guard let r = ghost.rect else { return .systemFont(ofSize: 14) }
-        return .systemFont(ofSize: r.h < 44 ? max(12, min(15, r.h * 0.42)) : 14)
-    }
+    // MARK: layout
 
     private var isMultiline: Bool { (ghost.rect?.h ?? 0) >= 44 }
 
-    private func textInset() -> CGFloat { 8 }
+    private var ghostTextFont: NSFont {
+        guard let r = ghost.rect, !isMultiline else { return .systemFont(ofSize: 14) }
+        return .systemFont(ofSize: min(15, max(12, r.h * 0.42)))
+    }
 
     private func boxRect() -> CGRect? {
         guard let r = ghost.rect else { return nil }
@@ -109,106 +340,100 @@ final class GhostView: NSView {
     }
 
     private func layoutPill() -> CGRect {
-        let text = ghost.label as NSString
-        let ts = text.size(withAttributes: pillAttrs)
-        let size = CGSize(width: ceil(ts.width) + 2 * style.pillPadH, height: ceil(ts.height) + 2 * style.pillPadV)
+        let size = pill.size
         var p: CGPoint
-        if ghost.kind == .text, let r = ghost.rect, let gt = ghost.ghostText, !isMultiline {
-            // Inline, right after the ghost text, if it fits inside the field.
-            let tw = (gt as NSString).size(withAttributes: [.font: ghostTextFont]).width
-            let x = r.x + textInset() + tw + 6
-            if x + size.width <= r.x + r.w - 4 {
-                return CGRect(x: x, y: r.y + (r.h - size.height) / 2, width: size.width, height: size.height)
+        if ghost.kind == .text, let r = ghost.rect {
+            if isMultiline {
+                p = CGPoint(x: r.x + r.w - size.width - 8, y: r.y + r.h - size.height - 8)
+            } else {
+                let tw = ((ghost.ghostText ?? "") as NSString).size(withAttributes: [.font: ghostTextFont]).width
+                let x = r.x + 8 + ceil(tw) + 6
+                if x + size.width <= r.x + r.w - 4 {
+                    p = CGPoint(x: x, y: r.y + (r.h - size.height) / 2)
+                } else {
+                    p = CGPoint(x: r.x + r.w + style.gap + style.boxOutset, y: r.y + (r.h - size.height) / 2)
+                }
             }
-            p = CGPoint(x: r.x + r.w + style.pillGap + style.boxOutset, y: r.y + (r.h - size.height) / 2)
         } else if let b = boxRect() {
-            p = CGPoint(x: b.minX, y: b.maxY + style.pillGap)
-            if p.y + size.height > usable.maxY { p.y = b.minY - style.pillGap - size.height }
+            p = CGPoint(x: b.minX, y: b.maxY + style.gap)
+            if p.y + size.height > usable.maxY - style.clamp { p.y = b.minY - style.gap - size.height }
         } else if let a = ghost.pillAt {
-            // pillAt is the pill's bottom-left corner.
-            p = CGPoint(x: a.x, y: a.y - size.height)
+            p = CGPoint(x: a.x, y: a.y - size.height) // pillAt = the pill's bottom-left corner
         } else {
             p = CGPoint(x: usable.midX - size.width / 2, y: usable.minY + 40)
         }
-        p.x = min(max(p.x, usable.minX + 4), usable.maxX - size.width - 4)
-        p.y = min(max(p.y, usable.minY + 4), usable.maxY - size.height - 4)
+        p.x = min(max(p.x, usable.minX + style.clamp), usable.maxX - size.width - style.clamp)
+        p.y = min(max(p.y, usable.minY + style.clamp), usable.maxY - size.height - style.clamp)
         return CGRect(origin: p, size: size)
     }
 
+    /// The cursor tip, from the rect (lower-right quadrant, clear of centred labels). Only action ghosts with a cursor.
+    private func cursorTip() -> CGPoint? {
+        guard ghost.kind == .action, ghost.cursor != nil, let r = ghost.rect else { return nil }
+        if r.w >= 48 { return CGPoint(x: min(r.x + 0.78 * r.w, r.x + r.w - 14), y: r.y + 0.62 * r.h) }
+        return CGPoint(x: r.x + 0.6 * r.w, y: r.y + 0.6 * r.h)
+    }
+
+    // MARK: drawing
+
     override func draw(_ dirty: NSRect) {
         let k = ghost.kind
-
         if let b = boxRect() {
+            let sw = style.boxStroke(k)
             let path = NSBezierPath(roundedRect: b, xRadius: style.boxRadius, yRadius: style.boxRadius)
-            path.lineWidth = style.boxStroke
-            if style.boxFillAlpha > 0 {
-                style.stroke(k).withAlphaComponent(style.boxFillAlpha).setFill()
-                path.fill()
+            if let fill = style.boxFill(k) { fill.setFill(); path.fill() }
+            if let halo = style.haloColor(k) {
+                let o = sw / 2 + 1.5
+                let hr = style.boxRadius + o
+                let hp = NSBezierPath(roundedRect: b.insetBy(dx: -o, dy: -o), xRadius: hr, yRadius: hr)
+                hp.lineWidth = 3
+                halo.setStroke()
+                hp.stroke()
             }
-            style.stroke(k).setStroke()
+            if style.hc {
+                path.lineWidth = sw + 2 * style.hcRing
+                NSColor.black.setStroke()
+                path.stroke()
+            }
+            path.lineWidth = sw
+            style.boxColor(k).setStroke()
             path.stroke()
         }
 
-        if k == .text, let r = ghost.rect, let gt = ghost.ghostText {
-            let font = ghostTextFont
-            let color = (style.hc ? NSColor.black : Style.gray).withAlphaComponent(style.ghostTextAlpha)
-            let para = NSMutableParagraphStyle()
-            para.lineBreakMode = isMultiline ? .byWordWrapping : .byTruncatingTail
-            let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: color, .paragraphStyle: para]
-            let inset = textInset()
-            if isMultiline {
-                (gt as NSString).draw(in: CGRect(x: r.x + inset, y: r.y + inset, width: r.w - 2 * inset, height: r.h - 2 * inset), withAttributes: attrs)
-            } else {
-                let lh = ceil(font.ascender - font.descender + font.leading)
-                (gt as NSString).draw(in: CGRect(x: r.x + inset, y: r.y + (r.h - lh) / 2, width: r.w - 2 * inset, height: lh), withAttributes: attrs)
-            }
-        }
-
-        if let c = ghost.cursor, k != .text {
-            drawCursor(at: CGPoint(x: c.x, y: c.y), color: style.hc ? Style.yellow : Style.gray)
-        }
-
-        drawPill()
+        if k == .text, let r = ghost.rect { drawGhostText(in: CGRect(x: r.x, y: r.y, width: r.w, height: r.h)) }
+        if let tip = cursorTip() { drawCursor(at: tip) }
     }
 
-    private func drawPill() {
-        let r = pillRect
-        let path = NSBezierPath(roundedRect: r, xRadius: r.height / 2, yRadius: r.height / 2)
-        NSGraphicsContext.saveGraphicsState()
-        let sh = NSShadow()
-        sh.shadowColor = NSColor.black.withAlphaComponent(0.25)
-        sh.shadowBlurRadius = 6
-        sh.shadowOffset = NSSize(width: 0, height: -2)
-        sh.set()
-        style.pillFill(ghost.kind).setFill()
-        path.fill()
-        NSGraphicsContext.restoreGraphicsState()
-        if let b = style.pillBorder(ghost.kind) {
-            b.setStroke()
-            path.lineWidth = 2
-            path.stroke()
-        }
-        if accepted {
-            NSColor.white.withAlphaComponent(0.35).setFill()
-            path.fill()
-        }
-        let ts = (ghost.label as NSString).size(withAttributes: pillAttrs)
-        (ghost.label as NSString).draw(at: CGPoint(x: r.minX + style.pillPadH, y: r.minY + (r.height - ts.height) / 2), withAttributes: pillAttrs)
-        if let p = holdProgress {
-            // Hold-to-dismiss: a bar filling along the bottom of the pill, clipped to the capsule.
-            NSGraphicsContext.saveGraphicsState()
-            path.addClip()
-            let bh = max(3, r.height * 0.12)
-            NSColor.white.withAlphaComponent(0.25).setFill()
-            CGRect(x: r.minX, y: r.maxY - bh, width: r.width, height: bh).fill()
-            NSColor.white.withAlphaComponent(0.9).setFill()
-            CGRect(x: r.minX, y: r.maxY - bh, width: r.width * min(1, p), height: bh).fill()
-            NSGraphicsContext.restoreGraphicsState()
+    private func drawGhostText(in r: CGRect) {
+        // Field cover: Tab brings its own paper, so the text reads on any field and hides the page placeholder.
+        NSColor.white.setFill()
+        NSBezierPath(roundedRect: r.insetBy(dx: 1.5, dy: 1.5), xRadius: 4, yRadius: 4).fill()
+        guard let gt = ghost.ghostText, !gt.isEmpty else { return }
+        let font = ghostTextFont
+        let para = NSMutableParagraphStyle()
+        var attrs: [NSAttributedString.Key: Any] = [.font: font, .paragraphStyle: para,
+                                                    .foregroundColor: style.hc ? NSColor.black : hex(Style.graphite)]
+        if style.hc { attrs[.backgroundColor] = hex(Style.yellow) }
+        if isMultiline {
+            para.lineBreakMode = .byWordWrapping
+            para.minimumLineHeight = 20.3
+            para.maximumLineHeight = 20.3
+            // Leave the bottom-right corner to the pill.
+            (gt as NSString).draw(with: CGRect(x: r.minX + 8, y: r.minY + 8, width: r.width - 16, height: r.height - 16 - pill.size.height),
+                                  options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine], attributes: attrs)
+        } else {
+            para.lineBreakMode = .byTruncatingTail
+            let lh = ceil(font.pointSize * 1.2)
+            para.minimumLineHeight = lh
+            para.maximumLineHeight = lh
+            let inline = pillRect.minX > r.minX && pillRect.minX < r.maxX
+            let maxW = inline ? pillRect.minX - 6 - (r.minX + 8) + 6 : r.width - 16
+            (gt as NSString).draw(with: CGRect(x: r.minX + 8, y: r.midY - lh / 2, width: maxW, height: lh),
+                                  options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine], attributes: attrs)
         }
     }
 
-    private func drawCursor(at p: CGPoint, color: NSColor) {
-        // Arrow, tip at p, in a flipped view (y grows down).
+    private func drawCursor(at p: CGPoint) {
         let s: CGFloat = style.hc ? 1.4 : 1.0
         let pts: [CGPoint] = [(0, 0), (0, 17), (4.2, 13.2), (7.0, 19.6), (9.6, 18.5), (6.9, 12.2), (12.2, 12.2)]
             .map { CGPoint(x: p.x + $0.0 * s, y: p.y + $0.1 * s) }
@@ -219,24 +444,27 @@ final class GhostView: NSView {
         path.lineJoinStyle = .round
         NSGraphicsContext.saveGraphicsState()
         let sh = NSShadow()
-        sh.shadowColor = NSColor.black.withAlphaComponent(0.3)
+        sh.shadowColor = NSColor.black.withAlphaComponent(0.30)
         sh.shadowBlurRadius = 3
         sh.shadowOffset = NSSize(width: 0, height: -1)
         sh.set()
-        color.withAlphaComponent(style.hc ? 1 : 0.85).setFill()
+        (style.hc ? hex(Style.yellow) : hex(Style.graphite, 0.90)).setFill()
         path.fill()
         NSGraphicsContext.restoreGraphicsState()
-        NSColor.white.withAlphaComponent(0.9).setStroke()
-        path.lineWidth = 1.2
+        (style.hc ? NSColor.black : NSColor.white.withAlphaComponent(0.95)).setStroke()
+        path.lineWidth = style.hc ? 1.5 : 1.2
         path.stroke()
     }
 }
 
 final class Overlay {
+    enum Exit { case accept, dismiss, done }
+
     private let window: NSWindow
     private let root: NSView
     private var views: [String: GhostView] = [:]
     private var hideTimers: [String: DispatchWorkItem] = [:]
+    private var holdTimer: Timer?
     var highContrast: Bool
     private(set) var current: Ghost?
 
@@ -258,111 +486,133 @@ final class Overlay {
         window.orderFrontRegardless()
     }
 
+    private var style: Style { Style(hc: highContrast) }
+
     private var usable: CGRect {
         let s = NSScreen.screens.first!
         let vf = s.visibleFrame
-        // visibleFrame is bottom-left; convert to top-left.
         return CGRect(x: vf.minX, y: s.frame.height - vf.maxY, width: vf.width, height: vf.height)
     }
 
     /// Show the single live ghost (replaces any other).
     func show(_ g: Ghost) {
         if let cur = current, cur == g, views[g.id] != nil { return }
-        for id in Array(views.keys) where id != g.id { remove(id, animated: false) }
-        if let old = views[g.id] { old.removeFromSuperview(); views[g.id] = nil }
+        let sameId = current?.id == g.id
+        for id in Array(views.keys) { remove(id, exit: nil) }
         current = g
-        add(g, animated: true)
+        add(g, animated: !sameId) // a rect update for the same ghost moves without re-animating
         if let ttl = g.ttlMs {
             let w = DispatchWorkItem { [weak self] in
                 guard let self, self.current?.id == g.id else { return }
-                self.hide()
+                self.hide(.done)
             }
             hideTimers[g.id] = w
             DispatchQueue.main.asyncAfter(deadline: .now() + ttl / 1000, execute: w)
         }
     }
 
-    /// Selftest: draw many at once.
+    /// Selftest: draw many at once, each with its own contrast mode.
     func showAll(_ gs: [(Ghost, Bool)]) {
-        for id in Array(views.keys) { remove(id, animated: false) }
+        for id in Array(views.keys) { remove(id, exit: nil) }
         for (g, hc) in gs { add(g, animated: false, hc: hc) }
     }
 
-    func hide(accepted: Bool = false) {
+    func hide(_ exit: Exit = .dismiss) {
         guard let cur = current else { return }
         current = nil
         stopHold()
-        if accepted, let v = views[cur.id] {
-            v.accepted = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + Style(hc: highContrast).acceptFlashMs / 1000) { [weak self] in
-                self?.remove(cur.id, animated: true)
-            }
-        } else {
-            remove(cur.id, animated: true)
-        }
+        remove(cur.id, exit: exit)
     }
 
-    private var holdTimer: Timer?
+    func redraw() {
+        guard let cur = current else { return }
+        for id in Array(views.keys) { remove(id, exit: nil) }
+        add(cur, animated: false)
+    }
 
-    /// Fill the hold bar over `ms`; the tap decides what happens at the end.
+    func shake() {
+        guard let cur = current, let v = views[cur.id] else { return }
+        if style.reduceMotion {
+            let p = v.pill
+            p.borderAlpha = 0.4
+            DispatchQueue.main.asyncAfter(deadline: .now() + style.shakeMs / 2000) { p.borderAlpha = 1 }
+            return
+        }
+        let a = CAKeyframeAnimation(keyPath: "transform.translation.x")
+        a.values = [0, -7, 7, -5, 5, -2, 0]
+        a.duration = style.shakeMs / 1000
+        v.layer?.add(a, forKey: "shake")
+    }
+
+    /// Tab is down on the current ghost: after 150 ms, sweep the keycap to full at `ms` after keyDown.
     func startHold(ms: Double) {
         stopHold()
         guard let cur = current, let v = views[cur.id] else { return }
         let t0 = CACurrentMediaTime()
-        // Only show the bar after a short delay so a normal tap doesn't flash it.
-        let delay = 0.12
+        let hidden = style.holdHiddenMs / 1000
         holdTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 60, repeats: true) { _ in
             let el = CACurrentMediaTime() - t0
-            guard el >= delay else { return }
-            v.holdProgress = CGFloat((el * 1000) / ms)
+            guard el >= hidden else { return }
+            v.pill.holdFraction = CGFloat(el * 1000 / ms)
         }
     }
 
     func stopHold() {
         holdTimer?.invalidate()
         holdTimer = nil
-        for v in views.values where v.holdProgress != nil { v.holdProgress = nil }
-    }
-
-    func redraw() {
-        let gs = views.values.map(\.ghost)
-        let cur = current
-        for id in Array(views.keys) { remove(id, animated: false) }
-        for g in gs { add(g, animated: false) }
-        current = cur
-    }
-
-    func shake() {
-        guard let cur = current, let v = views[cur.id], let layer = v.layer else { return }
-        let a = CAKeyframeAnimation(keyPath: "transform.translation.x")
-        a.values = [0, -7, 7, -5, 5, -2, 0]
-        a.duration = 0.32
-        layer.add(a, forKey: "shake")
+        for v in views.values where v.pill.holdFraction != nil { v.pill.holdFraction = nil }
     }
 
     private func add(_ g: Ghost, animated: Bool, hc: Bool? = nil) {
-        let v = GhostView(ghost: g, style: Style(hc: hc ?? highContrast), frame: root.bounds, usable: usable)
+        let st = Style(hc: hc ?? highContrast)
+        let v = GhostView(ghost: g, style: st, frame: root.bounds, usable: usable)
         views[g.id] = v
         root.addSubview(v)
-        if animated {
-            v.alphaValue = 0
-            NSAnimationContext.runAnimationGroup { ctx in
-                ctx.duration = Style(hc: highContrast).appearMs / 1000
-                ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
-                v.animator().alphaValue = 1
-            }
+        guard animated else { return }
+        v.alphaValue = 0
+        let target = v.pill.frame.origin
+        v.pill.setFrameOrigin(CGPoint(x: target.x, y: target.y + st.appearRise))
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = st.appearMs / 1000
+            ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            v.animator().alphaValue = 1
+            v.pill.animator().setFrameOrigin(target)
         }
     }
 
-    private func remove(_ id: String, animated: Bool) {
+    /// exit nil = remove at once.
+    private func remove(_ id: String, exit: Exit?) {
         hideTimers[id]?.cancel()
         hideTimers[id] = nil
         guard let v = views.removeValue(forKey: id) else { return }
-        if !animated { v.removeFromSuperview(); return }
-        NSAnimationContext.runAnimationGroup({ ctx in
-            ctx.duration = Style(hc: highContrast).dismissMs / 1000
-            v.animator().alphaValue = 0
-        }, completionHandler: { v.removeFromSuperview() })
+        let st = v.style
+        guard let exit else { v.removeFromSuperview(); return }
+        switch exit {
+        case .dismiss, .done:
+            NSAnimationContext.runAnimationGroup({ ctx in
+                ctx.duration = (exit == .done ? st.doneFadeMs : st.dismissMs) / 1000
+                ctx.timingFunction = CAMediaTimingFunction(name: .easeIn)
+                v.animator().alphaValue = 0
+            }, completionHandler: { v.removeFromSuperview() })
+        case .accept:
+            v.pill.pressed = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + st.pressMs / 1000) {
+                if !st.reduceMotion, let layer = v.pill.layer {
+                    let s = CABasicAnimation(keyPath: "transform.scale")
+                    s.fromValue = 1
+                    s.toValue = 0.97
+                    s.duration = st.acceptFadeMs / 1000
+                    s.fillMode = .forwards
+                    s.isRemovedOnCompletion = false
+                    layer.add(s, forKey: "accept")
+                }
+                NSAnimationContext.runAnimationGroup({ ctx in
+                    ctx.duration = st.acceptFadeMs / 1000
+                    ctx.timingFunction = CAMediaTimingFunction(name: .easeIn)
+                    v.animator().alphaValue = 0
+                }, completionHandler: { v.removeFromSuperview() })
+            }
+        }
     }
 }
 
