@@ -72,6 +72,7 @@ export interface Ghost {
     pillAt?: { x: number; y: number }; // pill position when there is no rect
     ghostText?: string; // gray inline text for kind 'text'
     place?: "below" | "above" | "right" | "inside"; // pill placement relative to rect (default below; A flips it above at the screen edge)
+    avoid?: Rect[]; // other interactive elements near rect; with no `place`, A puts the pill where it covers none of them
     ttlMs?: number; // auto-hide, used for 'done'
 }
 

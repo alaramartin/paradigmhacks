@@ -378,15 +378,23 @@ func renderSelftest(to out: String) {
     root.dark = args.contains("--dark")
     root.image = flagValue("--bg").flatMap { NSImage(contentsOfFile: $0) }
     // --ghosts file.json: [{"ghost": Ghost, "hc": Bool?}] in view points, instead of the selftest layout.
-    // `hold` (0…1) draws the keycap's hold sweep at that fraction.
-    struct Item: Decodable { var ghost: Ghost; var hc: Bool?; var hold: Double? }
+    // `hold` (0…1) draws the keycap's hold sweep at that fraction; `ripple` (0…1) an accept ripple frame.
+    struct Item: Decodable { var ghost: Ghost; var hc: Bool?; var hold: Double?; var ripple: Double? }
     let items: [Item] = flagValue("--ghosts").map { path in
         let data = try! Data(contentsOf: URL(fileURLWithPath: path))
         return try! JSONDecoder().decode([Item].self, from: data)
-    } ?? selftestGhosts(screen: size).map { Item(ghost: $0.0, hc: $0.1, hold: $0.0.id.hasSuffix("-repeat") ? 0.55 : nil) }
+    } ?? selftestGhosts(screen: size).map { Item(ghost: $0.0, hc: $0.1, hold: $0.0.id.hasSuffix("-repeat") ? 0.55 : nil, ripple: nil) }
     for it in items {
-        let v = GhostView(ghost: it.ghost, style: Style(hc: it.hc ?? highContrastFlag), frame: root.bounds, usable: root.bounds)
+        let st = Style(hc: it.hc ?? highContrastFlag)
+        let v = GhostView(ghost: it.ghost, style: st, frame: root.bounds, usable: root.bounds)
         v.pill.holdFraction = it.hold.map { CGFloat($0) }
+        if let f = it.ripple {
+            let ring = RippleView(frame: root.bounds, rect: v.rippleRect, style: st, kind: it.ghost.kind)
+            ring.progress = CGFloat(f)
+            root.addSubview(ring)
+            v.pill.pressed = true
+            v.alphaValue = CGFloat(max(0, 1 - f * 2.5)) // the ghost fades out under the ring (120 of 320 ms)
+        }
         root.addSubview(v)
     }
     guard let rep = root.bitmapImageRepForCachingDisplay(in: root.bounds) else { fatalError("no bitmap") }

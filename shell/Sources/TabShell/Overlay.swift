@@ -403,6 +403,9 @@ final class GhostView: NSView {
         return .systemFont(ofSize: min(20, max(12, r.h * 0.42)))
     }
 
+    /// Where an accept ripple starts: the box, or the pill for ghosts without a rect (Terminal).
+    var rippleRect: CGRect { boxRect() ?? pillRect }
+
     private func boxRect() -> CGRect? {
         guard let r = ghost.rect else { return nil }
         let o = style.boxOutset
@@ -440,9 +443,9 @@ final class GhostView: NSView {
             case "right" where right.x + size.width <= usable.maxX - style.clamp:
                 p = right
             case "inside":
-                // Docked at the element's right end like a badge, equal space right and top/bottom.
-                let inset = max(4, (r.h - size.height) / 2)
-                p = CGPoint(x: r.x + r.w - size.width - inset, y: r.y + (r.h - size.height) / 2)
+                p = inside(r, size)
+            case nil where !(ghost.avoid ?? []).isEmpty:
+                p = leastCovering(b, r, size, above: above, right: right)
             default:
                 p = CGPoint(x: b.minX, y: b.maxY + style.gap)
                 if p.y + size.height > usable.maxY - style.clamp { p.y = above.y }
@@ -460,6 +463,36 @@ final class GhostView: NSView {
         p.x = min(max(p.x, usable.minX + style.clamp), usable.maxX - size.width - style.clamp)
         p.y = min(max(p.y, usable.minY + style.clamp), usable.maxY - size.height - style.clamp)
         return CGRect(origin: p, size: size)
+    }
+
+    /// Docked at the element's right end like a badge, equal space right and top/bottom.
+    private func inside(_ r: Rect, _ size: CGSize) -> CGPoint {
+        let inset = max(4, (r.h - size.height) / 2)
+        return CGPoint(x: r.x + r.w - size.width - inset, y: r.y + (r.h - size.height) / 2)
+    }
+
+    /// With `avoid` and no explicit `place`: the first of below, above, right, inside (fields wide enough for it) whose
+    /// pill fits on screen and covers none of the nearby elements; if all cover something, the one that covers least.
+    /// Forms flow downward, so what's below the target is probably the next step: covering it costs 3×, covering a
+    /// finished step above costs 1×. Right reads a little worse than above/below (1.2×).
+    private func leastCovering(_ b: CGRect, _ r: Rect, _ size: CGSize, above: CGPoint, right: CGPoint) -> CGPoint {
+        let target = CGRect(x: r.x, y: r.y, width: r.w, height: r.h)
+        // Containers of the target (a label wrapping a checkbox) aren't obstacles.
+        let others = (ghost.avoid ?? []).map { CGRect(x: $0.x, y: $0.y, width: $0.w, height: $0.h) }
+            .filter { !$0.contains(CGPoint(x: target.midX, y: target.midY)) }
+        var cands = [CGPoint(x: b.minX, y: b.maxY + style.gap), above, right]
+        if r.w >= size.width + 24 { cands.append(inside(r, size)) }
+        let onScreen = usable.insetBy(dx: style.clamp, dy: style.clamp)
+        func covered(_ p: CGPoint) -> CGFloat {
+            let pr = CGRect(origin: p, size: size).insetBy(dx: -2, dy: -2)
+            let area = others.reduce(0) { acc, o in
+                let i = pr.intersection(o)
+                return acc + (i.isNull ? 0 : i.width * i.height * (o.midY > target.maxY ? 3 : 1))
+            }
+            return p == right ? area * 1.2 : area
+        }
+        let fitting = cands.filter { onScreen.contains(CGRect(origin: $0, size: size)) }
+        return fitting.min { covered($0) < covered($1) } ?? cands[0] // min keeps the first of equals: below wins ties
     }
 
     /// The cursor tip, from the rect (lower-right quadrant, clear of centred labels). Only action ghosts with a cursor.
@@ -724,6 +757,7 @@ final class Overlay {
             }, completionHandler: { v.removeFromSuperview() })
         case .accept:
             v.pill.pressed = true
+            if !st.reduceMotion { ripple(from: v) }
             DispatchQueue.main.asyncAfter(deadline: .now() + st.pressMs / 1000) {
                 if !st.reduceMotion, let layer = v.pill.layer {
                     let s = CABasicAnimation(keyPath: "transform.scale")
@@ -741,6 +775,51 @@ final class Overlay {
                 }, completionHandler: { v.removeFromSuperview() })
             }
         }
+    }
+}
+
+extension Overlay {
+    /// Accept feedback the room can see: a ring leaves the target and fades, so it's clear where Tab acted.
+    fileprivate func ripple(from v: GhostView) {
+        let ring = RippleView(frame: root.bounds, rect: v.rippleRect, style: v.style, kind: v.ghost.kind)
+        ring.setBoundsOrigin(v.bounds.origin)
+        root.addSubview(ring, positioned: .below, relativeTo: v)
+        let t0 = CACurrentMediaTime()
+        Timer.scheduledTimer(withTimeInterval: 1.0 / 60, repeats: true) { t in
+            let f = min(1, (CACurrentMediaTime() - t0) / RippleView.seconds)
+            ring.progress = CGFloat(1 - pow(1 - f, 3)) // ease-out cubic
+            if f >= 1 { t.invalidate(); ring.removeFromSuperview() }
+        }
+    }
+}
+
+/// One expanding, fading ring around a rect (accept feedback).
+final class RippleView: NSView {
+    static let seconds = 0.32
+    let rect: CGRect
+    let style: Style
+    let kind: GhostKind
+    var progress: CGFloat = 0 { didSet { needsDisplay = true } }
+
+    init(frame: CGRect, rect: CGRect, style: Style, kind: GhostKind) {
+        self.rect = rect
+        self.style = style
+        self.kind = kind
+        super.init(frame: frame)
+        wantsLayer = true
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+    override var isFlipped: Bool { true }
+
+    override func draw(_ dirty: NSRect) {
+        let grow = 2 + 14 * progress
+        let r = rect.insetBy(dx: -grow, dy: -grow)
+        let radius = min(r.height / 2, style.boxRadius + grow)
+        let path = NSBezierPath(roundedRect: r, xRadius: radius, yRadius: radius)
+        path.lineWidth = (style.hc ? 4 : 2.5) * (1 - progress) + 0.5
+        style.boxColor(kind).withAlphaComponent(0.85 * (1 - progress)).setStroke()
+        path.stroke()
     }
 }
 

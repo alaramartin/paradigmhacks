@@ -7,6 +7,7 @@
 //   node shell/scripts/look.mjs [--window WxH] <url> <out.png> '<ghosts json>'
 //   ghosts: [{"kind":"action","label":"Click Checkout ⇥","target":"Checkout","place":"inside","hc":false,"ghostText":"…"}]
 //   target = case-insensitive substring of an element label in the captured state (first interactive match wins).
+//   "avoid": true fills Ghost.avoid the way the hub should: every other element (any role) within 120 pt of the target.
 //   --window WxH  the window size (default 720x875, a half-screen window on a 1440×900 display, as in the demo).
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -60,6 +61,11 @@ try {
     const bg = join(tmp, "bg.png");
     writeFileSync(bg, Buffer.from(shot, "base64"));
 
+    // Reference for the hub's Ghost.avoid: other elements whose rect comes within `d` points of the target's.
+    const nearby = (el, all, d = 120) => all.filter((o) => o !== el &&
+        o.rect.x < el.rect.x + el.rect.w + d && o.rect.x + o.rect.w > el.rect.x - d &&
+        o.rect.y < el.rect.y + el.rect.h + d && o.rect.y + o.rect.h > el.rect.y - d).map((o) => o.rect);
+
     // Map each ghost's target to viewport points (the screenshot's coordinate space).
     const toView = (r) => ({ x: r.x - cap.screenX, y: r.y - cap.screenY - cap.toolbar, w: r.w, h: r.h });
     const items = JSON.parse(spec).map((g, i) => {
@@ -73,6 +79,7 @@ try {
             if ((g.kind ?? "action") === "action") ghost.cursor = { x: ghost.rect.x + ghost.rect.w / 2, y: ghost.rect.y + ghost.rect.h / 2 };
         }
         for (const k of ["ghostText", "place", "pillAt", "ttlMs"]) if (g[k] !== undefined) ghost[k] = g[k];
+        if (g.avoid === true && el) ghost.avoid = nearby(el, state.elements).map(toView);
         return { ghost, hc: !!g.hc, hold: g.hold };
     });
     const ghosts = join(tmp, "ghosts.json");

@@ -67,6 +67,7 @@ struct Ghost: Codable, Equatable {
     var ghostText: String?
     var ttlMs: Double?
     var place: String? // "below" (default) | "above" | "right" | "inside"
+    var avoid: [Rect]? // nearby interactive elements the pill should not cover (used when `place` is absent)
 }
 
 struct TabDid: Codable, Equatable {
