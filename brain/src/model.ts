@@ -191,6 +191,10 @@ export class JevDecider implements Decider {
         if (next.choice === "none") return null;
         const g = gs[Number(next.choice.slice(1))];
         if (!g) return null;
+        // Jev's own pick is the page's buy/checkout button but it's cautious (Click Buy tickets at 0.53 at 16:10, after
+        // 0.74 earlier): a purchase button that is Jev's top choice is shown. Paying still needs its own Tab on the pay ghost.
+        if (g.length === 1 && g[0].action.op === "click" && BUY.test(g[0].action.label) && next.confidence >= 0.4)
+            return { action: { ...g[0].action, confidence: Math.max(next.confidence, 0.7) }, desc: g[0].desc };
         if (g.length === 1) return { action: { ...g[0].action, confidence: next.confidence }, desc: g[0].desc };
         const v = out.answers[`value_${next.choice}`];
         const c = v && g[Number(v.choice.slice(1))];
@@ -267,6 +271,7 @@ export function submitAfterFill(m: ModelInput): string | undefined {
         .sort((a, b) => a.rect.y - b.rect.y);
     return below[0]?.id;
 }
+const BUY = /^click (buy|pay|purchase|place order|check ?out)\b/i;
 const SUBMIT = /^(create|submit|save|send|buy|place|request|post|publish|confirm|pay|check ?out|sign up|continue)\b/i;
 
 function jevState(m: ModelInput) {
