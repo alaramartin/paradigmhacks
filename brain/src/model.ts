@@ -180,14 +180,17 @@ export class JevDecider implements Decider {
             const top = Object.entries(next.probabilities).sort((x, y) => y[1] - x[1]).slice(0, 3);
             console.log("  [jev]", top.map(([k, p]) => `${p.toFixed(2)} ${criteria[k]}`).join(" | "));
         }
+        // Two independent signals agree: the code found the submit button right below the field the user just filled,
+        // and it is Jev's best actual action (ignoring "none") or gets real weight (≥ 0.2). Jev alone stays unsure on busy
+        // pages (GitHub PR page: Create at 0.23–0.32, often just behind "none"), so trust the agreement.
+        const submitId = submitAfterFill(m);
+        const si = submitId ? gs.findIndex((g) => g.length === 1 && g[0].action.targetId === submitId) : -1;
+        const bestAction = Object.entries(next.probabilities).filter(([k]) => k !== "none").sort((a, b) => b[1] - a[1])[0]?.[0];
+        if (si >= 0 && (bestAction === `a${si}` || (next.probabilities[`a${si}`] ?? 0) >= 0.2))
+            return { action: { ...gs[si][0].action, confidence: Math.max(next.probabilities[`a${si}`], 0.7) }, desc: gs[si][0].desc };
         if (next.choice === "none") return null;
         const g = gs[Number(next.choice.slice(1))];
         if (!g) return null;
-        // Two independent signals agree: Jev's top pick is the submit button the code found right below the field the
-        // user just filled. Jev alone stays unsure on busy pages (GitHub PR page: 0.26–0.32), so trust the agreement.
-        const submitId = submitAfterFill(m);
-        if (g.length === 1 && submitId && g[0].action.targetId === submitId && next.confidence >= 0.2)
-            return { action: { ...g[0].action, confidence: Math.max(next.confidence, 0.7) }, desc: g[0].desc };
         if (g.length === 1) return { action: { ...g[0].action, confidence: next.confidence }, desc: g[0].desc };
         const v = out.answers[`value_${next.choice}`];
         const c = v && g[Number(v.choice.slice(1))];
@@ -198,6 +201,11 @@ export class JevDecider implements Decider {
 
 /** What's on screen, without element ids (they change on every page load): page + each control's role, label, value. */
 export function screenKey(s: ScreenState): string {
+    if (s.source === "native") {
+        // Terminal text changes every run (object counts, speeds); what matters is the URLs it offers.
+        const urls = [...new Set(s.elements.flatMap((e) => `${e.value ?? ""}`.match(/https?:\/\/[^\s'"<>]+/g) ?? []))].slice(-5);
+        return createHash("sha1").update(`${s.app}\n${urls.join("\n")}`).digest("hex");
+    }
     const controls = s.elements
         .filter((e) => e.role !== "text")
         .map((e) => `${e.role}|${e.label}|${e.value ?? ""}|${e.checked ?? ""}|${e.enabled}`)

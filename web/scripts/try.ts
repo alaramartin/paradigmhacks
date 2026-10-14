@@ -1,7 +1,9 @@
 // Headless rehearsal of the web flows against the real hub, web process and demo sites.
 // Plays the user (real CDP mouse/keys in Chrome) and plays the shell toward the hub (frontmost, accept,
 // dismiss), then checks every ghost and every outcome. Screenshots go to design/shots/try-*.png.
-//   npm run try -- [flow1|flow3|flow4|all|flow3-recall]
+//   npm run try -- [flow1|flow2|flow3|flow4|all|flow3-recall]
+//   flow2: pushes the demo branch for real, plays the Terminal (A's reader) with the push output, then the PR page:
+//   Open pull request → Write description → Create pull request (a real PR on GITHUB_DEMO_REPO; reset-demo closes it).
 //   flow3-recall: flow 3, then reset-demo --keep-workflows, RESTART THE HUB (kills whatever listens on :7800 and
 //   starts brain's hub detached, log in $TMPDIR/tab-hub-try.log), reload the tracker → "Do all 6 from v1.4.0".
 // Needs: npm run demo, the hub (brain: npm start), npm start (this package), Chrome on :9222.
@@ -9,7 +11,7 @@ import CDP from "chrome-remote-interface";
 import WebSocket from "ws";
 import { mkdirSync, openSync, writeFileSync } from "node:fs";
 import { spawn, spawnSync } from "node:child_process";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Ghost } from "../../protocol/types.ts";
@@ -39,6 +41,8 @@ async function connectHub(): Promise<void> {
         const m = JSON.parse(String(d));
         if (m.to === "shell" && m.msg.type === "ghost") ghosts.push(m.msg.ghost);
         if (m.to === "shell" && m.msg.type === "ghost_hide") ghosts.push({ id: "", kind: "done", label: "(hidden)" });
+        // We play A: answer its switch_app execs (flow 2: Terminal → Chrome).
+        if (m.to === "shell" && m.msg.type === "exec") hub.send(JSON.stringify({ as: "shell", type: "exec_result", ghostId: m.msg.ghostId, ok: true }));
     });
 }
 await connectHub();
@@ -217,6 +221,53 @@ async function flow3Recall() {
     await rel.close();
 }
 
+async function flow2() {
+    console.log("Flow 2: git push → pull request");
+    const repo = process.env.GITHUB_DEMO_REPO ?? "alaramartin/tab-demo";
+    const clone = (process.env.GITHUB_DEMO_CLONE || "~/Projects/tab-demo").replace(/^~/, homedir());
+    const push = spawnSync("git", ["push", "-u", "origin", "fix/checkout-rounding"], { cwd: clone, encoding: "utf8" });
+    const out = `$ git push -u origin fix/checkout-rounding\n${push.stderr}${push.stdout}`.trim();
+    if (!ok(/pull\/new\//.test(out), "git push printed the pull request link")) return;
+    // Play A's Terminal reader: frontmost Terminal + its text.
+    asShell({ type: "frontmost", app: "com.apple.Terminal", window: "zsh" });
+    asShell({ type: "state", source: "native", app: "com.apple.Terminal", window: "zsh", focused: true, seq: Date.now(), ts: Date.now(),
+        elements: [{ id: "term", role: "textarea", label: "Terminal", rect: { x: 760, y: 100, w: 660, h: 700 }, enabled: true, value: out.split("\n").slice(-40).join("\n") }] });
+    if (!(await accept((g) => g.label.startsWith("Open pull request"), "Open pull request ⇥", 8000))) return;
+    await sleep(1500);
+    frontmost();
+    // Find the tab C navigated (pull/new redirects to compare), bring it up, and clear any GitHub draft of the description.
+    let c: CDP.Client | null = null;
+    for (let i = 0; i < 40 && !c; i++) {
+        const t = (await CDP.List({ port: env.cdpPort })).find((x) => x.type === "page" && /\/(compare|pull\/new)\//.test(x.url) && x.url.includes(repo));
+        if (t) c = await CDP({ port: env.cdpPort, target: t.id });
+        else await sleep(250);
+    }
+    if (!ok(!!c, "Chrome opened the pull request page")) return;
+    try {
+        await flow2OnPage(c!, repo);
+    } finally {
+        await c!.close();
+    }
+}
+
+async function flow2OnPage(c: CDP.Client, repo: string) {
+    await c.Page.enable();
+    await c.Page.bringToFront();
+    await until(c, `!!document.getElementById("pull_request_body")`, 15000);
+    await evalIn(c, `(() => { const ta = document.getElementById("pull_request_body"); if (!ta.value) return; Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set.call(ta, ""); ta.dispatchEvent(new Event("input", { bubbles: true })); })()`);
+    frontmost();
+    if (!(await accept((g) => g.kind === "text" && /Round checkout totals/.test(g.ghostText ?? ""), "Write description (ghost text)", 10000))) return;
+    ok(await until(c, `/Round checkout totals/.test(document.getElementById("pull_request_body").value)`, 8000), "description landed");
+    if (!(await accept((g) => g.label.startsWith("Click Create pull request"), "Click Create pull request ⇥", 10000))) return;
+    let pr = "";
+    for (let i = 0; i < 30 && !pr; i++) {
+        await sleep(1000);
+        pr = spawnSync("gh", ["pr", "list", "--repo", repo, "--head", "fix/checkout-rounding", "--state", "open", "--json", "url", "--jq", ".[0].url"], { encoding: "utf8" }).stdout.trim();
+    }
+    ok(!!pr, `pull request opened: ${pr || "none"}`);
+    await shot(c, "flow2-pr");
+}
+
 async function flow4() {
     console.log("Flow 4: inbox → pharmacy, one button");
     const inbox = await tabFor("http://inbox.localhost:4004/");
@@ -248,6 +299,7 @@ async function flow4() {
 
 try {
     if (which === "flow1" || which === "all") await flow1();
+    if (which === "flow2") await flow2();
     if (which === "flow3" || which === "all") await flow3();
     if (which === "flow4" || which === "all") await flow4();
     if (which === "flow3-recall") await flow3Recall();
