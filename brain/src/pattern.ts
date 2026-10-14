@@ -46,6 +46,7 @@ export function unitOf(h: HistEntry[]): HistEntry[] | null {
         const e = h[k];
         if (e.url !== trig!.url) continue;
         if (isTrigger(e)) break;
+        if (e.op === "navigate") continue; // page loads aren't part of the chore (and replaying one leaves the page)
         unit.unshift(e);
     }
     const u = unit.slice(-MAX_UNIT);

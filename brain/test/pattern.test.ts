@@ -87,3 +87,13 @@ test("no provenance → no prediction (tickets checkout)", () => {
     ];
     assert.equal(eng.predict(h, states(), T0 + 2), null);
 });
+
+test("navigations in history are never replayed as part of a unit", () => {
+    const eng = new PatternEngine();
+    const h = ticketByHand(0, T0);
+    h.unshift({ op: "navigate", app: CHROME, url: TRACKER_URL, value: "http://pharmacy.localhost:4005/refill", ts: T0 - 10, by: "user" });
+    h.splice(2, 0, { op: "navigate", app: CHROME, url: TRACKER_URL, value: TRACKER_URL, ts: T0 + 500, by: "user" });
+    const a = eng.predict(h, states(), T0 + 6000)!;
+    assert.equal(a.label, "Repeat for ENG-150 · #13");
+    assert.ok(a.steps.every((s) => s.op !== "navigate"));
+});

@@ -66,3 +66,10 @@ test("PR description on A's real GitHub compare capture: titles rejoined, no aut
     assert.equal(lines.length, 6);
     assert.ok(!/zanieb|\[bot\]|0e23f06/.test(d), d);
 });
+
+test("askedFor: a checkbox the other page asks for", async () => {
+    const { askedFor } = await import("../src/model.ts");
+    assert.equal(askedFor("Text me when ready", "want a heads-up? ask us to text you when it's ready."), true);
+    assert.equal(askedFor("Text me when ready", "rx 4471-209 is ready to refill at oak st."), false);
+    assert.equal(askedFor("Subscribe to newsletter", "rx 4471-209 is ready"), false);
+});

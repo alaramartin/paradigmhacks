@@ -152,6 +152,13 @@ export class JevDecider implements Decider {
 const NEXT_INSTRUCTIONS =
     "The user is working in `ACTIVE`. Which single element will they act on next? Rules: (1) It continues what `RECENT_ACTIONS` shows them doing. (2) Forms are filled top to bottom: the next action is on the first element in `ACTIVE.elements` that is empty, unchecked, or not yet set to what `OTHER_PAGES` says. (3) A button that submits, buys, or creates is clicked only after every field above it is filled in. (4) Values they type or choose come from text in `OTHER_PAGES`. (5) When every field in the form is filled in, the next action is the main button that submits it.";
 
+/** A checkbox other pages ask for: ≥ 2 of its content words appear there ("Text me when ready" ↔ "text you when it's ready"). */
+const STOP = new Set(["me", "my", "you", "your", "when", "it", "is", "the", "a", "an", "to", "for", "of", "and", "or", "on", "in", "with", "this", "that", "i"]);
+export function askedFor(label: string, otherText: string): boolean {
+    const words = label.toLowerCase().match(/[a-z]{2,}/g)?.filter((w) => !STOP.has(w)) ?? [];
+    return words.length >= 2 && words.filter((w) => new RegExp(`\\b${w}`).test(otherText)).length >= 2;
+}
+
 /** Only what the decision needs: Jev loses accuracy on irrelevant state. */
 function jevState(m: ModelInput) {
     const otherText = otherPagesText(m.active, m.others);
@@ -159,6 +166,7 @@ function jevState(m: ModelInput) {
         s.elements.slice(0, max).map((e) => {
             const hint = e.role === "select" ? mentionedOptions(e, otherText)[0] : undefined;
             if (hint) return `${e.role}: ${e.label} = ${JSON.stringify(e.value ?? "")}, but OTHER_PAGES says ${JSON.stringify(hint)}`;
+            if (e.role === "checkbox" && !e.checked && askedFor(e.label, otherText)) return `checkbox: ${e.label} [not checked], and OTHER_PAGES asks for this`;
             const v = e.role === "checkbox" || e.checked !== undefined ? (e.checked ? " [checked]" : " [not checked]") : e.value ? ` = ${JSON.stringify(e.value.slice(-400))}` : e.role === "textfield" || e.role === "textarea" ? " = (empty)" : "";
             return `${e.role}: ${e.label}${v}`;
         });
