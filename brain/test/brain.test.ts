@@ -186,3 +186,14 @@ test("pill docks inside a wide field when something sits right below it (tracker
     await brain.predictNow();
     assert.equal(ghosts().at(-1).place, "inside");
 });
+
+test("acting on the page doesn't suppress a suggestion that is still right (Checkout before and after Qty)", async () => {
+    const { brain, ghosts } = harness(() => ({ op: "click", app: CHROME, url: TRACKER_URL, targetId: "save", targetPath: SAVE.path, label: "Click Save", confidence: 0.9, source: "model" }));
+    brain.fromShell({ type: "frontmost", app: CHROME, window: "Tracker" });
+    brain.fromWeb(trackerState(Date.now()));
+    await brain.predictNow();
+    assert.equal(ghosts().length, 1);
+    brain.fromWeb(ev("type", PR, "#12")); // user acts on the page while the ghost is up
+    await brain.predictNow();
+    assert.equal(ghosts().length, 2, "same suggestion offered again");
+});

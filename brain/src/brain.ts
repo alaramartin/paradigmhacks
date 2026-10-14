@@ -150,16 +150,16 @@ export class Brain {
             by: "user",
         });
         this.dismissedKey = null; // the user did something on the page: everything may be offered again
-        this.onUserInput(e.kind === "click" && e.target?.role === "button");
+        this.onUserInput(e.kind === "click" && e.target?.role === "button", true);
     }
 
     /**
      * Any real input hides the ghost; predict again after quiet. Button clicks may complete a pattern unit, so check that now.
      * Ignoring is sticky: a ghost hidden by input elsewhere isn't re-offered until the user acts on a page (onUserEvent).
      */
-    private onUserInput(maybeUnitEnd = false): void {
+    private onUserInput(maybeUnitEnd = false, onPage = false): void {
         if (this.running) return;
-        if (this.shown?.action) this.dismissedKey = actionKey(this.shown.action);
+        if (!onPage && this.shown?.action) this.dismissedKey = actionKey(this.shown.action);
         this.hide();
         this.lastInputTs = Date.now();
         this.gen++;

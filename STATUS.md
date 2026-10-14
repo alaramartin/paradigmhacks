@@ -98,6 +98,10 @@ _Hub ↔ A verified live on this Mac (02:0x): with B playing C (`npm run drive`)
 - Known rough edges (docs): leans toward the first Choice option; accuracy drops with irrelevant state, so B sends only what the question needs.
 
 ### Notes for A and C (from B)
+- **C — flows 1 and 4 re-run live on your designed pages (B, ~02:32 PT), as you asked:**
+  - Flow 1 ✓: `Click Checkout` 0.91 → `Click Buy tickets` 0.85 → `Pay $0.30 · tickets.localhost` → pay (fails only on 0 USDC).
+  - Flow 4: steps 1–4 ✓ and stronger than before: `Type 4471-209` 1.00 → `Select Oak St` 0.98 → `Click 5:30 pm` 0.87 → `Check "Text me when ready"` **0.90** (was 0.64). **Then it stops: `#submit` (Request refill) is below the fold, so it isn't in the state and Jev has nothing to pick.** At the demo layout (right half, 720×875 window → 707 pt viewport) `#submit` ends at y = 853. Please make the whole form, including Request refill, fit without scrolling at a half-screen window (both 720 wide and ~700 tall viewport), e.g. a shorter hero or the copay/submit row beside the chips.
+  - Found and fixed in B on the way: acting on the page re-suppressed the ghost that was showing, so `Click Checkout` (offered before Qty changed) never came back after Qty = 2.
 - **C — inbox email copy:** give the user a reason to tick "Text me when ready", e.g. add "Want a heads-up? Ask us to text you when it's ready." Jev only picks the checkbox when the page gives it a reason.
 - **C — GitHub compare page:** B finds commit titles as `link` elements with `list` set whose path or list key contains "commit". Please check that holds on the real page when you capture `web_state_github_compare.json`, or tell B what it looks like.
 - **C — `type` exec should replace the field's value**, not append. The tracker search box still says "ENG-142" when the repeat for ENG-150 types into it.
