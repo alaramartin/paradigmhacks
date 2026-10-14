@@ -273,10 +273,11 @@ export class Brain {
         }
         const center = { x: el.rect.x + el.rect.w / 2, y: el.rect.y + el.rect.h / 2 };
         const empty = !el.value;
+        const avoid = nearby(el.rect, active, el.id);
         if (a.op === "type" && empty && (el.role === "textfield" || el.role === "textarea")) {
-            return { id, kind: "text", label: "⇥", rect: el.rect, ghostText: a.value };
+            return { id, kind: "text", label: "⇥", rect: el.rect, ghostText: a.value, ...(avoid.length ? { avoid } : {}) };
         }
-        const ghost: Ghost = { id, kind: "action", label, rect: el.rect, cursor: center };
+        const ghost: Ghost = { id, kind: "action", label, rect: el.rect, cursor: center, ...(avoid.length ? { avoid } : {}) };
         if (this.pillWouldCover(el, active)) ghost.place = "inside"; // ghost-spec amendment: dock in wide fields
         return ghost;
     }
@@ -453,6 +454,10 @@ export class Brain {
         const ghost: Ghost = p.verdict.ok
             ? { id, kind: "pay", label: `Pay $${p.amountUsd} · ${p.payeeDomain} ⇥`, rect: p.anchorRect }
             : { id, kind: "blocked", label: `Blocked · ${p.verdict.reason ?? "payment does not match the page"}`, rect: p.anchorRect };
+        if (p.anchorRect) {
+            const avoid = nearby(p.anchorRect, this.store.active());
+            if (avoid.length) ghost.avoid = avoid;
+        }
         if (this.shown?.paymentId === p.paymentId && this.shown.ghost.kind === ghost.kind) return;
         this.shown = { ghost, paymentId: p.paymentId };
         this.hud.shown++;
@@ -503,6 +508,17 @@ export class Brain {
         log.prediction({ ts: Date.now(), gen, source, latencyMs: Math.round(latencyMs * 10) / 10, action: brief, shown });
         this.o.onPredict?.({ source, latencyMs, action });
     }
+}
+
+/**
+ * Rects of the other elements within 120 pt of the target (any role, text included), for `Ghost.avoid`:
+ * the shell knows the pill's real size and places it where it covers none of them (ghost-spec amendment, A).
+ */
+export function nearby(r: Rect, state: ScreenState | undefined, excludeId?: string): Rect[] {
+    if (!state) return [];
+    const gap = (a: Rect, b: Rect) => Math.max(0, a.x - (b.x + b.w), b.x - (a.x + a.w)) + Math.max(0, a.y - (b.y + b.h), b.y - (a.y + a.h));
+    const same = (o: Rect) => o.x === r.x && o.y === r.y && o.w === r.w && o.h === r.h;
+    return state.elements.filter((o) => o.id !== excludeId && !same(o.rect) && gap(o.rect, r) <= 120).map((o) => o.rect).slice(0, 40);
 }
 
 function actionKey(a: Action): string {

@@ -197,3 +197,14 @@ test("acting on the page doesn't suppress a suggestion that is still right (Chec
     await brain.predictNow();
     assert.equal(ghosts().length, 2, "same suggestion offered again");
 });
+
+test("ghosts carry Ghost.avoid: nearby elements, not the target, nothing far away", async () => {
+    const { brain, ghosts } = harness(() => ({ op: "click", app: CHROME, url: TRACKER_URL, targetId: "save", targetPath: SAVE.path, label: "Click Save", confidence: 0.9, source: "model" }));
+    brain.fromShell({ type: "frontmost", app: CHROME, window: "Tracker" });
+    brain.fromWeb(trackerState(Date.now()));
+    await brain.predictNow();
+    const g = ghosts().at(-1);
+    assert.ok(g.avoid?.length, "avoid sent");
+    assert.ok(!g.avoid.some((r: any) => r.y === SAVE.rect.y && r.x === SAVE.rect.x && r.w === SAVE.rect.w), "target excluded");
+    assert.ok(g.avoid.every((r: any) => Math.abs(r.y - SAVE.rect.y) <= 120 + 40), "only nearby");
+});
