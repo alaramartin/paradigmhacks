@@ -68,9 +68,12 @@ _Two Macs: the demo runs on **alara's Mac** (B verified there). A works on Ayush
   - `look.mjs` opens its own window (default 720×875) and never touches your tabs.
 - **HUD redesign** (`1f59005`). The reveal leads: a blue `tab` keycap "did" against "You did", big rounded numbers that count up, and a Tab/You split bar with percentages. Below it, the last prediction as a chip: `[pattern] 0 model calls · 2 ms` or `[model] 212 ms`. The spec shadow, no false "Paid" flash after a hub restart. Renders: `TabShell --render-hud out.png`.
 - **End-of-demo reveal** (`a40821d`, flow 4 step 7). **Presenter: click the numbers in the HUD** (or menu bar ⇥ → Reveal Totals). A 2.4× card opens in the middle of the screen and counts up from 0 to the totals. Any click or key closes it. ![](design/proof/a-reveal-card.png)
+- **B's remembered-workflow ghost (flow 3 step 5) checked on the real tracker (~10:50).** `Do all 6 from v1.4.0 · learned 10:03 am` gets the ↻ icon.
+  - In HC it used to be wider than the search box and spilled out of it. Now an `inside` pill is capped at the field's width, and the tail gives way first (`↻ Do all 6 from v1.4.0 · learned… tab`), cut at a word.
+  - A field too narrow for the head drops `inside` and places the pill below instead.
+  - Spec: ghost-spec Amendments "10:50". ![](design/proof/a-recall-tracker.png) ![](design/proof/a-recall-tracker-hc.png)
 ### In progress
-- Look-and-try polish: offscreen renders on real pages and a torture page (dark fields, tiny links, screen edges, huge cards). The display here is locked, so the real-screen check happens on alara's Mac.
-- A second correctness review of everything since `4c6d21f` (avoid, ripple, HUD, reveal).
+- M3 audit at 12:30: `redesign-existing-projects` on the ghost and HUD renders, then one full look-and-try run.
 - Recapture `native_state_terminal_push.json` from a real push to `alaramartin/tab-demo` (needs alara's Mac).
 ### Blocked
 - (none on the demo Mac)
@@ -88,7 +91,7 @@ _Two Macs: the demo runs on **alara's Mac** (B verified there). A works on Ayush
   - Hub, one line in the ghost builder: `ghost.avoid = active.elements.filter(o => o.id !== el.id && near(o.rect, el.rect, 120)).map(o => o.rect)`. Use any role, text included. `near` = the rects come within 120 pt of each other. Reference: `nearby()` in `shell/scripts/look.mjs`.
   - Shell (done, `b4f54a2`): with `avoid` and no `place`, it tries below → above → right → inside and keeps the first that fits and covers nothing, else the least covered. Covering something below the target counts 3×. An explicit `place` still wins, so your `inside` for the tracker search box keeps working.
   - Result on the real pharmacy form in HC: `Click 5:30 pm` and `Select Oak St` go to the right of the control, and the checkbox pill sits over its own label. Chips, Copay and Request refill stay visible. ![](design/proof/a-avoid-flow4-chip-hc.png) ![](design/proof/a-avoid-flow4-checkbox-hc.png)
-- **B (and humans) — `npm run reset-demo` doesn't reset the hub (found 03:25).** The hub keeps the pattern history and the HUD counters, which causes two problems:
+- ~~**B (and humans) — `npm run reset-demo` doesn't reset the hub (found 03:25).**~~ **Fixed by B (~03:35): `reset-demo` now resets the hub; no hub restart needed.** The hub keeps the pattern history and the HUD counters, which causes two problems:
   - Rehearse flow 3 twice without restarting the hub, and the second run's first offer is already `Do the remaining 5` (reproduced with `npm run try -- flow3`; it passes again with a fresh hub).
   - The Tab did / You did reveal would start the demo above 0.
   - Fix: either `reset-demo` sends the hub a reset (history, units, counters), or the run sheet says **restart the hub (`cd brain && npm start`) right before the demo and between rehearsals.**

@@ -370,6 +370,8 @@ func selftestGhosts(screen: CGSize) -> [(Ghost, Bool)] {
         out.append((Ghost(id: "\(tag)-repeat", kind: .action, label: "Repeat for ENG-150 · #13 ⇥", rect: r, place: "inside"), hc))
         r = Rect(x: 0, y: next(), w: 90, h: 30); r.x = x0
         out.append((Ghost(id: "\(tag)-batch", kind: .action, label: "Do the remaining 3 ⇥", rect: r), hc))
+        r = Rect(x: 0, y: next(), w: hc ? 440 : 340, h: hc ? 46 : 32); r.x = x0
+        out.append((Ghost(id: "\(tag)-recall", kind: .action, label: "Do all 6 from v1.4.0 · learned 10:03 am ⇥", rect: r, place: "inside"), hc))
         out.append((Ghost(id: "\(tag)-term", kind: .action, label: "Open pull request ⇥", pillAt: { let py = next() + 40; return Point(x: x0, y: py) }()), hc))
         return out
     }

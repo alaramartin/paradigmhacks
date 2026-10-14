@@ -169,8 +169,9 @@ struct PillContent {
         if g.kind == .done, label.hasSuffix("✓") { label = String(label.dropLast()).trimmingCharacters(in: .whitespaces) }
         if g.kind == .done { icon = .check }
         if g.kind == .blocked { icon = .block }
-        // The pattern rule's ghosts (PLAN pill formats) get a loop: "teach once, then repeat" at a glance.
-        if g.kind == .action, label.hasPrefix("Repeat for ") || label.hasPrefix("Do the remaining ") { icon = .repeat_ }
+        // The pattern rule's ghosts (PLAN pill formats) get a loop: "teach once, then repeat" at a glance. "Do all " is a
+        // saved workflow recalled on a later visit (B's `PatternEngine.recall`): the same unit, so the same loop.
+        if g.kind == .action, ["Repeat for ", "Do the remaining ", "Do all "].contains(where: label.hasPrefix) { icon = .repeat_ }
         key = g.kind == .blocked ? "esc" : g.kind == .done ? nil : (hadTab ? "tab" : nil)
         if let r = label.range(of: " · ") {
             head = String(label[..<r.lowerBound])
@@ -195,6 +196,8 @@ final class PillView: NSView {
     var holdFraction: CGFloat? { didSet { needsDisplay = true } }
     var borderAlpha: CGFloat = 1 { didSet { needsDisplay = true } }
 
+    /// The head didn't fit and was cut in the middle.
+    private(set) var headCut = false
     private var textAttr: NSAttributedString?
     private var keyW: CGFloat = 0
 
@@ -207,6 +210,7 @@ final class PillView: NSView {
         var w: CGFloat
         var attr: NSAttributedString?
         var kw: CGFloat = 0
+        var cut = false
         if let key = content.key {
             let tw = (key as NSString).size(withAttributes: [.font: style.keyFont]).width
             kw = max(style.keyMinW, ceil(tw) + 2 * style.keyPadH)
@@ -222,10 +226,13 @@ final class PillView: NSView {
             let headW = (head as NSString).size(withAttributes: headAttrs).width
             let tailW = (tail as NSString).size(withAttributes: tailAttrs).width
             if headW + tailW > room {
-                // A short head keeps its width and the tail gives way ("Blocked · <long reason>"); a long head gets
-                // at most 60% and truncates in the middle, so both ends stay readable ("Type "Thanks…rebuilds" into Comment").
-                let headRoom = max(room - tailW, min(headW, room * 0.6))
+                // The tail gives way first: the head names the action ("Blocked · page says…", "Do all 6 from v1.4.0
+                // · learned…"). Only a head with no room for a few tail characters truncates, in the middle and to at
+                // most 60%, so both ends stay readable ("Type "Thanks…rebuilds" into Comment").
+                let minTail = min(tailW, (" · ab…" as NSString).size(withAttributes: tailAttrs).width)
+                let headRoom = headW + minTail <= room ? headW : max(room - tailW, min(headW, room * 0.6))
                 head = PillView.fit(head, headRoom, headAttrs, .byTruncatingMiddle)
+                cut = head != content.head
                 tail = PillView.fit(tail, room - (head as NSString).size(withAttributes: headAttrs).width, tailAttrs, .byTruncatingTail)
             }
             let a = NSMutableAttributedString(string: head, attributes: headAttrs)
@@ -243,6 +250,7 @@ final class PillView: NSView {
         size = CGSize(width: w, height: style.pillH)
         textAttr = attr
         keyW = kw
+        headCut = cut
         super.init(frame: CGRect(origin: .zero, size: CGSize(width: w + 2 * PillView.margin, height: style.pillH + 2 * PillView.margin)))
         wantsLayer = true
     }
@@ -263,7 +271,11 @@ final class PillView: NSView {
                 let head = (n + 1) / 2
                 return trimEnd(Array(chars.prefix(head))) + "…" + trimStart(Array(chars.suffix(n - head)))
             }
-            return trimEnd(Array(chars.prefix(n))) + "…"
+            // At a word boundary when one is in reach ("· learned…", not "· learned 10:…"): it keeps ≥ 2/3 of the
+            // cut, and index > 2 skips a leading " · " (a long URL or hash still cuts mid-word).
+            var m = n
+            if m < chars.count, chars[m] != " ", let sp = chars[..<m].lastIndex(of: " "), sp > 2, 3 * sp >= 2 * n { m = sp }
+            return trimEnd(Array(chars.prefix(m))) + "…"
         }
         var lo = 0, hi = chars.count
         while lo < hi {
@@ -395,13 +407,19 @@ final class GhostView: NSView {
     private(set) var pillRect: CGRect = .zero
     /// The pill sits inside the element (explicit `inside`, or chosen from `avoid`): then no cursor, it would hide under it.
     private var docked = false
+    /// `inside` was asked for, but the field is too narrow for the label's head: placed like any other pill instead.
+    private let insideDeclined: Bool
     private let usable: CGRect // top-left coords, below the menu bar
 
     init(ghost: Ghost, style: Style, frame: CGRect, usable: CGRect) {
         self.ghost = ghost
         self.style = style
         self.usable = usable
-        pill = PillView(ghost: ghost, style: style, maxW: usable.width - 2 * style.clamp)
+        let inField = PillView(ghost: ghost, style: style, maxW: GhostView.pillCap(ghost, style, usable))
+        // "Do a….4.0 · lear…" docked in a 200 pt field says nothing; below the field (or wherever `avoid` allows) it
+        // reads whole.
+        insideDeclined = ghost.place == "inside" && inField.headCut
+        pill = insideDeclined ? PillView(ghost: ghost, style: style, maxW: usable.width - 2 * style.clamp) : inField
         super.init(frame: frame)
         wantsLayer = true
         pillRect = layoutPill()
@@ -456,7 +474,7 @@ final class GhostView: NSView {
         } else if let b = boxRect(), let r = ghost.rect {
             let above = CGPoint(x: b.minX, y: b.minY - style.gap - size.height)
             let right = CGPoint(x: b.maxX + style.gap, y: b.midY - size.height / 2)
-            switch ghost.place {
+            switch insideDeclined ? nil : ghost.place {
             case "above" where above.y >= usable.minY + style.clamp:
                 p = above
             case "right" where right.x + size.width <= usable.maxX - style.clamp:
@@ -486,9 +504,20 @@ final class GhostView: NSView {
         return CGRect(origin: p, size: size)
     }
 
+    /// The pill's widest: the usable screen, and for an explicit `inside` the field itself, so a long label gives way
+    /// (tail first) instead of spilling past the field's edges ("Do all 6 from v1.4.0 · learned…" in HC on the
+    /// tracker's 425 pt search box).
+    static func pillCap(_ g: Ghost, _ style: Style, _ usable: CGRect) -> CGFloat {
+        let screen = usable.width - 2 * style.clamp
+        guard g.place == "inside", g.kind != .text, let r = g.rect else { return screen }
+        return min(screen, r.w - 2 * insideInset(r, style.pillH))
+    }
+
+    private static func insideInset(_ r: Rect, _ pillH: CGFloat) -> CGFloat { max(4, (r.h - pillH) / 2) }
+
     /// Docked at the element's right end like a badge, equal space right and top/bottom.
     private func inside(_ r: Rect, _ size: CGSize) -> CGPoint {
-        let inset = max(4, (r.h - size.height) / 2)
+        let inset = GhostView.insideInset(r, size.height)
         return CGPoint(x: r.x + r.w - size.width - inset, y: r.y + (r.h - size.height) / 2)
     }
 
