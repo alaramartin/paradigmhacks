@@ -91,6 +91,8 @@ enum NativeApp {
                     if let v: String = AX.attr(el, kAXValueAttribute), v == want || v.contains(want) { break }
                     usleep(50_000)
                 }
+                // Calendar parses the quick event a beat after the text lands; a Return right then created an untitled event once.
+                usleep(300_000)
             }
             return nil
         default:
