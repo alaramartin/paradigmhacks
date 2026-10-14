@@ -223,17 +223,19 @@ async function flow4() {
     await inbox.close();
     const c = await tabFor("http://pharmacy.localhost:4005/refill");
     frontmost();
-    const steps: [string, string, string][] = [
-        ["4471-209", "Rx 4471-209", `document.getElementById("rx").value === "4471-209"`],
-        ["Oak St", "Select Oak St", `document.getElementById("loc").value === "Oak St"`],
-        ["5:30", "Click 5:30 pm", `document.querySelectorAll(".chips button")[1].getAttribute("aria-pressed") === "true"`],
-        ["Text me", "Check \"Text me when ready\"", `document.getElementById("sms").checked`],
-        ["Request refill", "Click Request refill", `false`],
+    // Like flow 1: a step whose ghost doesn't come (no model key, slow Jev) is done by hand, so the payment still gets checked.
+    const steps: [string, string, string, () => Promise<unknown>][] = [
+        ["4471-209", "Rx 4471-209", `document.getElementById("rx").value === "4471-209"`, () => typeInto(c, "#rx", "4471-209")],
+        ["Oak St", "Select Oak St", `document.getElementById("loc").value === "Oak St"`, () => choose(c, "#loc", "Oak St")],
+        ["5:30", "Click 5:30 pm", `document.querySelectorAll(".chips button")[1].getAttribute("aria-pressed") === "true"`, () => click(c, ".chips li:nth-of-type(2) button")],
+        ["Text me", "Check \"Text me when ready\"", `document.getElementById("sms").checked`, () => click(c, "#sms")],
+        ["Request refill", "Click Request refill", `false`, () => click(c, "#submit")],
     ];
-    for (const [needle, what, check] of steps) {
+    for (const [needle, what, check, byHand] of steps) {
         const g = await accept((g) => (g.label + " " + (g.ghostText ?? "")).includes(needle), what, 6000);
-        if (!g) break;
-        if (check !== "false") ok(await until(c, check, 4000), `${what} landed`);
+        if (!g) await byHand();
+        if (check !== "false") ok(await until(c, check, 4000), `${what} ${g ? "landed" : "(by hand)"}`);
+        await sleep(300);
     }
     const pay = await accept((g) => g.kind === "pay", "Pay $0.05 · pharmacy.localhost ⇥");
     if (pay) ok(pay.label === "Pay $0.05 · pharmacy.localhost ⇥", `pay label exact: "${pay.label}"`);
