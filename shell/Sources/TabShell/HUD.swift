@@ -163,11 +163,11 @@ final class HUDView: NSView {
         static let barY: CGFloat = 75, barH: CGFloat = 6       // the proportion bar
         static let subBase: CGFloat = 97                       // shares, clicks · keys
         static let divY: CGFloat = 109
-        static let chipY: CGFloat = 120, chipH: CGFloat = 20   // last prediction
-        static let statBase: CGFloat = 156                     // session totals
-        static let paidY: CGFloat = 167, paidH: CGFloat = 22   // last payment + ledger
-        static let footY: CGFloat = 198, footH: CGFloat = 16   // high contrast + mode
-        static let height: CGFloat = 227
+        static let chipY: CGFloat = 120, chipH: CGFloat = 20   // last prediction (not drawn: the HUD is reveal + payments only)
+        static let statBase: CGFloat = 156                     // session totals (not drawn)
+        static let paidY: CGFloat = 120, paidH: CGFloat = 22   // last payment + ledger
+        static let footY: CGFloat = 198, footH: CGFloat = 16   // high contrast + mode (not drawn)
+        static let height: CGFloat = 156
     }
 
     var hud = Hud() {
@@ -403,13 +403,11 @@ final class HUDView: NSView {
         drawReveal()
         NSColor.white.withAlphaComponent(0.10).setFill()
         CGRect(x: L.padH, y: L.divY, width: lb.width - 2 * L.padH, height: 1).fill()
-        drawPrediction()
-        drawPaid()
+        drawPaid() // human's call (14:40): no prediction rows, no high-contrast switch, no mode footer
         if !connected {
             ctx?.endTransparencyLayer()
             ctx?.setAlpha(1)
         }
-        drawFooter()
     }
 
     /// The end-of-demo reveal: [tab] did vs You did, a two-segment bar, and the shares.
