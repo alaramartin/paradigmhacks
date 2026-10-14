@@ -492,7 +492,7 @@ export class Brain {
             const timer = setTimeout(() => {
                 this.execWaiters.delete(ghostId);
                 resolve({ ok: false, error: "exec timeout" });
-            }, EXEC_TIMEOUT_MS);
+            }, action.app !== CHROME && action.op !== "switch_app" ? 8000 : EXEC_TIMEOUT_MS); // native steps wait up to 3 s for their target, then type
             this.execWaiters.set(ghostId, (r) => {
                 clearTimeout(timer);
                 this.execWaiters.delete(ghostId);

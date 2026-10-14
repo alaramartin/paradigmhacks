@@ -67,6 +67,17 @@ enum NativeApp {
         return found
     }
 
+    /// `element`, retried for up to `timeout` s: right after a cold launch Calendar has no window for a beat.
+    static func waitElement(pid: pid_t, path: String?, timeout: Double = 3) -> AXUIElement? {
+        guard let path else { return nil }
+        let end = Date().addingTimeInterval(timeout)
+        repeat {
+            if let el = element(pid: pid, path: path) { return el }
+            usleep(100_000)
+        } while Date() < end
+        return nil
+    }
+
     /// Execute one native step. Returns an error string, or nil on success. Call off the main thread.
     static func exec(_ a: Action, pid: pid_t) -> String? {
         switch a.op {
@@ -74,11 +85,11 @@ enum NativeApp {
             post(keyCode: keyCode(a.value ?? "Return"), pid: pid)
             return nil
         case "click":
-            guard let p = a.targetPath, let el = element(pid: pid, path: p) else { return "target not found: \(a.targetPath ?? "-")" }
+            guard let el = waitElement(pid: pid, path: a.targetPath) else { return "target not found: \(a.targetPath ?? "-")" }
             let r = AXUIElementPerformAction(el, kAXPressAction as CFString)
             return r == .success ? nil : "AXPress failed (\(r.rawValue))"
         case "type":
-            guard let p = a.targetPath, let el = element(pid: pid, path: p) else { return "target not found: \(a.targetPath ?? "-")" }
+            guard let el = waitElement(pid: pid, path: a.targetPath) else { return "target not found: \(a.targetPath ?? "-")" }
             if AX.role(el) == "AXPopUpButton" { return choose(el, item: a.value ?? "") }
             AXUIElementSetAttributeValue(el, kAXFocusedAttribute as CFString, kCFBooleanTrue)
             usleep(120_000)
