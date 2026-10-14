@@ -6,7 +6,7 @@
 #
 # Stops TabShell, the hub on :7800, the debug Chrome (only the one using /tmp/tab-chrome; your normal Chrome is untouched),
 # and the agents' gstack browse server on :9407. It deletes the signing keychain and takes it off the keychain search list,
-# resets TabShell's Accessibility entry, and deletes ~/.tab and /tmp/tab-chrome.
+# resets TabShell's Accessibility entry and saved HUD position, and deletes ~/.tab and /tmp/tab-chrome.
 # It does NOT touch the Screen Recording / Accessibility grants you gave your terminal app. Revoke those in
 # System Settings → Privacy & Security if you want them gone.
 set -uo pipefail
@@ -46,6 +46,9 @@ fi
 # TabShell's privacy entries (harmless if there are none).
 run tccutil reset Accessibility dev.tab.shell
 run tccutil reset ListenEvent dev.tab.shell
+
+# Saved HUD position/visibility (UserDefaults domain of the app).
+defaults read dev.tab.shell >/dev/null 2>&1 && run defaults delete dev.tab.shell
 
 # Files outside the repo.
 [ -d "$HOME/.tab" ] && run rm -rf "$HOME/.tab"
