@@ -172,7 +172,7 @@ struct PillContent {
         // The pattern rule's ghosts (PLAN pill formats) get a loop: "teach once, then repeat" at a glance. "Do all " is a
         // saved workflow recalled on a later visit (B's `PatternEngine.recall`): the same unit, so the same loop.
         if g.kind == .action, ["Repeat for ", "Do the remaining ", "Do all "].contains(where: label.hasPrefix) { icon = .repeat_ }
-        // Overlay's own state after Tab on a pay ghost (not a hub label): a spinner where the keycap was.
+        // Overlay's own state after Tab on a pay ghost (not a hub label): a spinner in the icon slot, and no keycap.
         if g.kind == .pay, label.hasPrefix("Paying") { icon = .spinner }
         key = g.kind == .blocked ? "esc" : g.kind == .done ? nil : (hadTab ? "tab" : nil)
         if let r = label.range(of: " · ") {
@@ -433,10 +433,11 @@ final class GhostView: NSView {
         self.ghost = ghost
         self.style = style
         self.usable = usable
-        let inField = PillView(ghost: ghost, style: style, maxW: GhostView.pillCap(ghost, style, usable))
-        // "Do a….4.0 · lear…" docked in a 200 pt field says nothing; below the field (or wherever `avoid` allows) it
-        // reads whole.
-        insideDeclined = ghost.place == "inside" && inField.headCut
+        let cap = GhostView.pillCap(ghost, style, usable)
+        let inField = PillView(ghost: ghost, style: style, maxW: cap)
+        // "Do a….4.0 · lear…" docked in a 200 pt field says nothing, and a pill wider than its field (the label room
+        // never drops below 80 pt) spills out of it; below the field (or wherever `avoid` allows) it reads whole.
+        insideDeclined = ghost.place == "inside" && (inField.headCut || inField.size.width > cap)
         pill = insideDeclined ? PillView(ghost: ghost, style: style, maxW: usable.width - 2 * style.clamp) : inField
         super.init(frame: frame)
         wantsLayer = true
@@ -675,6 +676,7 @@ final class Overlay {
     /// and a blank screen at the moment money moves reads as a hang. Not `current`: Tab and Esc pass through meanwhile.
     private var paying: (ghost: Ghost, appear: DispatchWorkItem, timeout: DispatchWorkItem, spin: Timer)?
     static var payingTimeout: Double = 45
+    var isPaying: Bool { paying != nil }
 
     /// The covered display's frame and visible frame (below the menu bar, above the Dock), in protocol points.
     private var screenTL: CGRect = .zero
@@ -701,7 +703,7 @@ final class Overlay {
         NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
             guard let self else { return }
             self.screenTL = .zero // force a re-frame
-            if let cur = self.current { self.cover(self.screen(for: cur)); self.redraw() } else { self.cover(NSScreen.screens.first) }
+            if let g = self.current ?? self.paying?.ghost { self.cover(self.screen(for: g)); self.redraw() } else { self.cover(NSScreen.screens.first) }
         }
     }
 

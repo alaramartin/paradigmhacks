@@ -89,6 +89,8 @@ proc_start() {
     s="$(LC_ALL=C ps -o lstart= -p "$1" 2>/dev/null | sed 's/[[:space:]]*$//')"
     [ -n "$s" ] && LC_ALL=C date -j -f "%a %b %d %T %Y" "$s" +%s 2>/dev/null
 }
+# True if pid $1 started before epoch second $2 (false when its start time can't be read).
+started_before() { local t; t="$(proc_start "$1")"; [ -n "$t" ] && [ "$t" -lt "$2" ]; }
 sod() { # HH:MM:SS → seconds of the day
     local h m s
     IFS=: read -r h m s <<<"$1"
@@ -614,12 +616,12 @@ if [ -f "$ENV" ]; then
     env_m="$(stat -f %m "$ENV" 2>/dev/null)"
     stale=""
     demo_pid="$(listen_pid 4001)"
-    [ -n "$demo_pid" ] && [ "$(proc_start "$demo_pid")" -lt "$env_m" ] 2>/dev/null && stale="$stale${stale:+, }the demo sites (npm run demo)"
+    [ -n "$demo_pid" ] && started_before "$demo_pid" "$env_m" && stale="$stale${stale:+, }the demo sites (npm run demo)"
     for p in ${web_pids//,/ }; do
-        [ "$(proc_start "$p")" -lt "$env_m" ] 2>/dev/null && { stale="$stale${stale:+, }web (npm start)"; break; }
+        started_before "$p" "$env_m" && { stale="$stale${stale:+, }web (npm start)"; break; }
     done
     [ -n "$stale" ] && fail ".env changed at $(hms "$env_m"), after $stale started, so they still use the old rail or keys" "restart them"
-    [ -n "$hub_pid" ] && [ "$(proc_start "$hub_pid")" -lt "$env_m" ] 2>/dev/null &&
+    [ -n "$hub_pid" ] && started_before "$hub_pid" "$env_m" &&
         warn ".env changed at $(hms "$env_m"), after the hub started (it reads the model key once)" "restart it if you changed the model key: cd brain && npm start"
 fi
 
@@ -630,11 +632,21 @@ if [ "$OFFLINE" = 1 ]; then
 elif [ "$KEY_OK" = 1 ] && [ -d "$REPO/web/node_modules" ]; then
     bout="$(cd "$REPO/web" && tmo_group 25 npm run -s balance 2>&1)"
     rc=$?
-    line="$(grep -E '[0-9]' <<<"$bout" | grep -viE 'error|warn|^[[:space:]]+at ' | tail -1 | cut -c1-160)"
-    # The first "<amount> <token>" in balance's output, e.g. "payer 0x4A86…: 1.25 USDC (Base Sepolia)".
+    # The payer's line on this rail's chain (else any payer line, else the first line with a number), then its first
+    # "<amount> <token>", e.g. "payer 0x4A86…: 1.25 USDC (Base Sepolia)".
+    nums="$(grep -E '[0-9]' <<<"$bout" | grep -viE 'error|warn|^[[:space:]]+at ')"
+    chain="$([ "$RAIL" = mpp ] && echo 'tempo|moderato' || echo 'base')"
+    line="$( (grep -i 'payer' <<<"$nums" | grep -iE "$chain"; grep -i 'payer' <<<"$nums"; echo "$nums") | grep . | head -1 | cut -c1-160)"
     amt="$(grep -oE '(^|[[:space:]:])[0-9][0-9,]*(\.[0-9]+)?[[:space:]]+[A-Za-z][A-Za-z0-9.]*' <<<"$line" | head -1 | sed 's/^[[:space:]:]*//')"
     num="$(sed -E 's/,//g; s/(\.[0-9]*[1-9])0+$/\1/; s/\.0+$//' <<<"${amt%%[[:space:]]*}")" tok="${amt##*[[:space:]]}"
-    if [ "$rc" != 0 ]; then
+    # balance.ts may not follow PAY_RAIL yet (C's half of the MPP change): a balance from the other rail's chain says
+    # nothing about this one.
+    other=""
+    [ "$RAIL" = mpp ] && grep -qi 'base sepolia' <<<"$line" && other="Base Sepolia (x402)"
+    [ "$RAIL" = x402 ] && grep -qiE 'tempo|moderato' <<<"$line" && other="Tempo (mpp)"
+    if [ "$rc" = 0 ] && [ -n "$other" ]; then
+        warn "npm run balance reported $other, not the $RAIL rail: ${line:-?}" "pull C's rail-aware web/scripts/balance.ts, or check the $RAIL payer by hand"
+    elif [ "$rc" != 0 ]; then
         fail "npm run balance failed ($( [ "$rc" = 142 ] && echo "no answer in 25 s" || grep -iE 'error' <<<"$bout" | head -1 | cut -c1-140))" "check the network, then cd web && npm run balance"
     elif [ -z "$num" ]; then
         warn "couldn't read an amount from npm run balance: $(grep -v '^[[:space:]]*$' <<<"$bout" | tail -1 | cut -c1-140 | grep . || echo "no output")" "cd web && npm run balance"

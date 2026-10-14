@@ -238,6 +238,7 @@ final class Shell: NSObject, InputTapDelegate {
     // MARK: InputTapDelegate
 
     var visibleGhost: Ghost? { overlay.current }
+    var paymentSettling: Bool { overlay.isPaying }
     var ownRects: [CGRect] { [hud.screenRect, reveal.screenRect] }
 
     func tapAccept(_ g: Ghost) {
