@@ -50,6 +50,7 @@ class Tab {
     seq = 0;
     lastClick: Rect | undefined;
     lastActive = 0;
+    visible = false;
     constructor(
         public id: string,
         public client: Client,
@@ -63,6 +64,7 @@ class Tab {
         const m = JSON.parse(raw);
         if (m.kind === "state") {
             this.seq++;
+            this.visible = !!m.visible;
             this.state = { type: "state", source: "web", app: CHROME, window: m.title || m.url, url: m.url, focused: m.focused, elements: m.elements, seq: this.seq, ts: Date.now() };
             if (m.focused) {
                 this.lastActive = Date.now();
@@ -110,25 +112,31 @@ async function discover(): Promise<void> {
     }
 }
 
-/** The tab an action belongs to: by url, else the focused one, else the most recently active. */
+/** The tab an action belongs to: by url (focused, then visible, then most recently active among matches), else the focused one. */
 function tabFor(url?: string): Tab | undefined {
+    const rank = (ts: Tab[]) => ts.sort((a, b) => Number(!!b.state?.focused) - Number(!!a.state?.focused) || Number(b.visible) - Number(a.visible) || b.lastActive - a.lastActive)[0];
     const all = [...tabs.values()];
     if (url) {
-        const exact = all.find((t) => t.state?.url === url);
-        if (exact) return exact;
         const strip = (u: string) => u.replace(/[?#].*$/, "");
-        const near = all.find((t) => t.state?.url && strip(t.state.url) === strip(url));
-        if (near) return near;
+        const exact = all.filter((t) => t.state?.url === url);
+        if (exact.length) return rank(exact);
+        const near = all.filter((t) => t.state?.url && strip(t.state.url) === strip(url));
+        if (near.length) return rank(near);
     }
-    return all.find((t) => t.state?.focused) ?? all.sort((a, b) => b.lastActive - a.lastActive)[0];
+    return rank(all);
 }
 
 // ---------------- exec ----------------
 
+let execQueue: Promise<unknown> = Promise.resolve();
+
 async function onHub(m: any): Promise<void> {
     switch (m.type) {
         case "exec": {
-            const r: { ok: boolean; error?: string } = await exec(m.action as Action).then(
+            // One action at a time, in order: a click must land before the next step looks at the page.
+            const run = execQueue.then(() => exec(m.action as Action));
+            execQueue = run.catch(() => {});
+            const r: { ok: boolean; error?: string } = await run.then(
                 () => ({ ok: true }),
                 (e: Error) => ({ ok: false, error: e.message }),
             );
@@ -189,8 +197,16 @@ async function exec(a: Action): Promise<void> {
 
     if (a.op === "click") {
         tab.lastClick = info.screen; // measured before the click: it may navigate away
+        // Input events are processed asynchronously; wait until the page has seen the click (and its handlers ran),
+        // so the next step doesn't overtake it. Navigation destroys the context, which also counts as done.
+        const seen = Runtime.evaluate({
+            expression: `new Promise(r => { document.addEventListener("click", () => setTimeout(() => r(true), 0), { once: true, capture: true }); setTimeout(() => r(false), 1000); })`,
+            awaitPromise: true,
+        }).catch(() => null);
         for (const type of ["mouseMoved", "mousePressed", "mouseReleased"] as const)
             await Input.dispatchMouseEvent({ type, x: info.x, y: info.y, button: "left", clickCount: type === "mouseMoved" ? 0 : 1 });
+        const r = await seen;
+        if (r && !r.exceptionDetails && r.result.value === false) throw new Error("click not received by the page");
         return;
     }
     if (a.op === "type") {

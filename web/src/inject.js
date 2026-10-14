@@ -60,7 +60,9 @@
             const p = a.parentElement;
             if (!p || p === document.body) break;
             const sibs = [...p.children].filter((c) => sig(c) === sig(a));
-            if (sibs.length >= 2) {
+            // Semantic lists count even when filtered down to one item (a search box narrowing a <ul>).
+            const semantic = ["UL", "OL", "TBODY", "MENU"].includes(p.tagName) && ["LI", "TR"].includes(a.tagName);
+            if (sibs.length >= 2 || semantic) {
                 const field = relPath(a, el);
                 return { key: cssPath(p), index: sibs.indexOf(a), ...(field ? { field } : {}) };
             }
@@ -181,7 +183,7 @@
     function sendState(reason) {
         clearTimeout(timer);
         timer = null;
-        emit({ kind: "state", reason, url: location.href, title: document.title, focused: document.hasFocus() && document.visibilityState === "visible", elements: collect() });
+        emit({ kind: "state", reason, url: location.href, title: document.title, visible: document.visibilityState === "visible", focused: document.hasFocus() && document.visibilityState === "visible", elements: collect() });
     }
     const soon = (reason) => {
         if (!timer) timer = setTimeout(() => sendState(reason), 150);
