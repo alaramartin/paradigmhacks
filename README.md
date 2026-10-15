@@ -1,5 +1,7 @@
 # Tab
 
+> **Status:** working proof of concept, built at a hackathon. A general release is in the works. Follow [@alara_martin_](https://x.com/alara_martin_) for updates.
+
 Tab predicts your next action on your Mac and shows it as a gray "ghost": a highlight on the button you're about to click, or gray text in the field you're about to fill. Press **Tab** to do it. Press **Esc** to dismiss it.
 
 When the next step is an HTTP 402 paywall ([x402](https://x402.org)), the ghost becomes a payment, e.g. `Pay $0.30 · tickets.localhost ⇥`, and Tab pays with testnet USDC on Base Sepolia. Before it pays, Tab checks that the amount it's asked for matches what the page shows, and blocks the payment if they don't match. Do a chore once, and Tab repeats it for the next item in one keystroke, with no model call.
