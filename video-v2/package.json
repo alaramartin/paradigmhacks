@@ -1,0 +1,25 @@
+{
+  "name": "tab-video-v2",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "take": "tsx rec/take.mts"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.536",
+    "@remotion/media": "4.0.536",
+    "@remotion/transitions": "4.0.536",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "remotion": "4.0.536"
+  },
+  "devDependencies": {
+    "@types/react": "19.1.8",
+    "@types/ws": "^8.18.1",
+    "chrome-remote-interface": "^0.33.3",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3",
+    "ws": "^8.18.3"
+  }
+}
